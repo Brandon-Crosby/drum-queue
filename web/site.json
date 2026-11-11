@@ -1,7 +1,7 @@
 {
-  "SITE_NAME": "DrumSplit",
-  "DOMAIN": "drumsplit.example",
-  "CONTACT_EMAIL": "hello@drumsplit.example",
+  "SITE_NAME": "DrumSplitter",
+  "DOMAIN": "drumsplitter.com",
+  "CONTACT_EMAIL": "hello@drumsplitter.com",
   "ADSENSE_CLIENT": "",
   "ADSENSE_WAIT_SLOT": "",
   "TURNSTILE_SITEKEY": "",
