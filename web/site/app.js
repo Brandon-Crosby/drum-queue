@@ -103,6 +103,7 @@ async function start(f) {
 function openJob(name) {
   $('#job').style.display = 'block'; $('#jname').textContent = name; $('#jmeta').textContent = '';
   $('#result').hidden = true; $('#steps').hidden = false; $('#tracks').replaceChildren(); $('#cancelrow').hidden = true;
+  logReset(); $('#log').hidden = false;
   $('#job').scrollIntoView({ behavior: 'smooth', block: 'start' });
   showWaitAd();
 }
@@ -114,6 +115,38 @@ function setStep(k, pct) {
     const base = li.dataset.base || (li.dataset.base = li.lastChild.textContent);
     li.lastChild.textContent = base + (j === i && k === 'upload' && pct != null ? ` (${pct}%)` : '');
   });
+}
+// ---------- process log: short technical lines under the steps. Lines for the GPU steps describe
+// what that step really does; one-shot lines come from the server with the song's real numbers.
+const LOGS = {
+  queue: ['Requesting a GPU · L4 → A10 → T4 → L40S → A100', 'Waiting for a container to start',
+          'Cold start: loading both separation models into GPU memory'],
+  mix: ['Decoding audio · 44.1 kHz stereo', 'Demucs ensemble · one fine-tuned model per source',
+        'Processing in overlapping 7.8 s windows', 'Separating drums from bass, vocals and melodic parts'],
+  kit: ['6-stem drum network · kick · snare · toms · hi-hat · ride · crash', 'Overlap ×4 to smooth window edges',
+        'Writing one stem per kit piece'],
+  finish: ['Encoding MP3 previews for the mixer'],
+};
+const LOG = { lines: [], step: '', i: 0, t: 0, last: '' };
+function logPush(line) {
+  if (!line || line === LOG.lines[LOG.lines.length - 1]) return;
+  LOG.lines.push(line); if (LOG.lines.length > 40) LOG.lines.shift(); logDraw();
+}
+function logDraw() {
+  const box = $('#log'), show = LOG.lines.slice(-6);
+  box.replaceChildren(...show.map((l, i) => el('div', i === show.length - 1 ? 'now' : null, '› ' + l)));
+}
+function logReset() { Object.assign(LOG, { lines: [], step: '', i: 0, t: 0, last: '' }); logDraw(); }
+function logTick(j, k) {
+  const [stage, detail] = (j.stage || '').split(' — ');
+  if (k !== LOG.step) { LOG.step = k; LOG.i = 0; LOG.t = 0; }
+  if (detail) {                                                  // real numbers from the server
+    for (const l of (j.log && j.log.length ? j.log : [detail])) if (!LOG.lines.includes(l)) logPush(l);
+    return;
+  }
+  if (stage && stage !== LOG.last && j.status === 'running') { LOG.last = stage; logPush(stage); }
+  const now = Date.now(), lines = LOGS[k] || [];
+  if (LOG.i < lines.length && now - LOG.t > 3500) { logPush(lines[LOG.i++]); LOG.t = now; }
 }
 function stepOf(j) {
   if (j.status === 'queued') return 'queue';
@@ -133,8 +166,8 @@ async function poll(id) {
   const live = j.status === 'queued' || j.status === 'running';
   $('#cancelrow').hidden = !live;
   if (j.status === 'done') return showResult(id, j);
-  if (j.status === 'error') { $('#steps').hidden = true; showMsg(j.error || 'Something went wrong.'); loadLimits(); return; }
-  showMsg(''); setStep(stepOf(j));
+  if (j.status === 'error') { $('#steps').hidden = true; $('#log').hidden = true; showMsg(j.error || 'Something went wrong.'); loadLimits(); return; }
+  showMsg(''); const k = stepOf(j); setStep(k); logTick(j, k);
   $('#jmeta').textContent = mmss(Date.now() / 1000 - j.created) + etaText(j);
   pollT = setTimeout(() => poll(id), 2000);
 }
@@ -180,7 +213,7 @@ function showWaitAd() {
 // ---------- result + mixer
 let MX = null, AC = null, raf = 0;
 function showResult(id, j) {
-  $('#steps').hidden = true; $('#result').hidden = false; showMsg('');
+  $('#steps').hidden = true; $('#log').hidden = true; $('#result').hidden = false; showMsg('');
   $('#jmeta').textContent = [j.bpm ? Math.round(j.bpm) + ' BPM' : null, j.duration ? mmss(j.duration) : null].filter(Boolean).join(' · ');
   $('#zipkit').href = `/api/jobs/${id}/zip?kit=1`; $('#zipall').href = `/api/jobs/${id}/zip`;
   const left = Math.max(0, j.expires - Date.now() / 1000);

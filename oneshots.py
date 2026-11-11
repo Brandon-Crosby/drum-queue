@@ -158,8 +158,9 @@ def write(y, h, path):
     sf.write(str(path), seg.T, SR, subtype='PCM_24')
 
 
-def make_kit(split_dir, out_dir, prefix='', stems=None):
+def make_kit(split_dir, out_dir, prefix='', stems=None, log=lambda line: None):
     """split_dir: folder with kick.wav, snare.wav, ... (and optionally bass/vocals/other).
+    log(line): progress lines with the real numbers, shown to the visitor while it works.
     Returns [{name, file, piece, label, count, bleed_db, seconds}] for each one-shot written."""
     split_dir, out_dir = Path(split_dir), Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -168,6 +169,7 @@ def make_kit(split_dir, out_dir, prefix='', stems=None):
         found.update({k: Path(v) for k, v in stems.items()})
     # Bleed only comes from what plays at the same time and leaks into a drum stem: the other kit
     # pieces and the bass/808. Vocals and chords don't count against a hit.
+    log('Loading kit stems · 44.1 kHz')
     audio = {k: _load(p) for k, p in found.items() if k in KIT or k == 'bass'}
     if not audio:
         return []
@@ -179,15 +181,26 @@ def make_kit(split_dir, out_dir, prefix='', stems=None):
         if piece not in audio:
             continue
         y = np.pad(audio[piece], ((0, 0), (0, n - audio[piece].shape[1])))
-        hs = [h for h in hits(piece, y, total - mono[piece]) if h['bleed'] < MAX_BLEED]
+        name = LABEL[piece].lower().replace('hat', 'hi-hat')
+        log(f'{name}: scanning for transients')
+        found_hits = hits(piece, y, total - mono[piece])
+        hs = [h for h in found_hits if h['bleed'] < MAX_BLEED]
+        if not found_hits:
+            log(f'{name}: stem is silent · skipped')
+            continue
+        log(f'{name}: {len(found_hits)} transients → {len(hs)} pass bleed gate (−{abs(MAX_BLEED):.0f} dB)')
         chosen = pick(piece, hs, y.mean(axis=0))
+        log(f'{name}: {len(chosen)} distinct sound{"s" if len(chosen) != 1 else ""} by {int(ATTACK * 1000)} ms attack fingerprint'
+            if chosen else f'{name}: no sound repeats cleanly · skipped')
         for i, h in enumerate(chosen, 1):
+            log(f'Rendering {LABEL[piece]} {i} · {(h["end"] - h["start"]) / SR:.2f} s · 24-bit · peak −1 dBFS')
             label = f'{LABEL[piece]} {i}'
             fname = f'{prefix}{label}.wav'
             write(y, h, out_dir / fname)
             result.append(dict(name=fname, file=str(out_dir / fname), piece=piece, label=label,
                                count=h['count'], bleed_db=round(h['bleed'], 1),
                                seconds=round((h['end'] - h['start']) / SR, 2), at=round(h['start'] / SR, 2)))
+    log(f'Kit ready · {len(result)} one-shots')
     return result
 
 
