@@ -19,7 +19,9 @@ import numpy as np
 KIT = ['kick', 'snare', 'toms', 'hh', 'ride', 'crash']
 LABEL = {'kick': 'Kick', 'snare': 'Snare', 'toms': 'Tom', 'hh': 'Hat', 'ride': 'Ride', 'crash': 'Crash'}
 MAX_LEN = {'kick': 1.2, 'snare': 1.0, 'toms': 1.4, 'hh': 0.6, 'ride': 2.0, 'crash': 3.0}   # seconds
-MAX_SOUNDS = {'kick': 2, 'snare': 3, 'toms': 3, 'hh': 3, 'ride': 1, 'crash': 2}
+MAX_SOUNDS = {'kick': 6, 'snare': 6, 'toms': 4, 'hh': 4, 'ride': 2, 'crash': 3}
+SAME = 3.0          # dB: average attack difference under which two hits count as the same sample
+MIN_HITS = 3        # a sound has to come back at least this often (one-offs are usually bleed)
 SR = 44100
 MAX_BLEED = 0.0     # dB: skip hits where the other drums + bass are louder than the hit itself
 
@@ -39,16 +41,17 @@ def _rms(x):
     return float(np.sqrt(np.mean(np.square(x)))) if x.size else 0.0
 
 
+ATTACK = 0.06       # seconds: the click + punch that identifies a sample, before tails/808s/bleed smear it
+
+
 def _features(seg):
-    """Timbre fingerprint of a hit's attack, for grouping alike hits."""
+    """Fingerprint of a hit's attack (how its spectrum moves over the first 60 ms), for grouping
+    hits of the same sample. Loudness is removed, so a softer hit of the same kick still matches."""
     import librosa
-    a = seg[:int(0.15 * SR)]
-    if len(a) < 2048:
-        a = np.pad(a, (0, 2048 - len(a)))
-    S = np.abs(librosa.stft(a, n_fft=2048, hop_length=512)) + 1e-9
-    mel = librosa.feature.melspectrogram(S=S ** 2, sr=SR, n_mels=40)
-    v = librosa.power_to_db(mel).mean(axis=1)
-    return v - v.max()                           # shape only, not loudness
+    n = int(ATTACK * SR)
+    a = np.pad(seg[:n], (0, max(0, n - len(seg))))
+    mel = librosa.feature.melspectrogram(y=a, sr=SR, n_fft=1024, hop_length=256, n_mels=32)
+    return np.maximum(librosa.power_to_db(mel, ref=np.max), -50)
 
 
 def hits(piece, y, others):
@@ -119,13 +122,12 @@ def pick(piece, hs, mono=None):
     leaders, members = [], []
     for i, f in enumerate(fps):
         d = [np.mean(np.abs(f - fps[l])) for l in leaders]
-        if d and min(d) < 4.0:                   # dB average difference across mel bands
+        if d and min(d) < SAME:
             members[int(np.argmin(d))].append(i)
         else:
             leaders.append(i)
             members.append([i])
-    min_size = max(3, int(0.08 * len(hs)))       # a "sound" has to recur, not be one odd hit
-    groups = [(leaders[k], m) for k, m in enumerate(members) if len(m) >= min_size]
+    groups = [(leaders[k], m) for k, m in enumerate(members) if len(m) >= MIN_HITS]
     groups.sort(key=lambda g: -len(g[1]))
     # Bleed can make one sample look like two groups; if two picks are the same waveform, keep one.
     kept = []
