@@ -88,3 +88,11 @@ details p{color:var(--mute);margin:8px 0 0}
 .guides a.card{text-decoration:none;color:var(--ink);display:block}.guides a.card:hover{border-color:var(--acc)}
 .guides a.card span{display:block;color:var(--mute);font-size:14px;margin-top:4px}
 :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+.content .meta{color:var(--mute);font-size:14px;margin:-4px 0 10px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0 14px}
+.tbl th,.tbl td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+.tbl th{color:var(--mute);font-weight:600;white-space:nowrap}
+.tbl td small{display:block;color:var(--mute);font-size:12px;margin-top:2px}
+.tbl td:first-child{font-weight:600;min-width:7.5em}
+.tbl td:last-child{min-width:6.5em}

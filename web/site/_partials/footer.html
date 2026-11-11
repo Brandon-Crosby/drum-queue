@@ -1,5 +1,14 @@
 <footer class="foot"><div class="wrap">
   <p><strong>{{SITE_NAME}}</strong> splits the drums out of any song into kick, snare, toms, hi-hat, ride and crash. Free, with ads.</p>
-  <nav><a href="/guides/">Guides</a><a href="/privacy">Privacy</a><a href="/terms">Terms &amp; copyright</a><a href="mailto:{{CONTACT_EMAIL}}">Contact</a></nav>
+  <nav><a href="/guides/">Guides</a><a href="/privacy">Privacy</a><a href="/terms">Terms &amp; copyright</a><a href="/privacy#cookies" id="privacy-choices">Privacy choices</a><a href="mailto:{{CONTACT_EMAIL}}">Contact</a></nav>
   <p class="fine">Uploads are deleted right after splitting; results are deleted after 24 hours. Only upload audio you have the right to use.</p>
 </div></footer>
+<script>
+// "Privacy choices": reopens Google's consent message (Privacy & messaging). Falls back to the policy page.
+document.getElementById('privacy-choices').addEventListener('click', function (e) {
+  var fc = window.googlefc;
+  if (fc && fc.callbackQueue && typeof fc.showRevocationMessage === 'function') {
+    e.preventDefault(); fc.callbackQueue.push(fc.showRevocationMessage);
+  }
+});
+</script>
