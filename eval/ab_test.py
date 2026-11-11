@@ -93,11 +93,15 @@ def run(start: int, seconds: int):
             est = W / f'kit_{a}_{b}'
             est.mkdir()
             for o in res:
-                lab = Path(o).stem.split('_(')[-1].rstrip(')').lower()
+                name = Path(o).name                  # 'drums_now_(Kick)_MDX23C-....wav' -> 'kick'
+                lab = name[name.rfind('(') + 1:name.rfind(')')].strip().lower()
                 shutil.move(str(W / 'work' / Path(o).name), est / f'{lab}.wav')
             j = W / f'{a}_{b}.json'
-            subprocess.run(['python', '/root/score.py', str(W / 'truth'), str(est), '--json', str(j),
-                            '--label', f'{a}/{b}'], check=True, capture_output=True)
+            p = subprocess.run(['python', '/root/score.py', str(W / 'truth'), str(est), '--json', str(j),
+                                '--label', f'{a}/{b}'], capture_output=True, text=True)
+            if p.returncode:
+                raise RuntimeError(f'score.py failed on {a}/{b} (files: {sorted(x.name for x in est.iterdir())}):\n'
+                                   + p.stdout[-1500:] + p.stderr[-1500:])
             out[f'{a}/{b}'] = json.loads(j.read_text())
     return {'scores': out, 'seconds': secs, 'clip': [start, seconds]}
 
