@@ -3,6 +3,7 @@ injected, so the same code runs locally (local_dev.py) and on Modal (modal_app.p
 
   POST /api/jobs                       upload a song -> {id}
   GET  /api/jobs/{id}                  status, stage, stems
+  POST /api/jobs/{id}/cancel           stop a split; it doesn't count toward the daily limit
   GET  /api/jobs/{id}/files/{name}     a stem (?dl=1 to download) or preview/<name>
   GET  /api/jobs/{id}/zip              all stems (?kit=1 for kit pieces only)
   GET  /api/limits                     splits left today for this visitor
@@ -154,9 +155,14 @@ def audio_seconds(path):
 
 
 # --------------------------------------------------------------------- app
-def create_app(root, store, submit, settings=None, refresh=lambda: None):
+QUEUE_TIMEOUT = 8 * 60      # waiting this long for a GPU = give up and hand the split back
+RUN_TIMEOUT = 20 * 60       # a split running this long means the GPU worker died
+
+
+def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=lambda call_id: None):
     """root: folder holding jobs/<id>/...; store: job records + counters;
-    submit(job_id): start the GPU work; refresh(): see files another container just wrote."""
+    submit(job_id): start the GPU work, may return a call id; cancel(call_id): stop it;
+    refresh(): see files another container just wrote."""
     S = settings or Settings()
     root = Path(root)
     app = FastAPI(title='Drum splitter API', docs_url=None, redoc_url=None)
@@ -173,6 +179,22 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None):
     def counts(vkey):
         d = today()
         return store.get(f'n:{d}:{vkey}', 0), store.get(f'n:{d}:all', 0)
+
+    def stop_job(jid, j, msg, why):
+        """Cancel a queued/running split and give the visitor their split back (once)."""
+        if j.get('status') not in ('queued', 'running'):
+            return j
+        try:
+            if j.get('call'):
+                cancel(j['call'])
+        except Exception as e:
+            print(f'cancel {jid} failed: {e!r}', flush=True)
+        if not j.get('refunded') and j.get('day') and j.get('vkey'):
+            for k in (f"n:{j['day']}:{j['vkey']}", f"n:{j['day']}:all"):
+                store.put(k, max(0, store.get(k, 0) - 1))
+        bump(store, f'stats:{today()}:api', **{why: 1})
+        return update_job(store, jid, status='error', stage='Stopped', error=msg, cancelled=True,
+                          refunded=True, finished=time.time())
 
     def public(j, jid):
         keep = {k: j.get(k) for k in ('status', 'stage', 'error', 'name', 'bpm', 'duration', 'note',
@@ -243,8 +265,10 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None):
         bump(store, f'stats:{today()}:api', started=1, uploaders=1 if mine == 0 else 0,
              countries={country or '??': 1}, regions={loc: 1})
         update_job(store, jid, status='queued', stage='Waiting for a GPU', name=name, created=time.time(),
-                   stems=[], error='')
-        submit(jid)
+                   stems=[], error='', day=today(), vkey=vkey)
+        call = submit(jid)
+        if call:
+            update_job(store, jid, call=call)
         return {'id': jid, 'left': max(0, S.per_ip_per_day - mine - 1)}
 
     def job_or_404(jid):
@@ -257,7 +281,21 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None):
 
     @app.get('/api/jobs/{jid}')
     def get_job(jid: str):
-        return public(job_or_404(jid), jid)
+        j = job_or_404(jid)
+        now = time.time()
+        # Watchdog: nobody should sit on "Waiting for a free GPU" (or a dead worker) forever.
+        if j.get('status') == 'queued' and now - (j.get('created') or now) > QUEUE_TIMEOUT:
+            j = stop_job(jid, j, "Our GPUs are all busy right now, so we stopped this one. It didn't count "
+                                 "toward your free splits. Please try again in a few minutes.", 'stalled')
+        elif j.get('status') == 'running' and now - (j.get('started') or now) > RUN_TIMEOUT:
+            j = stop_job(jid, j, "This split stopped responding, so we cancelled it. It didn't count toward "
+                                 "your free splits. Please try again.", 'stalled')
+        return public(j, jid)
+
+    @app.post('/api/jobs/{jid}/cancel')
+    def cancel_job(jid: str):
+        j = stop_job(jid, job_or_404(jid), "Cancelled. It didn't count toward your free splits.", 'cancelled')
+        return public(j, jid)
 
     def stem_file(jid, j, name, preview=False):
         if not SAFE_FILE.match(name):
@@ -319,11 +357,23 @@ def _ascii(s):
 
 
 # ----------------------------------------------------------------- the GPU job
+class Cancelled(Exception):
+    pass
+
+
+def _progress(store, jid, stage):
+    if (store.get(f'job:{jid}') or {}).get('cancelled'):
+        raise Cancelled()                        # stop between steps instead of finishing for nobody
+    update_job(store, jid, stage=stage)
+
+
 def run_job(jid, root, store, models, mix_model='htdemucs_ft', max_seconds=None):
     """Runs where the GPU is. Splits jobs/<id>/input/<song> into jobs/<id>/out/<song>/."""
-    import engine
     root = Path(root)
     j = store.get(f'job:{jid}') or {}
+    if j.get('cancelled'):                       # visitor cancelled (or watchdog gave up) before we got a GPU
+        return
+    import engine
     src = next((root / 'jobs' / jid / 'input').glob('*'), None)
     if not src:
         update_job(store, jid, status='error', stage='Failed', error='Upload is missing. Try again.')
@@ -334,13 +384,19 @@ def run_job(jid, root, store, models, mix_model='htdemucs_ft', max_seconds=None)
             dict(name=j.get('name', src.name), src=str(src),
                  opts=dict(model=mix_model, overlap=4, keep_full=True)),
             root / 'jobs' / jid / 'out', models,
-            lambda s: update_job(store, jid, stage=s), preview_fmt='mp3', max_seconds=max_seconds)
+            lambda st: _progress(store, jid, st), preview_fmt='mp3', max_seconds=max_seconds)
         done = time.time()
+        if (store.get(f'job:{jid}') or {}).get('cancelled'):
+            return
         update_job(store, jid, status='done', stage='Done', finished=done, **res)
         started = (store.get(f'job:{jid}') or {}).get('started') or done
         bump(store, f'stats:{today()}:gpu', done=1, audio_min=(res.get('duration') or 0) / 60,
              gpu_s=done - started, wait_s=started - (j.get('created') or started))
+    except Cancelled:
+        pass
     except Exception as e:
+        if (store.get(f'job:{jid}') or {}).get('cancelled'):
+            return
         msg = str(e) if isinstance(e, ValueError) else 'Something went wrong while splitting this song.'
         if type(e).__name__ in ('NoBackendError', 'LibsndfileError', 'DecodeError'):
             msg = "Couldn't read this file as audio. Try an mp3 or wav."
@@ -385,7 +441,7 @@ def stats_report(store, days=14):
             'splits': a.get('started', 0), 'done': g.get('done', 0), 'failed': g.get('failed', 0),
             'people': a.get('uploaders', 0), 'audio_min': g.get('audio_min', 0), 'gpu_min': g.get('gpu_s', 0) / 60,
             'wait_s': g.get('wait_s', 0), 'limited': a.get('limited', 0), 'bots': a.get('bot_blocked', 0),
-            'full': a.get('site_full', 0),
+            'full': a.get('site_full', 0), 'stalled': a.get('stalled', 0), 'cancelled': a.get('cancelled', 0),
         }
         for k, v in rec.items():
             tot[k] = tot.get(k, 0) + v
@@ -400,16 +456,17 @@ def stats_report(store, days=14):
         cost = r['gpu_min'] * 60 * GPU_DOLLARS_PER_S
         return (f"{label:12}{r['splits']:>7}{r['done']:>6}{r['failed']:>7}{r['people']:>8}"
                 f"{r['audio_min']:>9.1f}{r['gpu_min']:>8.1f}{cost:>8.2f}{avg_wait:>8.0f}"
-                f"{r['limited']:>9}{r['bots']:>6}{r['full']:>6}")
+                f"{r['limited']:>9}{r['bots']:>6}{r['full']:>6}{r['stalled']:>9}{r['cancelled']:>7}")
 
     out = [f"DrumSplitter, last {days} days (UTC dates)", '',
            f"{'day':12}{'splits':>7}{'done':>6}{'failed':>7}{'people':>8}{'audio m':>9}{'GPU m':>8}"
-           f"{'cost $':>8}{'wait s':>8}{'limited':>9}{'bots':>6}{'full':>6}"]
+           f"{'cost $':>8}{'wait s':>8}{'limited':>9}{'bots':>6}{'full':>6}{'stalled':>9}{'cancel':>7}"]
     out += [line(d, r) for d, r in rows]
-    out += ['-' * 94, line('total', tot), '',
+    out += ['-' * 110, line('total', tot), '',
             'splits = uploads accepted   people = different visitors who split something that day',
             'wait s = average seconds waiting for a GPU   limited = turned away at the daily limit',
-            'bots = failed the bot check   full = turned away because the site-wide daily cap was hit', '']
+            'bots = failed the bot check   full = turned away because the site-wide daily cap was hit',
+            'stalled = gave up waiting for a GPU (split refunded)   cancel = visitor pressed Cancel', '']
     top = lambda d: ', '.join(f'{k} {v}' for k, v in sorted(d.items(), key=lambda x: -x[1])[:12]) or 'none yet'
     out += [f'Countries: {top(countries)}', f'States/regions: {top(regions)}']
     return '\n'.join(out)

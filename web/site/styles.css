@@ -96,3 +96,4 @@ details p{color:var(--mute);margin:8px 0 0}
 .tbl td small{display:block;color:var(--mute);font-size:12px;margin-top:2px}
 .tbl td:first-child{font-weight:600;min-width:7.5em}
 .tbl td:last-child{min-width:6.5em}
+.cancelrow{margin-top:12px}

@@ -116,7 +116,10 @@ def api():
 
     def submit(jid):
         vol.commit()                            # make the upload visible to the GPU container
-        Splitter().split.spawn(jid)
+        return Splitter().split.spawn(jid).object_id
+
+    def cancel(call_id):
+        modal.FunctionCall.from_id(call_id).cancel()
 
     def refresh():
         try:
@@ -124,7 +127,7 @@ def api():
         except Exception:                       # reload refuses while files are open; retry next time
             pass
 
-    return service.create_app('/data', DictStore(kv), submit, refresh=refresh)
+    return service.create_app('/data', DictStore(kv), submit, refresh=refresh, cancel=cancel)
 
 
 @app.function(image=web_image, volumes={'/data': vol}, secrets=secrets, schedule=modal.Period(hours=1))

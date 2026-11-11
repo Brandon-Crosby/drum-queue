@@ -102,7 +102,7 @@ async function start(f) {
 // ---------- job status
 function openJob(name) {
   $('#job').style.display = 'block'; $('#jname').textContent = name; $('#jmeta').textContent = '';
-  $('#result').hidden = true; $('#steps').hidden = false; $('#tracks').replaceChildren();
+  $('#result').hidden = true; $('#steps').hidden = false; $('#tracks').replaceChildren(); $('#cancelrow').hidden = true;
   $('#job').scrollIntoView({ behavior: 'smooth', block: 'start' });
   showWaitAd();
 }
@@ -130,13 +130,22 @@ async function poll(id) {
   catch (e) { $('#steps').hidden = true; showMsg(e.message === 'Failed to fetch' ? 'Lost connection. Retrying…' : e.message); if (e.message === 'Failed to fetch') pollT = setTimeout(() => poll(id), 4000); return; }
   if (current !== id) return;
   $('#jname').textContent = j.name || 'Your song';
+  const live = j.status === 'queued' || j.status === 'running';
+  $('#cancelrow').hidden = !live;
   if (j.status === 'done') return showResult(id, j);
-  if (j.status === 'error') { $('#steps').hidden = true; showMsg(j.error || 'Something went wrong.'); return; }
+  if (j.status === 'error') { $('#steps').hidden = true; showMsg(j.error || 'Something went wrong.'); loadLimits(); return; }
   showMsg(''); setStep(stepOf(j));
   const waited = j.started ? Date.now() / 1000 - j.started : Date.now() / 1000 - j.created;
   $('#jmeta').textContent = mmss(waited);
   pollT = setTimeout(() => poll(id), 2000);
 }
+$('#cancel').onclick = async () => {
+  const id = current; if (!id) return;
+  const b = $('#cancel'); b.disabled = true; b.textContent = 'Cancelling…';
+  try { await fetch(`/api/jobs/${id}/cancel`, { method: 'POST' }); } catch (_) { /* poll shows the result */ }
+  b.disabled = false; b.textContent = 'Cancel';
+  poll(id);
+};
 function route() {
   const id = location.hash.slice(1);
   if (!/^[a-f0-9]{16}$/.test(id)) return;
