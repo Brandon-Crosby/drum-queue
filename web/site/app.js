@@ -36,10 +36,27 @@ function initTurnstile() {
   if (!SITE.turnstile) return;
   const go = () => {
     if (!window.turnstile) return setTimeout(go, 200);
-    tsWidget = turnstile.render('#ts', { sitekey: SITE.turnstile, callback: t => { tsToken = t; }, 'expired-callback': () => { tsToken = ''; } });
+    tsWidget = turnstile.render('#ts', {
+      sitekey: SITE.turnstile, theme: 'auto',
+      callback: t => { tsToken = t; showMsg(''); },
+      'expired-callback': () => { tsToken = ''; },
+      // The check can't reach Cloudflare: almost always an ad blocker, VPN or iCloud Private Relay.
+      'error-callback': () => { tsToken = ''; showTsHelp(); return true; },
+    });
   };
   go();
 }
+function showTsHelp() {
+  const m = $('#msg'); m.replaceChildren();
+  const box = el('div', 'msg err');
+  box.append("The \"verify you're human\" check couldn't load, so uploads are paused. It's usually an ad blocker, a VPN or iCloud Private Relay blocking Cloudflare. Allow this site (or switch them off), then ");
+  const b = el('button', 'btn', 'try again'); b.style.marginLeft = '4px';
+  b.onclick = () => { showMsg(''); if (window.turnstile && tsWidget != null) turnstile.reset(tsWidget); else location.reload(); };
+  box.append(b, '.');
+  m.append(box);
+}
+// The Turnstile script itself was blocked from loading
+setTimeout(() => { if (SITE.turnstile && !window.turnstile) showTsHelp(); }, 8000);
 function resetTurnstile() { tsToken = ''; if (tsWidget != null && window.turnstile) turnstile.reset(tsWidget); }
 
 // ---------- upload
