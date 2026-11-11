@@ -164,7 +164,9 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None):
                 'turnstile': bool(S.turnstile_secret)}
 
     @app.post('/api/jobs')
-    async def create_job(request: Request, file: UploadFile = File(...), token: str = Form('')):
+    def create_job(request: Request, file: UploadFile = File(...), token: str = Form('')):
+        # Plain def (not async): FastAPI runs it in a worker thread, so the blocking job-store and
+        # Modal calls below never stall other visitors' requests.
         name = re.sub(r'[\x00-\x1f/\\]', '_', Path(file.filename or 'song').name)[:120]
         if Path(name).suffix.lower() not in AUDIO_EXTS:
             raise HTTPException(400, 'That file type is not supported. Use mp3, wav, flac, m4a, aiff or ogg.')
@@ -183,7 +185,7 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None):
         dst = d / name
         size, limit = 0, S.max_mb * 1024 * 1024
         with open(dst, 'wb') as out:
-            while chunk := await file.read(1024 * 1024):
+            while chunk := file.file.read(1024 * 1024):
                 size += len(chunk)
                 if size > limit:
                     out.close()
