@@ -19,7 +19,9 @@ REPO = HERE.parent.parent
 
 # ---- knobs ---------------------------------------------------------------
 MIX_MODEL = 'htdemucs_ft'      # 'htdemucs' is ~4x cheaper per song, slightly bleedier drums
-GPU = 'L4'                     # ~$0.00022/s on Modal
+# Tried in order; Modal uses whichever has capacity (a lone 'L4' can sit in a queue for minutes).
+# L4 ~$0.00022/s, A10 ~$0.00031/s (faster), T4 ~$0.00016/s (slower) - similar cost per song.
+GPU = ['L4', 'A10', 'T4']
 MAX_GPUS = 2                   # most songs splitting at once; extra jobs wait in line
 MAX_MINUTES = 8
 KEEP_HOURS = 24
