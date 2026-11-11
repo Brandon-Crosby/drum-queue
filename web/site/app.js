@@ -38,6 +38,9 @@ function initTurnstile() {
     if (!window.turnstile) return setTimeout(go, 200);
     tsWidget = turnstile.render('#ts', {
       sitekey: SITE.turnstile, theme: 'auto',
+      // Stays invisible unless Cloudflare actually needs a click, so the box doesn't pop back
+      // after every upload (each pass only works once, so it quietly re-runs after each one).
+      appearance: 'interaction-only',
       callback: t => { tsToken = t; showMsg(''); },
       'expired-callback': () => { tsToken = ''; },
       // The check can't reach Cloudflare: almost always an ad blocker, VPN or iCloud Private Relay.
@@ -68,12 +71,19 @@ drop.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ')
 drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) start(f); });
 input.addEventListener('change', () => { const f = input.files[0]; input.value = ''; if (f) start(f); });
 
-function start(f) {
+// The invisible check takes a second or two after page load / after each upload; wait for it.
+async function waitToken(ms = 12000) {
+  for (let t = 0; SITE.turnstile && !tsToken && t < ms; t += 250) await new Promise(r => setTimeout(r, 250));
+  return !SITE.turnstile || !!tsToken;
+}
+async function start(f) {
   showMsg('');
   if (busy) return;
   if (!AUD.test(f.name)) return showMsg('That file type is not supported. Use mp3, wav, flac, m4a, aiff or ogg.');
   if (f.size > LIM.max_mb * 1024 * 1024) return showMsg(`That file is over ${LIM.max_mb} MB. Try an mp3 of the song.`);
-  if (SITE.turnstile && !tsToken) return showMsg('Please finish the "verify you are human" check above, then try again.');
+  busy = true;
+  const ready = await waitToken(); busy = false;
+  if (!ready) return showMsg('Please finish the "verify you are human" check above, then try again.');
   busy = true; stopMixer(); openJob(f.name); setStep('upload', 0);
   const fd = new FormData(); fd.append('file', f, f.name); fd.append('token', tsToken);
   const x = new XMLHttpRequest();
