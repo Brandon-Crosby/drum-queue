@@ -33,7 +33,7 @@ def _download():
 image = (
     modal.Image.debian_slim(python_version='3.11')
     .apt_install('ffmpeg', 'libsndfile1')
-    .uv_pip_install('audio-separator[gpu]==0.44.2', 'soundfile', 'scipy', 'numpy')
+    .uv_pip_install('audio-separator[gpu]==0.44.2', 'librosa==0.10.2.post1', 'soundfile', 'scipy', 'numpy')
     .run_function(_download)
     .add_local_file(HERE / 'score.py', '/root/score.py')
 )

@@ -2,5 +2,5 @@ audio-separator[cpu]==0.44.2
 flask
 audioread
 soundfile
-librosa
+librosa==0.10.2.post1   # audio-separator 0.44.2 breaks on librosa 1.0
 imageio-ffmpeg

@@ -50,7 +50,8 @@ def _download_models():
 gpu_image = (
     modal.Image.debian_slim(python_version='3.11')
     .apt_install('ffmpeg', 'libsndfile1')
-    .uv_pip_install('audio-separator[gpu]==0.44.2', 'librosa', 'soundfile', 'audioread', 'mutagen',
+    .uv_pip_install('audio-separator[gpu]==0.44.2', 'librosa==0.10.2.post1',   # 1.0 breaks audio-separator
+                    'soundfile', 'audioread', 'mutagen',
                     'fastapi', 'python-multipart')
     .env(PUBLIC_ENV)
     .add_local_file(REPO / 'engine.py', '/root/engine.py', copy=True)
