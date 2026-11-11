@@ -1,0 +1,6 @@
+audio-separator[cpu]==0.44.2
+flask
+audioread
+soundfile
+librosa
+imageio-ffmpeg

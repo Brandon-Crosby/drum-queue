@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+data/
+inbox/
+*.wav
+*.mp3
+*.flac
+*.m4a
+*.zip
