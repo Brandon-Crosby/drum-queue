@@ -20,10 +20,10 @@ KIT = ['kick', 'snare', 'toms', 'hh', 'ride', 'crash']
 LABEL = {'kick': 'Kick', 'snare': 'Snare', 'toms': 'Tom', 'hh': 'Hat', 'ride': 'Ride', 'crash': 'Crash'}
 MAX_LEN = {'kick': 1.2, 'snare': 1.0, 'toms': 1.4, 'hh': 0.6, 'ride': 2.0, 'crash': 3.0}   # seconds
 MAX_SOUNDS = {'kick': 6, 'snare': 6, 'toms': 4, 'hh': 4, 'ride': 2, 'crash': 3}
-SAME = 3.0          # dB: average attack difference under which two hits count as the same sample
+SAME = 5.0          # dB: average attack difference under which two hits count as the same sample (tuned on TVS)
 MIN_HITS = 3        # a sound has to come back at least this often (one-offs are usually bleed)
 SR = 44100
-MAX_BLEED = 0.0     # dB: skip hits where the other drums + bass are louder than the hit itself
+MAX_BLEED = -6.0    # dB: skip hits where the other drums + bass are within 6 dB of the hit
 
 
 def _load(path):
