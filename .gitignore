@@ -11,3 +11,4 @@ inbox/
 *.zip
 web/dist/
 web/backend/.local_data/
+ab_result.json
