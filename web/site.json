@@ -2,7 +2,7 @@
   "SITE_NAME": "DrumSplitter",
   "DOMAIN": "drumsplitter.com",
   "CONTACT_EMAIL": "hello@drumsplitter.com",
-  "ADSENSE_CLIENT": "",
+  "ADSENSE_CLIENT": "ca-pub-5789085482919201",
   "ADSENSE_WAIT_SLOT": "",
   "TURNSTILE_SITEKEY": "",
   "LIMIT_PER_IP": "3",
