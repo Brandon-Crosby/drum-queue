@@ -9,3 +9,5 @@ inbox/
 *.flac
 *.m4a
 *.zip
+web/dist/
+web/backend/.local_data/

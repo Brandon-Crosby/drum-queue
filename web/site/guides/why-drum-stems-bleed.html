@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en"><head>
+{{HEAD}}
+<title>Why drum stems bleed, and how to clean them up | {{SITE_NAME}}</title>
+<meta name="description" content="Why separated kick, snare and cymbal stems have bleed and artifacts, and practical gate, EQ and transient fixes in your DAW.">
+<link rel="canonical" href="https://{{DOMAIN}}/guides/why-drum-stems-bleed">
+</head><body>
+{{HEADER}}
+<main class="wrap content">
+<h1>Why drum stems bleed, and how to clean them up</h1>
+<p class="lede">Every separated drum stem has some leftovers in it. Knowing where they come from makes them quick to fix.</p>
+
+<h2>Where bleed comes from</h2>
+<h3>Overlapping frequencies</h3>
+<p>A hi-hat, a ride and a crash are all bright, noisy metal sounds. The model has to decide which piece each burst of high end belongs to, and when they play together some energy lands in the wrong stem. Kick and floor tom overlap the same way at the low end.</p>
+<h3>Reverb and room sound</h3>
+<p>The ambience around a snare hit is a wash that belongs to everything at once. It gets shared between pieces, so a soloed snare can sound drier, or a little smeared, compared to the full kit.</p>
+<h3>Compression in the source</h3>
+<p>Low-bitrate mp3s blur transients and remove high-frequency detail. Start from wav or flac when you can.</p>
+<h3>Things that sound like drums</h3>
+<p>808s sit right where the kick lives, and claps, rimshots and percussion loops can land in the snare or hats. That's the model doing its best with sounds outside a standard kit.</p>
+
+<h2>Quick fixes in your DAW</h2>
+<ul>
+  <li><strong>Gate the kick and snare.</strong> A noise gate set just under the level of the real hits removes quiet bleed between them. Use a short attack so the hit stays sharp, and a release long enough to keep the tail.</li>
+  <li><strong>EQ out the obvious stuff.</strong> High-pass the hats and cymbals (around 300–500 Hz is a common start) to remove kick and snare thump. Low-pass the kick if hats leak into it.</li>
+  <li><strong>Transient shaping.</strong> Pulling down the sustain on a stem reduces smeared room sound without touching the hits.</li>
+  <li><strong>Edit by hand.</strong> For sampling one hit, it's often fastest to find a clean moment, cut it out and fade the edges.</li>
+  <li><strong>Re-combine.</strong> Bleed between pieces cancels out when you play them together. If you only need "drums without the cymbals", mute those pieces and keep the rest. It sounds more natural than soloing one stem.</li>
+</ul>
+
+<h2>When a stem is nearly silent</h2>
+<p>If a song simply has no ride or toms, those stems will be close to empty. The mixer marks them "silent". That's expected, not an error.</p>
+</main>
+{{FOOTER}}
+</body></html>

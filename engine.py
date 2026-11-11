@@ -180,7 +180,10 @@ def save_preview(src, dst):
     import soundfile as sf
     y, _ = librosa.load(str(src), sr=PREVIEW_SR, mono=True)
     dst.parent.mkdir(parents=True, exist_ok=True)
-    sf.write(str(dst), y, PREVIEW_SR, subtype='PCM_16')
+    if dst.suffix.lower() == '.mp3':             # ~0.3 MB/min, for the website
+        sf.write(str(dst), y, PREVIEW_SR, format='MP3', subtype='MPEG_LAYER_III')
+    else:
+        sf.write(str(dst), y, PREVIEW_SR, subtype='PCM_16')
 
 
 def rms_db(path):
@@ -202,8 +205,14 @@ def unique_dir(root, name):
 
 
 # ------------------------------------------------------------------ the job
-def process(job, out_root, models, stage):
-    """Split one song. Returns fields to merge into the job record."""
+class TooLong(ValueError):
+    pass
+
+
+def process(job, out_root, models, stage, preview_fmt='wav', max_seconds=None):
+    """Split one song. Returns fields to merge into the job record.
+    preview_fmt: 'wav' for the local app, 'mp3' for the website (much smaller).
+    max_seconds: refuse longer songs before any GPU work happens."""
     opts = job['opts']
     src = Path(job['src'])
     out_root = Path(out_root)
@@ -214,6 +223,8 @@ def process(job, out_root, models, stage):
 
     stage('Reading audio')
     bpm, dur = analyze(src)
+    if max_seconds and dur > max_seconds:
+        raise TooLong(f'Song is {dur / 60:.1f} min; the limit is {max_seconds / 60:.0f} min.')
     wav = models.work.parent / 'input.wav'
     to_wav(src, wav)
 
@@ -244,9 +255,10 @@ def process(job, out_root, models, stage):
         f = out_dir / f'{name}.wav'
         if not f.exists():
             continue
-        save_preview(f, out_dir / 'preview' / f.name)
+        pv = f'{name}.{preview_fmt}'
+        save_preview(f, out_dir / 'preview' / pv)
         level = rms_db(f)
-        out.append(dict(name=f.name, stem=name, label=KIT_LABEL.get(name, name),
+        out.append(dict(name=f.name, preview=pv, stem=name, label=KIT_LABEL.get(name, name),
                         group='kit' if name in KIT else 'mix',
                         quiet=bool(level is not None and level < -60), db=level))
     missing = [k for k in KIT if not (out_dir / f'{k}.wav').exists()]

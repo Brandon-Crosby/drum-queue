@@ -1,0 +1,7 @@
+# For running the website locally (local_dev.py) and deploying (modal).
+# The GPU image installs its own packages; see modal_app.py.
+fastapi
+uvicorn
+python-multipart
+mutagen
+modal

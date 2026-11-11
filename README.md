@@ -46,6 +46,13 @@ each kit piece, click a waveform to jump, Space to play/pause.
     .venv/bin/python drumsplit.py "/path/to/Album Folder" -o ~/DrumSplits
     .venv/bin/python drumsplit.py song.mp3 --drums-only --overlap 8
 
+## Website version
+
+`web/` is a public website version: a static site with ads on Cloudflare Pages, plus the same
+engine running on Modal's GPUs (billed per second, idle is free). Per-visitor daily limits, a
+site-wide daily cap, bot check, and 24-hour file deletion are built in.
+See [web/DEPLOY.md](web/DEPLOY.md) to put it online.
+
 ## Notes
 - The queue is saved to disk; quit any time and unfinished songs resume next launch.
 - Kit pieces that come out silent (for example, no ride in the song) are marked "silent".

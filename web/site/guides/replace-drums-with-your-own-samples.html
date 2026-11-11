@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head>
+{{HEAD}}
+<title>Replace a song's drums with your own samples | {{SITE_NAME}}</title>
+<meta name="description" content="Use separated kick and snare stems as triggers: convert them to MIDI in Ableton Live, Logic Pro or FL Studio and play your own drum sounds.">
+<link rel="canonical" href="https://{{DOMAIN}}/guides/replace-drums-with-your-own-samples">
+</head><body>
+{{HEADER}}
+<main class="wrap content">
+<h1>Replace a song's drums with your own samples</h1>
+<p class="lede">Once the kick and snare are on their own tracks, they make great triggers. Turn each one into MIDI and you can play the original pattern with any drum sound you like.</p>
+
+<h2>1. Split the song</h2>
+<p>Run the song through the <a href="/">splitter</a> and download the <code>kick</code> and <code>snare</code> stems (and <code>hh</code> if you want the hats too). Put them in your DAW starting at bar 1, and set the project tempo to the BPM shown after the split.</p>
+
+<h2>2. Turn the hits into MIDI</h2>
+<h3>Ableton Live</h3>
+<p>Right-click the kick clip and choose <strong>Convert Drums to New MIDI Track</strong>. Live detects the transients and builds a Drum Rack pattern. Do the same for the snare, then swap the samples in the Drum Rack for your own.</p>
+<h3>Logic Pro</h3>
+<p>Select the kick track and choose <strong>Track &gt; Replace or Double Drum Track</strong>. Logic adds a Drum Machine Designer or sampler track triggered by the kick's hits. Adjust the threshold until it catches every hit and nothing else.</p>
+<h3>FL Studio</h3>
+<p>Load the kick stem into <strong>Slicex</strong>, which chops audio at its transients and maps each slice to a note. Use that slice timing to trigger your own kick sample from a separate channel, or place your sample by hand using the slices as a guide.</p>
+<h3>Any DAW</h3>
+<p>Drum-trigger plugins do the same job everywhere: put one on the stem, set a threshold, and it fires a sample (or outputs MIDI) on every hit.</p>
+
+<h2>3. Clean up the MIDI</h2>
+<ul>
+  <li><strong>Ghost notes:</strong> quiet snare ghost notes may be missed or caught as low-velocity hits. Decide whether you want them, and adjust velocities by ear.</li>
+  <li><strong>Bleed triggers:</strong> if the kick stem has a little snare in it, you'll see extra notes. Raising the detection threshold usually fixes it.</li>
+  <li><strong>Timing:</strong> leave the timing alone if you want the original feel. Quantize only if you want it tighter.</li>
+</ul>
+
+<h2>4. Blend, don't just replace</h2>
+<p>A common trick is to layer: keep a little of the original separated kick under your new sample. You keep the feel of the original room with the punch and tone of your own sound.</p>
+</main>
+{{FOOTER}}
+</body></html>

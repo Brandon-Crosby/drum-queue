@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en"><head>
+{{HEAD}}
+<title>{{SITE_NAME}}: split drums into kick, snare, hi-hat &amp; cymbals (free)</title>
+<meta name="description" content="Free online drum splitter. Upload a song and get separate kick, snare, toms, hi-hat, ride and crash stems, plus bass, vocals and the rest of the mix.">
+<link rel="canonical" href="https://{{DOMAIN}}/">
+{{TURNSTILE_TAG}}
+<script>window.SITE={turnstile:"{{TURNSTILE_SITEKEY}}",client:"{{ADSENSE_CLIENT}}",waitSlot:"{{ADSENSE_WAIT_SLOT}}"};</script>
+</head><body>
+{{HEADER}}
+<main class="wrap">
+<section class="hero">
+  <h1>Split any song's drums into the kit pieces</h1>
+  <p>Upload a song. Get the kick, snare, toms, hi-hat, ride and crash as separate stems, plus bass, vocals and the rest of the mix. Free, in your browser.</p>
+  <div class="pieces"><span>kick</span><span>snare</span><span>toms</span><span>hi-hat</span><span>ride</span><span>crash</span></div>
+</section>
+
+<div id="drop" class="card" tabindex="0" role="button" aria-label="Choose a song to split">
+  <b>Drop a song here</b>
+  <small>or click to choose · mp3, wav, flac, m4a, aiff, ogg</small>
+  <input id="file" type="file" accept="audio/*,.mp3,.wav,.flac,.m4a,.aiff,.aif,.ogg,.opus" hidden>
+</div>
+<div id="ts"></div>
+<div class="limits" id="limits">Up to {{MAX_MINUTES}} minutes per song · {{LIMIT_PER_IP}} free splits a day · files deleted after 24 hours</div>
+<div id="msg"></div>
+<div id="recent"></div>
+
+<section id="job" class="card" aria-live="polite">
+  <div class="jobtop"><h2 id="jname"></h2><span class="meta" id="jmeta"></span></div>
+  <ol class="steps" id="steps">
+    <li data-k="upload"><i></i>Uploading</li>
+    <li data-k="queue"><i></i>Waiting for a free GPU</li>
+    <li data-k="mix"><i></i>Pulling the drums out of the mix</li>
+    <li data-k="kit"><i></i>Splitting the kit into pieces</li>
+    <li data-k="finish"><i></i>Making previews</li>
+  </ol>
+  <div class="adslot" id="waitad"></div>
+  <div id="result" hidden>
+    <div class="mixbar">
+      <button class="btn pri" id="play">▶ Play</button><button class="btn" id="stop">Stop</button>
+      <button class="btn" id="reset">Kit only</button><span class="time" id="time"></span>
+    </div>
+    <div id="tracks"></div>
+    <div class="dl">
+      <a class="btn pri" id="zipkit" href="#">Download kit (.zip)</a>
+      <a class="btn" id="zipall" href="#">All stems (.zip)</a>
+      <button class="btn" id="again">Split another song</button>
+    </div>
+    <p class="expire" id="expire"></p>
+  </div>
+</section>
+
+<section class="section">
+  <h2>How it works</h2>
+  <div class="how">
+    <div class="card"><h3>1. Drums out of the mix</h3><p>Demucs, a source-separation model from Meta AI, pulls the full drum track away from the bass, vocals and everything else.</p></div>
+    <div class="card"><h3>2. Kit into pieces</h3><p>A second model trained only on drums (MDX23C DrumSep) splits that track into kick, snare, toms, hi-hat, ride and crash.</p></div>
+    <div class="card"><h3>3. Listen, then download</h3><p>Mute and solo each piece right here, then download WAVs of the pieces you want, or all of them as a zip.</p></div>
+  </div>
+</section>
+
+<section class="section" id="faq">
+  <h2>Questions</h2>
+  <details><summary>Is it free?</summary><p>Yes. The site is paid for by ads. To keep it free for everyone, each visitor gets {{LIMIT_PER_IP}} splits a day, up to {{MAX_MINUTES}} minutes per song.</p></details>
+  <details><summary>How long does a split take?</summary><p>Usually under a minute or two for a normal-length song once a GPU picks it up. If the site is busy you may wait in line for a bit first.</p></details>
+  <details><summary>What happens to my files?</summary><p>Your upload is deleted as soon as it has been split. The stems are kept for 24 hours so you can come back and download them, then deleted. See the <a href="/privacy">privacy policy</a>.</p></details>
+  <details><summary>Why is there some bleed between pieces?</summary><p>Separation is never perfect. Hats and cymbals share a lot of the same frequencies, and reverb gets split between pieces. Lossless files (wav or flac) give cleaner results than low-bitrate mp3s. <a href="/guides/why-drum-stems-bleed">More on bleed and how to clean it up</a>.</p></details>
+  <details><summary>Can I upload any song?</summary><p>Only upload audio you have the right to use: your own music, licensed material, or audio you're studying for personal practice where that's allowed. See the <a href="/terms">terms</a>.</p></details>
+  <details><summary>A piece came out silent. Why?</summary><p>If a song has no ride cymbal (or no toms), that stem will be close to silent. It's marked "silent" in the mixer.</p></details>
+</section>
+
+<section class="section">
+  <h2>Guides</h2>
+  <div class="guides">
+    <a class="card" href="/guides/extract-drums-from-a-song"><b>How to extract drums from a song</b><span>Get clean kick, snare and hat stems, and what to do with them.</span></a>
+    <a class="card" href="/guides/replace-drums-with-your-own-samples"><b>Replace a song's drums with your own samples</b><span>Turn split kick and snare stems into MIDI in your DAW.</span></a>
+    <a class="card" href="/guides/why-drum-stems-bleed"><b>Why drum stems bleed, and how to clean them up</b><span>Gates, EQ and transient tricks for cleaner pieces.</span></a>
+  </div>
+</section>
+</main>
+{{FOOTER}}
+<script src="/app.js"></script>
+</body></html>

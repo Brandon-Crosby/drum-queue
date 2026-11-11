@@ -1,0 +1,10 @@
+{
+  "SITE_NAME": "DrumSplit",
+  "DOMAIN": "drumsplit.example",
+  "CONTACT_EMAIL": "hello@drumsplit.example",
+  "ADSENSE_CLIENT": "",
+  "ADSENSE_WAIT_SLOT": "",
+  "TURNSTILE_SITEKEY": "",
+  "LIMIT_PER_IP": "3",
+  "MAX_MINUTES": "8"
+}

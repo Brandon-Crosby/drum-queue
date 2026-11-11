@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head>
+{{HEAD}}
+<title>How to extract drums from a song (kick, snare, hats) | {{SITE_NAME}}</title>
+<meta name="description" content="Step-by-step: pull the drums out of a finished song and split them into kick, snare, toms, hi-hat, ride and crash stems.">
+<link rel="canonical" href="https://{{DOMAIN}}/guides/extract-drums-from-a-song">
+</head><body>
+{{HEADER}}
+<main class="wrap content">
+<h1>How to extract drums from a song</h1>
+<p class="lede">Getting the drums out of a finished, mixed song used to mean EQ tricks and phase cancellation. Today it's a two-step job for machine-learning models, and you can get separate kick, snare and cymbal stems in a couple of minutes.</p>
+
+<h2>Why it takes two steps</h2>
+<p>General stem splitters are trained to separate four or six broad instruments: vocals, bass, drums, and "other" (some models add guitar and piano). They give you <em>one</em> drum stem with the whole kit summed together.</p>
+<p>To get individual pieces, a second model that was trained only on drum kits listens to that drum stem and pulls it apart into kick, snare, toms, hi-hat, ride and crash. Running the drum-only model on the full mix works worse, because it was never trained to ignore bass, vocals and synths.</p>
+<p>{{SITE_NAME}} runs both steps for you: <strong>Demucs</strong> first, then <strong>MDX23C DrumSep</strong> on the drum stem it produces.</p>
+
+<h2>Step by step</h2>
+<ol>
+  <li><strong>Start from the best file you have.</strong> A wav or flac gives noticeably cleaner splits than a 128 kbps mp3. Compression smears transients and throws away high-frequency detail, and the hats and cymbals suffer most.</li>
+  <li><strong>Upload it</strong> on the <a href="/">home page</a>. Songs up to {{MAX_MINUTES}} minutes work.</li>
+  <li><strong>Listen in the mixer before downloading.</strong> Solo each piece. You'll quickly hear which pieces came out clean and which have bleed.</li>
+  <li><strong>Download what you need.</strong> Grab single pieces as WAV, the kit as a zip, or every stem including bass, vocals and the rest of the mix.</li>
+  <li><strong>Line them up in your DAW.</strong> Every stem starts at the same point as the original song, so dropping them all at bar 1 keeps them in sync. Set your project tempo to the song's BPM (shown after the split) to get a grid to edit against.</li>
+</ol>
+
+<h2>What you can do with the pieces</h2>
+<ul>
+  <li><strong>Study a groove.</strong> Solo the hi-hat to hear exactly where the swing and the accents are, then program it yourself.</li>
+  <li><strong>Sample one hit.</strong> Find a spot where the snare plays alone, cut it out, and you have a one-shot with the original room and processing.</li>
+  <li><strong>Remix or rebalance.</strong> Turn the kick up or the cymbals down in a song you're practicing along to.</li>
+  <li><strong>Replace the drums.</strong> Convert the kick and snare stems to MIDI and trigger your own samples. <a href="/guides/replace-drums-with-your-own-samples">Here's how.</a></li>
+</ul>
+
+<h2>Know the limits</h2>
+<p>Separation is a best guess, not a recovery of the original multitrack. Hi-hat and cymbals can trade energy, heavily distorted or side-chained mixes are harder, and reverb tails get split between pieces. <a href="/guides/why-drum-stems-bleed">This guide covers the usual problems and how to clean them up.</a></p>
+<p>Finally, only upload music you have the right to use, and check the license before releasing anything built from someone else's recording.</p>
+</main>
+{{FOOTER}}
+</body></html>
