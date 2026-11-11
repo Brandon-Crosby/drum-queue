@@ -112,20 +112,36 @@ def visitor_key(request, salt, trusted=False):
 
 
 def verify_turnstile(secret, token, ip=None):
+    """Asks Cloudflare whether the visitor's Turnstile token is valid. Returns (ok, reason).
+
+    remoteip is left out on purpose: with iCloud Private Relay / IPv6 the address that solved the
+    challenge often differs from the one that uploads, and a mismatch fails an otherwise good token.
+    An explicit User-Agent matters too: Cloudflare can refuse Python's default 'Python-urllib' agent.
+    """
     if not secret:
-        return True
+        return True, 'off'
     if not token:
-        return False
-    data = {'secret': secret, 'response': token}
-    if ip:
-        data['remoteip'] = ip
-    try:
-        req = urllib.request.Request('https://challenges.cloudflare.com/turnstile/v0/siteverify',
-                                     data=urllib.parse.urlencode(data).encode(), method='POST')
-        with urllib.request.urlopen(req, timeout=8) as r:
-            return bool(json.load(r).get('success'))
-    except Exception:
-        return False
+        return False, 'missing-token'
+    data = urllib.parse.urlencode({'secret': secret.strip(), 'response': token}).encode()
+    req = urllib.request.Request('https://challenges.cloudflare.com/turnstile/v0/siteverify', data=data,
+                                 method='POST', headers={'User-Agent': 'DrumSplitter/1.0 (+https://drumsplitter.com)',
+                                                         'Content-Type': 'application/x-www-form-urlencoded'})
+    for attempt in (1, 2):
+        try:
+            with urllib.request.urlopen(req, timeout=10) as r:
+                body = json.load(r)
+            if body.get('success'):
+                return True, 'ok'
+            reason = ','.join(body.get('error-codes') or []) or 'unknown'
+            print(f'turnstile rejected: {reason} hostname={body.get("hostname")}', flush=True)
+            return False, reason
+        except urllib.error.HTTPError as e:
+            reason = f'http-{e.code}'
+            print(f'turnstile verify HTTP {e.code}: {e.read()[:300]!r}', flush=True)
+        except Exception as e:
+            reason = f'{type(e).__name__}'
+            print(f'turnstile verify error (try {attempt}): {e!r}', flush=True)
+    return False, reason
 
 
 def audio_seconds(path):
@@ -193,9 +209,12 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None):
         if mine >= S.per_ip_per_day:
             bump(store, f'stats:{today()}:api', limited=1)
             raise HTTPException(429, "You've used today's free splits. Come back tomorrow.")
-        if not verify_turnstile(S.turnstile_secret, token, client_ip(request, trusted)):
+        ok, why = verify_turnstile(S.turnstile_secret, token)
+        if not ok:
             bump(store, f'stats:{today()}:api', bot_blocked=1)
-            raise HTTPException(403, 'Bot check failed. Refresh the page and try again.')
+            # The code (e.g. invalid-input-secret, timeout-or-duplicate) shows up small in the message,
+            # so a screenshot is enough to tell what went wrong.
+            raise HTTPException(403, f'Bot check failed. Refresh the page and try again. ({why})')
 
         jid = uuid.uuid4().hex[:16]
         d = root / 'jobs' / jid / 'input'
