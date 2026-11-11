@@ -222,7 +222,7 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
 
     def public(j, jid):
         keep = {k: j.get(k) for k in ('status', 'stage', 'error', 'name', 'bpm', 'duration', 'note',
-                                       'created', 'started', 'finished', 'eta_wait', 'eta_run')}
+                                       'created', 'started', 'finished', 'eta_wait', 'eta_run', 'log')}
         keep['id'] = jid
         keep['stems'] = [{k: s[k] for k in ('name', 'preview', 'stem', 'label', 'group', 'quiet')}
                          for s in j.get('stems') or []]
@@ -408,9 +408,15 @@ class Cancelled(Exception):
 
 
 def _progress(store, jid, stage):
-    if (store.get(f'job:{jid}') or {}).get('cancelled'):
+    j = store.get(f'job:{jid}') or {}
+    if j.get('cancelled'):
         raise Cancelled()                        # stop between steps instead of finishing for nobody
-    update_job(store, jid, stage=stage)
+    # Detail lines ("Making one-shots — kick: 124 transients ...") are kept so the page shows each one,
+    # even ones that came and went between two of its status checks.
+    log = j.get('log') or []
+    if ' — ' in stage:
+        log = (log + [stage.split(' — ', 1)[1]])[-12:]
+    update_job(store, jid, stage=stage, log=log)
 
 
 def run_job(jid, root, store, models, mix_model='htdemucs_ft', max_seconds=None):

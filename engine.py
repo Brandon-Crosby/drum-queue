@@ -271,7 +271,8 @@ def process(job, out_root, models, stage, preview_fmt='wav', max_seconds=None):
         song = safe_name(Path(job['name']).stem)[:60]
         shots = [dict(name=r['name'], label=r['label'], piece=r['piece'], seconds=r['seconds'],
                       count=r['count'])
-                 for r in oneshots.make_kit(out_dir, out_dir / 'one-shots', prefix=f'{song} - ')]
+                 for r in oneshots.make_kit(out_dir, out_dir / 'one-shots', prefix=f'{song} - ',
+                                            log=lambda line: stage(f'Making one-shots — {line}'))]
     except Exception as e:
         print(f'one-shots failed: {type(e).__name__}: {e}', flush=True)
     return dict(stems=out, shots=shots, out_dir=out_dir.name, bpm=bpm, duration=round(dur, 1), note=note)

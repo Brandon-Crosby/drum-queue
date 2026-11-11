@@ -19,9 +19,11 @@ import numpy as np
 KIT = ['kick', 'snare', 'toms', 'hh', 'ride', 'crash']
 LABEL = {'kick': 'Kick', 'snare': 'Snare', 'toms': 'Tom', 'hh': 'Hat', 'ride': 'Ride', 'crash': 'Crash'}
 MAX_LEN = {'kick': 1.2, 'snare': 1.0, 'toms': 1.4, 'hh': 0.6, 'ride': 2.0, 'crash': 3.0}   # seconds
-MAX_SOUNDS = {'kick': 2, 'snare': 3, 'toms': 3, 'hh': 3, 'ride': 1, 'crash': 2}
+MAX_SOUNDS = {'kick': 6, 'snare': 6, 'toms': 4, 'hh': 4, 'ride': 2, 'crash': 3}
+SAME = 5.0          # dB: average attack difference under which two hits count as the same sample (tuned on TVS)
+MIN_HITS = 3        # a sound has to come back at least this often (one-offs are usually bleed)
 SR = 44100
-MAX_BLEED = 0.0     # dB: skip hits where the other drums + bass are louder than the hit itself
+MAX_BLEED = -6.0    # dB: skip hits where the other drums + bass are within 6 dB of the hit
 
 
 def _load(path):
@@ -39,16 +41,17 @@ def _rms(x):
     return float(np.sqrt(np.mean(np.square(x)))) if x.size else 0.0
 
 
+ATTACK = 0.06       # seconds: the click + punch that identifies a sample, before tails/808s/bleed smear it
+
+
 def _features(seg):
-    """Timbre fingerprint of a hit's attack, for grouping alike hits."""
+    """Fingerprint of a hit's attack (how its spectrum moves over the first 60 ms), for grouping
+    hits of the same sample. Loudness is removed, so a softer hit of the same kick still matches."""
     import librosa
-    a = seg[:int(0.15 * SR)]
-    if len(a) < 2048:
-        a = np.pad(a, (0, 2048 - len(a)))
-    S = np.abs(librosa.stft(a, n_fft=2048, hop_length=512)) + 1e-9
-    mel = librosa.feature.melspectrogram(S=S ** 2, sr=SR, n_mels=40)
-    v = librosa.power_to_db(mel).mean(axis=1)
-    return v - v.max()                           # shape only, not loudness
+    n = int(ATTACK * SR)
+    a = np.pad(seg[:n], (0, max(0, n - len(seg))))
+    mel = librosa.feature.melspectrogram(y=a, sr=SR, n_fft=1024, hop_length=256, n_mels=32)
+    return np.maximum(librosa.power_to_db(mel, ref=np.max), -50)
 
 
 def hits(piece, y, others):
@@ -119,13 +122,12 @@ def pick(piece, hs, mono=None):
     leaders, members = [], []
     for i, f in enumerate(fps):
         d = [np.mean(np.abs(f - fps[l])) for l in leaders]
-        if d and min(d) < 4.0:                   # dB average difference across mel bands
+        if d and min(d) < SAME:
             members[int(np.argmin(d))].append(i)
         else:
             leaders.append(i)
             members.append([i])
-    min_size = max(3, int(0.08 * len(hs)))       # a "sound" has to recur, not be one odd hit
-    groups = [(leaders[k], m) for k, m in enumerate(members) if len(m) >= min_size]
+    groups = [(leaders[k], m) for k, m in enumerate(members) if len(m) >= MIN_HITS]
     groups.sort(key=lambda g: -len(g[1]))
     # Bleed can make one sample look like two groups; if two picks are the same waveform, keep one.
     kept = []
@@ -156,8 +158,9 @@ def write(y, h, path):
     sf.write(str(path), seg.T, SR, subtype='PCM_24')
 
 
-def make_kit(split_dir, out_dir, prefix='', stems=None):
+def make_kit(split_dir, out_dir, prefix='', stems=None, log=lambda line: None):
     """split_dir: folder with kick.wav, snare.wav, ... (and optionally bass/vocals/other).
+    log(line): progress lines with the real numbers, shown to the visitor while it works.
     Returns [{name, file, piece, label, count, bleed_db, seconds}] for each one-shot written."""
     split_dir, out_dir = Path(split_dir), Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -166,6 +169,7 @@ def make_kit(split_dir, out_dir, prefix='', stems=None):
         found.update({k: Path(v) for k, v in stems.items()})
     # Bleed only comes from what plays at the same time and leaks into a drum stem: the other kit
     # pieces and the bass/808. Vocals and chords don't count against a hit.
+    log('Loading kit stems · 44.1 kHz')
     audio = {k: _load(p) for k, p in found.items() if k in KIT or k == 'bass'}
     if not audio:
         return []
@@ -177,15 +181,26 @@ def make_kit(split_dir, out_dir, prefix='', stems=None):
         if piece not in audio:
             continue
         y = np.pad(audio[piece], ((0, 0), (0, n - audio[piece].shape[1])))
-        hs = [h for h in hits(piece, y, total - mono[piece]) if h['bleed'] < MAX_BLEED]
+        name = LABEL[piece].lower().replace('hat', 'hi-hat')
+        log(f'{name}: scanning for transients')
+        found_hits = hits(piece, y, total - mono[piece])
+        hs = [h for h in found_hits if h['bleed'] < MAX_BLEED]
+        if not found_hits:
+            log(f'{name}: stem is silent · skipped')
+            continue
+        log(f'{name}: {len(found_hits)} transients → {len(hs)} pass bleed gate (−{abs(MAX_BLEED):.0f} dB)')
         chosen = pick(piece, hs, y.mean(axis=0))
+        log(f'{name}: {len(chosen)} distinct sound{"s" if len(chosen) != 1 else ""} by {int(ATTACK * 1000)} ms attack fingerprint'
+            if chosen else f'{name}: no sound repeats cleanly · skipped')
         for i, h in enumerate(chosen, 1):
+            log(f'Rendering {LABEL[piece]} {i} · {(h["end"] - h["start"]) / SR:.2f} s · 24-bit · peak −1 dBFS')
             label = f'{LABEL[piece]} {i}'
             fname = f'{prefix}{label}.wav'
             write(y, h, out_dir / fname)
             result.append(dict(name=fname, file=str(out_dir / fname), piece=piece, label=label,
                                count=h['count'], bleed_db=round(h['bleed'], 1),
                                seconds=round((h['end'] - h['start']) / SR, 2), at=round(h['start'] / SR, 2)))
+    log(f'Kit ready · {len(result)} one-shots')
     return result
 
 
