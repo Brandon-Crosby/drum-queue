@@ -95,6 +95,24 @@ def bump(store, key, **inc):
     store.put(key, d)
 
 
+# ETA defaults until there are real splits to learn from (seconds of GPU per second of song; seconds
+# from upload to the GPU starting, which includes a cold start loading both models).
+ETA_RATE, ETA_WAIT = 0.5, 60
+
+
+def eta_model(store, days=7):
+    """How fast recent splits ran: (GPU seconds per second of audio, average wait for a GPU)."""
+    gpu = audio = wait = done = 0
+    d0 = dt.datetime.now(dt.timezone.utc).date()
+    for i in range(days):
+        g = store.get(f'stats:{(d0 - dt.timedelta(days=i)).isoformat()}:gpu') or {}
+        gpu += g.get('gpu_s', 0); audio += g.get('audio_min', 0) * 60
+        wait += g.get('wait_s', 0); done += g.get('done', 0)
+    rate = min(3.0, max(0.1, gpu / audio)) if audio > 120 else ETA_RATE
+    avg_wait = min(300, max(10, wait / done)) if done >= 2 else ETA_WAIT
+    return rate, avg_wait
+
+
 def today():
     return dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%d')
 
@@ -196,9 +214,13 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
         return update_job(store, jid, status='error', stage='Stopped', error=msg, cancelled=True,
                           refunded=True, finished=time.time())
 
+    def eta_fields(secs):
+        rate, wait = eta_model(store)
+        return {'secs': round(secs or 180), 'eta_wait': round(wait), 'eta_run': round(15 + (secs or 180) * rate)}
+
     def public(j, jid):
         keep = {k: j.get(k) for k in ('status', 'stage', 'error', 'name', 'bpm', 'duration', 'note',
-                                       'created', 'started', 'finished')}
+                                       'created', 'started', 'finished', 'eta_wait', 'eta_run')}
         keep['id'] = jid
         keep['stems'] = [{k: s[k] for k in ('name', 'preview', 'stem', 'label', 'group', 'quiet')}
                          for s in j.get('stems') or []]
@@ -265,7 +287,7 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
         bump(store, f'stats:{today()}:api', started=1, uploaders=1 if mine == 0 else 0,
              countries={country or '??': 1}, regions={loc: 1})
         update_job(store, jid, status='queued', stage='Waiting for a GPU', name=name, created=time.time(),
-                   stems=[], error='', day=today(), vkey=vkey)
+                   stems=[], error='', day=today(), vkey=vkey, **eta_fields(secs))
         call = submit(jid)
         if call:
             update_job(store, jid, call=call)

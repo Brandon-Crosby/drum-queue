@@ -135,9 +135,19 @@ async function poll(id) {
   if (j.status === 'done') return showResult(id, j);
   if (j.status === 'error') { $('#steps').hidden = true; showMsg(j.error || 'Something went wrong.'); loadLimits(); return; }
   showMsg(''); setStep(stepOf(j));
-  const waited = j.started ? Date.now() / 1000 - j.started : Date.now() / 1000 - j.created;
-  $('#jmeta').textContent = mmss(waited);
+  $('#jmeta').textContent = mmss(Date.now() / 1000 - j.created) + etaText(j);
   pollT = setTimeout(() => poll(id), 2000);
+}
+// Rough time left, from the song's length and how fast recent splits ran (the server sends both).
+function etaText(j) {
+  if (!j.eta_run) return '';
+  const now = Date.now() / 1000;
+  let left = j.status === 'running'
+    ? j.eta_run - (now - (j.started || now))
+    : Math.max(15, j.eta_wait - (now - j.created)) + j.eta_run;
+  if (left < 15) return ' · almost done';
+  if (left < 60) return ' · under a minute left';
+  return ` · about ${Math.ceil(left / 60)} min left`;
 }
 $('#cancel').onclick = async () => {
   const id = current; if (!id) return;
