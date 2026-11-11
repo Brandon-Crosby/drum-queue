@@ -4,7 +4,7 @@
   "CONTACT_EMAIL": "hello@drumsplitter.com",
   "ADSENSE_CLIENT": "ca-pub-5789085482919201",
   "ADSENSE_WAIT_SLOT": "",
-  "TURNSTILE_SITEKEY": "",
+  "TURNSTILE_SITEKEY": "0x4AAAAAAF9Gmz8OXczRAFgt",
   "LIMIT_PER_IP": "3",
   "MAX_MINUTES": "8"
 }
