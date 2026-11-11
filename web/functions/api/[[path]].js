@@ -13,6 +13,10 @@ export async function onRequest({ request, env }) {
   headers.delete('host');
   headers.set('x-proxy-secret', env.PROXY_SECRET);
   headers.set('x-real-ip', request.headers.get('cf-connecting-ip') || '');
+  // Visitor location from Cloudflare's own lookup (country + state/region code), for daily totals.
+  const cf = request.cf || {};
+  headers.set('x-country', cf.country || request.headers.get('cf-ipcountry') || '');
+  headers.set('x-region', cf.regionCode || '');
 
   const init = { method: request.method, headers, redirect: 'manual' };
   if (!['GET', 'HEAD'].includes(request.method)) {

@@ -79,6 +79,21 @@ def update_job(store, jid, **kw):
     return j
 
 
+def bump(store, key, **inc):
+    """Add to a daily stats record: numbers are summed, dicts are summed per key.
+    Only totals are kept (no IPs, nothing tied to a person)."""
+    d = store.get(key) or {}
+    for k, v in inc.items():
+        if isinstance(v, dict):
+            sub = dict(d.get(k) or {})
+            for kk, vv in v.items():
+                sub[kk] = sub.get(kk, 0) + vv
+            d[k] = sub
+        else:
+            d[k] = round(d.get(k, 0) + v, 3)
+    store.put(key, d)
+
+
 def today():
     return dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%d')
 
@@ -173,10 +188,13 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None):
         vkey = visitor_key(request, S.salt, trusted)
         mine, total = counts(vkey)
         if total >= S.daily_cap:
+            bump(store, f'stats:{today()}:api', site_full=1)
             raise HTTPException(429, "We've hit today's limit for free splits. Please come back tomorrow.")
         if mine >= S.per_ip_per_day:
+            bump(store, f'stats:{today()}:api', limited=1)
             raise HTTPException(429, "You've used today's free splits. Come back tomorrow.")
         if not verify_turnstile(S.turnstile_secret, token, client_ip(request, trusted)):
+            bump(store, f'stats:{today()}:api', bot_blocked=1)
             raise HTTPException(403, 'Bot check failed. Refresh the page and try again.')
 
         jid = uuid.uuid4().hex[:16]
@@ -199,6 +217,12 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None):
 
         store.put(f'n:{today()}:{vkey}', mine + 1)
         store.put(f'n:{today()}:all', total + 1)
+        # Location comes from Cloudflare's lookup (passed by the proxy), kept only as daily totals.
+        country = (request.headers.get('x-country') or '').upper()[:2] if trusted else ''
+        region = (request.headers.get('x-region') or '').upper()[:3] if trusted else ''
+        loc = f'{country}-{region}' if country and region else (country or '??')
+        bump(store, f'stats:{today()}:api', started=1, uploaders=1 if mine == 0 else 0,
+             countries={country or '??': 1}, regions={loc: 1})
         update_job(store, jid, status='queued', stage='Waiting for a GPU', name=name, created=time.time(),
                    stems=[], error='')
         submit(jid)
@@ -292,13 +316,18 @@ def run_job(jid, root, store, models, mix_model='htdemucs_ft', max_seconds=None)
                  opts=dict(model=mix_model, overlap=4, keep_full=True)),
             root / 'jobs' / jid / 'out', models,
             lambda s: update_job(store, jid, stage=s), preview_fmt='mp3', max_seconds=max_seconds)
-        update_job(store, jid, status='done', stage='Done', finished=time.time(), **res)
+        done = time.time()
+        update_job(store, jid, status='done', stage='Done', finished=done, **res)
+        started = (store.get(f'job:{jid}') or {}).get('started') or done
+        bump(store, f'stats:{today()}:gpu', done=1, audio_min=(res.get('duration') or 0) / 60,
+             gpu_s=done - started, wait_s=started - (j.get('created') or started))
     except Exception as e:
         msg = str(e) if isinstance(e, ValueError) else 'Something went wrong while splitting this song.'
         if type(e).__name__ in ('NoBackendError', 'LibsndfileError', 'DecodeError'):
             msg = "Couldn't read this file as audio. Try an mp3 or wav."
         update_job(store, jid, status='error', stage='Failed', finished=time.time(), error=msg,
                    detail=f'{type(e).__name__}: {e}'[:500])
+        bump(store, f'stats:{today()}:gpu', failed=1, gpu_s=time.time() - ((store.get(f'job:{jid}') or {}).get('started') or time.time()))
     finally:
         shutil.rmtree(root / 'jobs' / jid / 'input', ignore_errors=True)   # never keep the upload
 
@@ -320,3 +349,48 @@ def cleanup(root, store, keep_hours=24):
         if k.startswith('n:') and k.split(':')[1] < old:
             store.pop(k)
     return n
+
+
+GPU_DOLLARS_PER_S = 0.00022            # Modal L4; A10/T4 fallbacks cost about the same per song
+
+
+def stats_report(store, days=14):
+    """Plain-text daily summary for `modal run web/backend/modal_app.py::stats`."""
+    day0 = dt.datetime.now(dt.timezone.utc).date()
+    rows, tot, countries, regions = [], {}, {}, {}
+    for i in range(days):
+        d = (day0 - dt.timedelta(days=i)).isoformat()
+        a = store.get(f'stats:{d}:api') or {}
+        g = store.get(f'stats:{d}:gpu') or {}
+        rec = {
+            'splits': a.get('started', 0), 'done': g.get('done', 0), 'failed': g.get('failed', 0),
+            'people': a.get('uploaders', 0), 'audio_min': g.get('audio_min', 0), 'gpu_min': g.get('gpu_s', 0) / 60,
+            'wait_s': g.get('wait_s', 0), 'limited': a.get('limited', 0), 'bots': a.get('bot_blocked', 0),
+            'full': a.get('site_full', 0),
+        }
+        for k, v in rec.items():
+            tot[k] = tot.get(k, 0) + v
+        for k, v in (a.get('countries') or {}).items():
+            countries[k] = countries.get(k, 0) + v
+        for k, v in (a.get('regions') or {}).items():
+            regions[k] = regions.get(k, 0) + v
+        rows.append((d, rec))
+
+    def line(label, r):
+        avg_wait = r['wait_s'] / r['done'] if r['done'] else 0
+        cost = r['gpu_min'] * 60 * GPU_DOLLARS_PER_S
+        return (f"{label:12}{r['splits']:>7}{r['done']:>6}{r['failed']:>7}{r['people']:>8}"
+                f"{r['audio_min']:>9.1f}{r['gpu_min']:>8.1f}{cost:>8.2f}{avg_wait:>8.0f}"
+                f"{r['limited']:>9}{r['bots']:>6}{r['full']:>6}")
+
+    out = [f"DrumSplitter, last {days} days (UTC dates)", '',
+           f"{'day':12}{'splits':>7}{'done':>6}{'failed':>7}{'people':>8}{'audio m':>9}{'GPU m':>8}"
+           f"{'cost $':>8}{'wait s':>8}{'limited':>9}{'bots':>6}{'full':>6}"]
+    out += [line(d, r) for d, r in rows]
+    out += ['-' * 94, line('total', tot), '',
+            'splits = uploads accepted   people = different visitors who split something that day',
+            'wait s = average seconds waiting for a GPU   limited = turned away at the daily limit',
+            'bots = failed the bot check   full = turned away because the site-wide daily cap was hit', '']
+    top = lambda d: ', '.join(f'{k} {v}' for k, v in sorted(d.items(), key=lambda x: -x[1])[:12]) or 'none yet'
+    out += [f'Countries: {top(countries)}', f'States/regions: {top(regions)}']
+    return '\n'.join(out)

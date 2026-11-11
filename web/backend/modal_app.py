@@ -132,3 +132,10 @@ def cleanup():
     n = service.cleanup('/data', DictStore(kv), KEEP_HOURS)
     vol.commit()
     print(f'removed {n} old splits')
+
+
+@app.function(image=web_image, secrets=secrets)
+def stats(days: int = 14):
+    """Daily split counts:  modal run web/backend/modal_app.py::stats   (add --days 30 for more)"""
+    import service
+    print(service.stats_report(DictStore(kv), days))
