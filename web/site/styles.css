@@ -97,3 +97,11 @@ details p{color:var(--mute);margin:8px 0 0}
 .tbl td:first-child{font-weight:600;min-width:7.5em}
 .tbl td:last-child{min-width:6.5em}
 .cancelrow{margin-top:12px}
+.grp .hint{text-transform:none;letter-spacing:0;font-size:12px}
+.pads{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.pad{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--card)}
+.padhit{flex:1;font:inherit;text-align:left;padding:10px 12px;border:0;background:none;color:var(--ink);cursor:pointer;transition:background .1s}
+.padhit:hover{background:var(--soft)}.padhit.hit{background:color-mix(in srgb,var(--acc) 22%,var(--card))}
+.padhit b{display:block;font-size:15px}.padhit small{display:block;color:var(--mute);font-size:11px;margin-top:2px}
+.paddl{display:flex;align-items:center;padding:0 12px;border-left:1px solid var(--line);text-decoration:none;font-weight:700}
+.paddl:hover{background:var(--soft)}

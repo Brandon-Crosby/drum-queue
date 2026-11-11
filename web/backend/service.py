@@ -5,7 +5,8 @@ injected, so the same code runs locally (local_dev.py) and on Modal (modal_app.p
   GET  /api/jobs/{id}                  status, stage, stems
   POST /api/jobs/{id}/cancel           stop a split; it doesn't count toward the daily limit
   GET  /api/jobs/{id}/files/{name}     a stem (?dl=1 to download) or preview/<name>
-  GET  /api/jobs/{id}/zip              all stems (?kit=1 for kit pieces only)
+  GET  /api/jobs/{id}/zip              all stems (?kit=1 for kit pieces only, ?shots=1 for the one-shot kit)
+  GET  /api/jobs/{id}/shots/{name}     a one-shot sample (?dl=1 to download)
   GET  /api/limits                     splits left today for this visitor
 """
 import datetime as dt
@@ -29,6 +30,7 @@ from fastapi.responses import FileResponse, JSONResponse
 AUDIO_EXTS = {'.mp3', '.wav', '.flac', '.m4a', '.aiff', '.aif', '.ogg', '.opus'}
 JOB_ID = re.compile(r'^[a-f0-9]{16}$')
 SAFE_FILE = re.compile(r'^[a-z_]+\.(wav|mp3)$')
+SHOT_FILE = re.compile(r'^[^/\\\x00]{1,120}\.wav$')    # must also be in the job's own list of one-shots
 
 
 def env_int(name, default):
@@ -224,6 +226,8 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
         keep['id'] = jid
         keep['stems'] = [{k: s[k] for k in ('name', 'preview', 'stem', 'label', 'group', 'quiet')}
                          for s in j.get('stems') or []]
+        keep['shots'] = [{k: s.get(k) for k in ('name', 'label', 'piece', 'seconds', 'count')}
+                         for s in j.get('shots') or []]
         keep['expires'] = (j.get('created') or time.time()) + S.keep_hours * 3600
         return keep
 
@@ -341,6 +345,23 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
                             filename=f'{song} - {name}' if dl else None,
                             content_disposition_type='attachment' if dl else 'inline')
 
+    def shot_file(jid, j, name):
+        if not SHOT_FILE.match(name) or name.startswith('.') or name not in [s.get('name') for s in j.get('shots') or []]:
+            raise HTTPException(404)
+        p = root / 'jobs' / jid / 'out' / j['out_dir'] / 'one-shots' / name
+        if not p.exists():
+            refresh()
+        if not p.exists():
+            raise HTTPException(404, 'File is gone (splits are kept for 24 hours).')
+        return p
+
+    @app.get('/api/jobs/{jid}/shots/{name}')
+    def get_shot(jid: str, name: str, dl: int = 0):
+        j = job_or_404(jid)
+        return FileResponse(shot_file(jid, j, name), media_type='audio/wav', filename=name if dl else None,
+                            content_disposition_type='attachment' if dl else 'inline',
+                            headers={'Cache-Control': 'private, max-age=86400'})
+
     @app.get('/api/jobs/{jid}/preview/{name}')
     def get_preview(jid: str, name: str):
         j = job_or_404(jid)
@@ -349,7 +370,7 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
                             headers={'Cache-Control': 'private, max-age=86400'})
 
     @app.get('/api/jobs/{jid}/zip')
-    def get_zip(jid: str, kit: int = 0):
+    def get_zip(jid: str, kit: int = 0, shots: int = 0):
         j = job_or_404(jid)
         if j.get('status') != 'done':
             raise HTTPException(409, 'Not finished yet.')
@@ -357,7 +378,10 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
         tmp = tempfile.NamedTemporaryFile(suffix='.zip', delete=False)
         tmp.close()
         with zipfile.ZipFile(tmp.name, 'w', zipfile.ZIP_STORED) as z:
-            for s in j['stems']:
+            if shots:
+                for s in j.get('shots') or []:
+                    z.write(shot_file(jid, j, s['name']), f"{song} - one-shots/{s['name']}")
+            for s in ([] if shots else j['stems']):
                 if kit and s['group'] != 'kit':
                     continue
                 z.write(stem_file(jid, j, s['name']), f"{song}/{s['name']}")
@@ -365,7 +389,7 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
         os.unlink(tmp.name)                         # stays readable until the response closes
         from fastapi.responses import StreamingResponse
         return StreamingResponse(f, media_type='application/zip', headers={
-            'Content-Disposition': f'attachment; filename="{_ascii(song)}{" - kit" if kit else ""}.zip"'})
+            'Content-Disposition': f'attachment; filename="{_ascii(song)}{" - one-shots" if shots else " - kit" if kit else ""}.zip"'})
 
     @app.exception_handler(HTTPException)
     async def http_err(_, e):

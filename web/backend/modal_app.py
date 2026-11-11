@@ -54,6 +54,7 @@ gpu_image = (
                     'fastapi', 'python-multipart')
     .env(PUBLIC_ENV)
     .add_local_file(REPO / 'engine.py', '/root/engine.py', copy=True)
+    .add_local_file(REPO / 'oneshots.py', '/root/oneshots.py', copy=True)
     .add_local_file(HERE / 'service.py', '/root/service.py', copy=True)
     .run_function(_download_models)
 )

@@ -118,8 +118,8 @@ function setStep(k, pct) {
 function stepOf(j) {
   if (j.status === 'queued') return 'queue';
   const s = (j.stage || '').toLowerCase();
+  if (s.includes('preview') || s.includes('one-shot')) return 'finish';
   if (s.includes('kit')) return 'kit';
-  if (s.includes('preview')) return 'finish';
   return 'mix';
 }
 async function poll(id) {
@@ -186,6 +186,29 @@ function showResult(id, j) {
   const left = Math.max(0, j.expires - Date.now() / 1000);
   $('#expire').textContent = `These files are deleted in about ${Math.max(1, Math.round(left / 3600))} hours. Bookmark this page to come back.` + (j.note ? ' ' + j.note : '');
   buildMixer(id, j);
+  buildShots(id, j);
+}
+// ---------- one-shots: one pad per sound, tap to hear, download one or the whole kit
+let shotAudio = null;
+function buildShots(id, j) {
+  const box = $('#shots'), pads = $('#pads'); pads.replaceChildren();
+  const shots = j.shots || [];
+  box.hidden = !shots.length;
+  if (!shots.length) return;
+  $('#zipshots').href = `/api/jobs/${id}/zip?shots=1`;
+  for (const s of shots) {
+    const url = `/api/jobs/${id}/shots/${encodeURIComponent(s.name)}`;
+    const pad = el('div', 'pad');
+    const play = el('button', 'padhit'); play.type = 'button';
+    play.append(el('b', null, s.label), el('small', null, `${s.seconds.toFixed(2)}s · ${s.count} hits`));
+    play.onclick = () => {
+      if (shotAudio) shotAudio.pause();
+      shotAudio = new Audio(url); shotAudio.play().catch(() => {});
+      play.classList.add('hit'); setTimeout(() => play.classList.remove('hit'), 150);
+    };
+    const dl = el('a', 'paddl', '↓'); dl.href = url + '?dl=1'; dl.title = 'Download ' + s.label; dl.setAttribute('aria-label', 'Download ' + s.label);
+    pad.append(play, dl); pads.append(pad);
+  }
 }
 function gainOn(t) { const solo = MX.tracks.some(x => x.solo); return (solo ? t.solo : !t.mute) ? 1 : 0; }
 function apply() { for (const t of MX.tracks) { const on = gainOn(t); t.row.classList.toggle('off', !on); t.mb.classList.toggle('on', t.mute); t.sb.classList.toggle('on', t.solo); t.mb.setAttribute('aria-pressed', t.mute); t.sb.setAttribute('aria-pressed', t.solo); if (t.gain) t.gain.gain.setTargetAtTime(on, AC.currentTime, .01); } }

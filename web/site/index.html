@@ -62,7 +62,7 @@
     <li data-k="queue"><i></i>Waiting for a free GPU</li>
     <li data-k="mix"><i></i>Pulling the drums out of the mix</li>
     <li data-k="kit"><i></i>Splitting the kit into pieces</li>
-    <li data-k="finish"><i></i>Making previews</li>
+    <li data-k="finish"><i></i>Making previews and one-shots</li>
   </ol>
   <div class="cancelrow" id="cancelrow" hidden><button class="btn" id="cancel">Cancel</button></div>
   <div class="adslot" id="waitad"></div>
@@ -72,8 +72,13 @@
       <button class="btn" id="reset">Kit only</button><span class="time" id="time"></span>
     </div>
     <div id="tracks"></div>
+    <div id="shots" hidden>
+      <div class="grp">One-shots <span class="hint">· the cleanest hit of each sound, ready for a sampler</span></div>
+      <div class="pads" id="pads"></div>
+    </div>
     <div class="dl">
-      <a class="btn pri" id="zipkit" href="#">Download kit (.zip)</a>
+      <a class="btn pri" id="zipshots" href="#">Download one-shots (.zip)</a>
+      <a class="btn" id="zipkit" href="#">Kit stems (.zip)</a>
       <a class="btn" id="zipall" href="#">All stems (.zip)</a>
       <button class="btn" id="again">Split another song</button>
     </div>

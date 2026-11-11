@@ -263,7 +263,18 @@ def process(job, out_root, models, stage, preview_fmt='wav', max_seconds=None):
                         quiet=bool(level is not None and level < -60), db=level))
     missing = [k for k in KIT if not (out_dir / f'{k}.wav').exists()]
     note = f'Missing kit pieces: {", ".join(missing)}' if missing else ''
-    return dict(stems=out, out_dir=out_dir.name, bpm=bpm, duration=round(dur, 1), note=note)
+
+    stage('Making one-shots')
+    shots = []
+    try:                                       # a nice extra; never fail the split over it
+        import oneshots
+        song = safe_name(Path(job['name']).stem)[:60]
+        shots = [dict(name=r['name'], label=r['label'], piece=r['piece'], seconds=r['seconds'],
+                      count=r['count'])
+                 for r in oneshots.make_kit(out_dir, out_dir / 'one-shots', prefix=f'{song} - ')]
+    except Exception as e:
+        print(f'one-shots failed: {type(e).__name__}: {e}', flush=True)
+    return dict(stems=out, shots=shots, out_dir=out_dir.name, bpm=bpm, duration=round(dur, 1), note=note)
 
 
 def separator_available():
