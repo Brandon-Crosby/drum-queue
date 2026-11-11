@@ -6,6 +6,36 @@
 <link rel="canonical" href="https://{{DOMAIN}}/">
 {{TURNSTILE_TAG}}
 <script>window.SITE={turnstile:"{{TURNSTILE_SITEKEY}}",client:"{{ADSENSE_CLIENT}}",waitSlot:"{{ADSENSE_WAIT_SLOT}}"};</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "{{SITE_NAME}}",
+      "url": "https://{{DOMAIN}}/",
+      "description": "Free online drum splitter. Upload a song and get separate kick, snare, toms, hi-hat, ride and crash stems, plus bass, vocals and the rest of the mix.",
+      "applicationCategory": "MultimediaApplication",
+      "operatingSystem": "Any (runs in a web browser)",
+      "browserRequirements": "Requires a modern web browser with JavaScript",
+      "image": "https://{{DOMAIN}}/og.png",
+      "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+      "featureList": ["Kick stem", "Snare stem", "Toms stem", "Hi-hat stem", "Ride stem", "Crash stem", "Bass, vocals and other stems", "In-browser mute/solo mixer", "WAV downloads"]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {"@type": "Question", "name": "Is it free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. The site is paid for by ads. To keep it free for everyone, each visitor gets {{LIMIT_PER_IP}} splits a day, up to {{MAX_MINUTES}} minutes per song."}},
+        {"@type": "Question", "name": "How long does a split take?", "acceptedAnswer": {"@type": "Answer", "text": "Usually under a minute or two for a normal-length song once a GPU picks it up. If the site is busy you may wait in line for a bit first."}},
+        {"@type": "Question", "name": "What happens to my files?", "acceptedAnswer": {"@type": "Answer", "text": "Your upload is deleted as soon as it has been split. The stems are kept for 24 hours so you can come back and download them, then deleted."}},
+        {"@type": "Question", "name": "Why is there some bleed between pieces?", "acceptedAnswer": {"@type": "Answer", "text": "Separation is never perfect. Hats and cymbals share a lot of the same frequencies, and reverb gets split between pieces. Lossless files (wav or flac) give cleaner results than low-bitrate mp3s."}},
+        {"@type": "Question", "name": "Can I upload any song?", "acceptedAnswer": {"@type": "Answer", "text": "Only upload audio you have the right to use: your own music, licensed material, or audio you're studying for personal practice where that's allowed."}},
+        {"@type": "Question", "name": "A piece came out silent. Why?", "acceptedAnswer": {"@type": "Answer", "text": "If a song has no ride cymbal (or no toms), that stem will be close to silent. It's marked \"silent\" in the mixer."}}
+      ]
+    }
+  ]
+}
+</script>
 </head><body>
 {{HEADER}}
 <main class="wrap">

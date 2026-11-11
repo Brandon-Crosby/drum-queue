@@ -18,6 +18,35 @@ SRC, OUT = HERE / 'site', HERE / 'dist'
 TEXT = {'.html', '.js', '.css', '.txt', '.xml', '.json', '.svg'}
 
 
+def social_tags(html, cfg):
+    """Link-preview tags (iMessage, Instagram, X, Discord...) built from each page's own
+    <title>, description and canonical URL, so pages never drift out of sync with them."""
+    if 'name="robots" content="noindex"' in html:
+        return html
+    get = lambda pat: (m := re.search(pat, html)) and m[1]
+    title = get(r'<title>(.*?)</title>') or cfg['SITE_NAME']
+    desc = get(r'<meta name="description" content="([^"]*)"') or ''
+    url = get(r'<link rel="canonical" href="([^"]*)"') or f"https://{cfg['DOMAIN']}/"
+    img = f"https://{cfg['DOMAIN']}/og.png"
+    tags = '\n'.join([
+        '<meta property="og:type" content="website">',
+        f'<meta property="og:site_name" content="{cfg["SITE_NAME"]}">',
+        f'<meta property="og:title" content="{title}">',
+        f'<meta property="og:description" content="{desc}">',
+        f'<meta property="og:url" content="{url}">',
+        f'<meta property="og:image" content="{img}">',
+        '<meta property="og:image:width" content="1200">',
+        '<meta property="og:image:height" content="630">',
+        f'<meta property="og:image:alt" content="{cfg["SITE_NAME"]}: split any song\'s drums into kick, snare, toms, hi-hat, ride and crash">',
+        '<meta name="twitter:card" content="summary_large_image">',
+        f'<meta name="twitter:title" content="{title}">',
+        f'<meta name="twitter:description" content="{desc}">',
+        f'<meta name="twitter:image" content="{img}">',
+        '<link rel="apple-touch-icon" href="/apple-touch-icon.png">',
+    ])
+    return html.replace('</head>', tags + '\n</head>', 1)
+
+
 def main():
     cfg = json.loads((HERE / 'site.json').read_text())
     cfg = {k: os.environ.get(k, v) for k, v in cfg.items()}
@@ -44,7 +73,9 @@ def main():
             continue
         dst = OUT / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
-        if f.suffix in TEXT:
+        if f.suffix == '.html':
+            dst.write_text(social_tags(fill(f.read_text()), cfg))
+        elif f.suffix in TEXT:
             dst.write_text(fill(f.read_text()))
         else:
             shutil.copy2(f, dst)

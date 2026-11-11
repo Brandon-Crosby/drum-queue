@@ -1,0 +1,8 @@
+# Keep the temporary *.pages.dev copies out of search results; drumsplitter.com is the real site.
+https://:project.pages.dev/*
+  X-Robots-Tag: noindex
+https://:version.:project.pages.dev/*
+  X-Robots-Tag: noindex
+
+/og.png
+  Cache-Control: public, max-age=86400
