@@ -18,6 +18,7 @@ Names win over sound; anything doubtful is marked "check" in the table so a pers
 A roles.json that has "reviewed": true is left alone (so corrections aren't overwritten).
 """
 import argparse
+import sys
 import json
 import re
 from pathlib import Path
@@ -27,10 +28,11 @@ import soundfile as sf
 
 WORDS = [  # (role, regex on the lowercase track name); first match wins
     ('mix', r'\b(master|current|mixdown|full ?mix|bounce)\b'),
-    ('kick', r'kick|\bkck\b|\bbd\b|bombo'),
-    ('snare', r'snare|\bsnr\b|clap|\brim\b|rimshot|\bsd\b'),
-    ('hh', r'hi ?-?hats?|(open|closed) ?hats?|\bhats?\b|\bhh\b|\boh\b|shaker|maraca|tamb(ourine)?\b|\bride\b|\bcrash\b|cymbal'),
-    ('other_drums', r'perc|conga|bongo|campana|cowbell|guiro|g[uü]iro|timbal|clave|tambora|tom\b|toms\b'
+    ('kick', r'kick|kik|\bkck\b|\bbd\b|bombo'),
+    ('snare', r'snare|sn\w?are|snr|clap|\bclp\b|\brims?\b|rimz|rimshot|\bsd\b'),
+    ('hh', r'hi ?-?hats?|(open|closed) ?hats?|\bhats?\b|\bhh\b|\boh\b|shaker|maraca|tamb(ourine)?\b|tambo\b|top loop|\btops?\b'),
+    ('other_drums', r'perc|prc\b|palito|cong[ao]|bongo|campana|cowbell|guiro|g[uü]iro|timbal|clave|tambora|\btoms?\b'
+                    r'|crash|\bride\b|cymbal|log drum'
                     r'|drum ?loop|drums?\b|\bloop.*(perc|drum)|dembow loop|break'),
 ]
 DRUM_ROLES = ('kick', 'snare', 'hh', 'other_drums')
@@ -54,7 +56,9 @@ def common_prefix(names):
 
 
 def by_name(name):
-    low = name.lower()
+    # '2_RIM', 'drum_rubberslover_hats', '909crash': make separators spaces so word matching works
+    low = re.sub(r'[_\-=+()\[\]{}|.,#@!]+', ' ', name.lower())
+    low = re.sub(r'(?<=\d)(?=[a-z])|(?<=[a-z])(?=\d)', ' ', low)
     for role, rx in WORDS:
         if re.search(rx, low):
             return role
@@ -74,14 +78,31 @@ def sort_beat(folder, dest=None):
         return None
     prefix = common_prefix([p.stem for p in wavs])
     rows, audio = [], {}
+    stems = [p.stem.strip() for p in wavs]
     for f in wavs:
         name = track_name(f, prefix)
+        # a file whose whole name is what every other file starts with = the beat's own mixdown
+        if any(o != f.stem.strip() and o.startswith(f.stem.strip()) for o in stems) and \
+                sum(o.startswith(f.stem.strip()) for o in stems) > len(stems) * 0.8:
+            name = name or f.stem
+            rows.append(dict(name=name, file=f.name, db=0.0, guess='mix'))
+            audio[name] = load_mono(f)[0]
+            rows[-1]['db'] = round(20 * np.log10(float(np.sqrt(np.mean(audio[name] ** 2))) + 1e-12), 1)
+            continue
         y, sr = load_mono(f)
         rms = float(np.sqrt(np.mean(y ** 2))) if len(y) else 0.0
         db = 20 * np.log10(rms + 1e-12)
         rows.append(dict(name=name, file=f.name, db=round(db, 1), guess=by_name(name)))
         audio[name] = y
     n = min(len(a) for a in audio.values())
+    masters = [r['name'] for r in rows if r['guess'] == 'mix']
+    for r in rows:
+        if r['guess'] != 'mix' and masters:
+            m, t = audio[masters[0]][:n:16], audio[r['name']][:n:16]
+            c = float(np.dot(m, t) / (np.sqrt(np.dot(m, m) * np.dot(t, t)) + 1e-12))
+            mdb = next(x['db'] for x in rows if x['name'] == masters[0])
+            if c > 0.98 and abs(r['db'] - mdb) < 1.0:     # same shape AND same level as the master
+                r['guess'] = 'mix'
     for r in rows:
         r['role'], r['why'] = r['guess'], 'name'
         if r['guess'] == 'mix':
@@ -121,10 +142,13 @@ def sort_beat(folder, dest=None):
 
 
 def main():
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
     ap = argparse.ArgumentParser()
     ap.add_argument('root')
     ap.add_argument('--only', default='')
     ap.add_argument('--out', default='', help='folder for the roles files (default: inside each beat folder)')
+    ap.add_argument('--testset', default='', help='also build each beat\'s 60 s test clip here right away, so its '
+                                                  'stems can go back to online-only afterwards')
     ap.add_argument('--force', action='store_true', help='redo folders already marked reviewed')
     a = ap.parse_args()
     root = Path(a.root).expanduser()
@@ -143,13 +167,23 @@ def main():
         try:
             out = sort_beat(d, rj)
         except Exception as e:
-            print(f'! {d.name}: {type(e).__name__}: {e}')
+            msg = f'{type(e).__name__}: {e}'
+            if 'Format not recognised' in msg or 'Error opening' in msg:
+                msg = 'stems not readable - in Dropbox, right-click the folder > Make available offline, then rerun'
+            print(f'! {d.name}: {msg}')
             continue
         if not out:
             print(f'- {d.name}: fewer than 3 WAVs, skipped')
             continue
         spec, rows = out
         done += 1
+        if a.testset:
+            import make_testset
+            try:
+                m = make_testset.build(d, Path(a.testset).expanduser() / d.name, 60, rj)
+                print(f'  -> test clip saved ({m["seconds"]} s from {m["start_s"]} s)')
+            except Exception as e:
+                print(f'  -> test clip failed: {type(e).__name__}: {e}')
         print(f'\n## {d.name}  ({spec["seconds"]} s)')
         for r in sorted(rows, key=lambda r: (r['role'], r['name'])):
             flag = '  <- check' if r['check'] else ''

@@ -93,6 +93,10 @@ def main():
         if a.only and a.only.lower() not in b.name.lower():
             continue
         out = outroot / b.name
+        why = json.loads(spec_file.read_text()).get('skip')
+        if why:
+            print(f'- {b.name}: skipped ({why})')
+            continue
         if not a.force and (out / 'roles.json').exists() and (out / 'roles.json').read_text() == spec_file.read_text():
             print(f'= {b.name}: up to date')
             ok += 1
