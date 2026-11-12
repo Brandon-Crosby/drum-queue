@@ -46,6 +46,19 @@ def audio_files(folder):
     return sorted(p for p in folder.iterdir() if p.suffix.lower() in AUDIO and not p.name.startswith('._'))
 
 
+GENERIC = re.compile(r'^\W*(flp|flps|stems?|audio|wavs?|bounces?|tracks?|exports?|sf2)(\W+(flp|flps|stems?|audio|wavs?|sf2))*\W*(\(\d+\))?\W*$', re.I)
+
+
+def beat_id(d, root):
+    """A unique, readable name for a beat folder: its path inside the folder that was scanned,
+    e.g. 'Drake - Jimmy Cooks (FLP & STEMS) - STEMS' rather than 'STEMS' (which every song in a
+    pack might be called). A folder whose own name isn't generic just keeps its name."""
+    if not GENERIC.match(d.name):
+        return d.name
+    parts = d.relative_to(root).parts if d != root else ()
+    return ' - '.join(parts) if parts else d.name
+
+
 def beat_folders(root, depth=3):
     """Every folder (down to `depth` levels) holding 3+ audio files counts as one beat."""
     if len(audio_files(root)) >= 3:
@@ -99,6 +112,16 @@ def sort_beat(folder, dest=None, overrides=None):
     wavs = audio_files(folder)
     if len(wavs) < 3:
         return None
+    # A song's stems are all (about) the same length; a sample pack is lots of short one-shots/loops.
+    lens = []
+    for f in wavs:
+        try:
+            i = sf.info(str(f))
+            lens.append(i.frames / i.samplerate)
+        except Exception:
+            pass
+    if lens and (np.median(lens) < 20 or np.mean(np.abs(np.array(lens) - np.median(lens)) < 1.0) < 0.6):
+        raise ValueError('looks like a sample pack (short or mismatched files), not a song\'s stems')
     prefix = common_prefix([p.stem for p in wavs])
     rows, audio = [], {}
     stems = [p.stem.strip() for p in wavs]
@@ -188,20 +211,21 @@ def main():
     folders = beat_folders(root)
     done = 0
     for d in folders:
-        if a.only and a.only.lower() not in d.name.lower():
+        bid = beat_id(d, root)
+        if a.only and a.only.lower() not in bid.lower():
             continue
         outdir = Path(a.out).expanduser() if a.out else None
         if outdir:
             outdir.mkdir(parents=True, exist_ok=True)
-        rj = (outdir / f'{d.name}.json') if outdir else (d / 'roles.json')
+        rj = (outdir / f'{bid}.json') if outdir else (d / 'roles.json')
         if rj.exists() and not a.force and json.loads(rj.read_text()).get('reviewed'):
-            print(f'= {d.name}: reviewed already, skipped')
+            print(f'= {bid}: reviewed already, skipped')
             continue
         try:
             ov = {}
             ovf = (outdir / '_overrides.json') if outdir else None
             if ovf and ovf.exists():
-                ov = json.loads(ovf.read_text()).get(d.name, {})
+                ov = json.loads(ovf.read_text()).get(bid, {})
             out = sort_beat(d, rj, {k: v for k, v in ov.items() if k != '_skip'})
             if out and ov.get('_skip'):
                 out[0]['skip'] = ov['_skip']
@@ -210,34 +234,34 @@ def main():
             msg = f'{type(e).__name__}: {e}'
             if 'Format not recognised' in msg or 'Error opening' in msg:
                 msg = 'stems not readable - in Dropbox, right-click the folder > Make available offline, then rerun'
-            print(f'! {d.name}: {msg}')
+            print(f'! {bid}: {msg}')
             continue
         if not out:
-            print(f'- {d.name}: fewer than 3 WAVs, skipped')
+            print(f'- {bid}: fewer than 3 WAVs, skipped')
             continue
         spec, rows = out
         done += 1
         if a.trainset:
             import make_testset
             held = Path(a.holdout).expanduser() if a.holdout else None
-            if held and (held / d.name).exists():
-                print(f'  -> {d.name} is in the test set: NOT saved for training')
+            if held and (held / bid).exists():
+                print(f'  -> {bid} is in the test set: NOT saved for training')
             elif json.loads(rj.read_text()).get('skip'):
                 print('  -> skipped for training (marked skip)')
             else:
                 try:
-                    m = make_testset.build(d, Path(a.trainset).expanduser() / d.name, 0, rj, full=True)
+                    m = make_testset.build(d, Path(a.trainset).expanduser() / bid, 0, rj, full=True)
                     print(f'  -> training copy saved ({m["seconds"]} s by role)')
                 except Exception as e:
                     print(f'  -> training copy failed: {type(e).__name__}: {e}')
         if a.testset:
             import make_testset
             try:
-                m = make_testset.build(d, Path(a.testset).expanduser() / d.name, 60, rj)
+                m = make_testset.build(d, Path(a.testset).expanduser() / bid, 60, rj)
                 print(f'  -> test clip saved ({m["seconds"]} s from {m["start_s"]} s)')
             except Exception as e:
                 print(f'  -> test clip failed: {type(e).__name__}: {e}')
-        print(f'\n## {d.name}  ({spec["seconds"]} s)')
+        print(f'\n## {bid}  ({spec["seconds"]} s)')
         for r in sorted(rows, key=lambda r: (r['role'], r['name'])):
             flag = '  <- check' if r['check'] else ''
             print(f"  {r['role']:12} {r['db']:7.1f} dB  {r['name']}" + (f"   ({r['why']})" if r['why'] != 'name' else '') + flag)
