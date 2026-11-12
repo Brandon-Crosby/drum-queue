@@ -22,6 +22,12 @@ import numpy as np
 import soundfile as sf
 
 ROLES = ['kick', 'snare', 'hh', 'other_drums', 'rest']
+# Whole-kit tracks (a 'DRUMS' print, a drum loop or break) hold kick+snare+hats in one file. Fine in a
+# test (the mix is what matters), but in TRAINING they'd teach that kicks and snares are 'perc'.
+import re
+FULL_KIT = re.compile(r'(^|\W)(drums?|drum ?loops?|drumloop|drum edit|breaks?|main break|dnb loop|jungle loop'
+                      r'|garage loop|outro drums|intro drums|beat chop|playero)(\W|$)', re.I)
+NOT_FULL_KIT = re.compile(r'log ?drum|steel ?drum|talking ?drum|hand ?drum|frame ?drum', re.I)   # single instruments
 
 
 def build(beat, out, seconds, spec_file, full=False):
@@ -32,6 +38,8 @@ def build(beat, out, seconds, spec_file, full=False):
     parts, sr = {}, None
     for role in ROLES:
         for name in roles.get(role, []):
+            if full and role == 'other_drums' and FULL_KIT.search(name) and not NOT_FULL_KIT.search(name):
+                continue                                    # whole-kit track: keep it out of training
             f = next((beat / f'{prefix}{name}{ext}' for ext in ('.wav', '.flac', '.aif', '.aiff')
                       if (beat / f'{prefix}{name}{ext}').exists()), beat / f'{prefix}{name}.wav')
             if not f.exists():
@@ -46,13 +54,14 @@ def build(beat, out, seconds, spec_file, full=False):
             p = parts.get(role)
             if p is None:
                 parts[role] = y
-            else:
-                n = min(len(p), len(y))
-                parts[role] = p[:n] + y[:n]
+            else:                                           # pad the shorter one: never cut a song short
+                n = max(len(p), len(y))
+                parts[role] = np.pad(p, ((0, n - len(p)), (0, 0))) + np.pad(y, ((0, n - len(y)), (0, 0)))
     if 'kick' not in parts and 'snare' not in parts:
         raise ValueError('no kick or snare tracks listed')
-    n = min(len(v) for v in parts.values())
-    full = {r: parts[r][:n] if r in parts else np.zeros((n, 2), 'float32') for r in ROLES}
+    n = max(len(v) for v in parts.values())
+    full = {r: np.pad(parts[r], ((0, n - len(parts[r])), (0, 0))) if r in parts else np.zeros((n, 2), 'float32')
+            for r in ROLES}
     # the stretch with the most kit going on (kick + snare + hats), in 1 s steps
     kit = np.abs(full['kick']).mean(1) + np.abs(full['snare']).mean(1) + np.abs(full['hh']).mean(1)
     win = n if full else int(seconds * sr)
