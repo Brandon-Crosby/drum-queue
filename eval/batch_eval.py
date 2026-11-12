@@ -2,6 +2,7 @@
 
   modal run eval/batch_eval.py --testset ~/DrumSplits/testset
   modal run eval/batch_eval.py --testset ~/DrumSplits/testset --only dembow
+  modal run eval/batch_eval.py --ckpt /runs/trial/last_mdx23c.ckpt --label trial   # a model we trained
 
 The test set is what eval/make_testset.py writes: one folder per beat with mix.flac and the
 answer-key stems (kick, snare, hh, other_drums, rest). This uploads it to a private Modal volume
@@ -20,6 +21,8 @@ import modal
 HERE = Path(__file__).resolve().parent
 app = modal.App('drumsplit-batch-eval')
 vol = modal.Volume.from_name('drumsplit-eval', create_if_missing=True)
+train_vol = modal.Volume.from_name('drumsplit-train', create_if_missing=True)
+MSST_COMMIT = '1d4b3c431b37de696b3795ed2018493aacba946f'
 MODELS = '/models'
 PIECES = ['kick', 'snare', 'hh']
 
@@ -36,12 +39,19 @@ image = (
     .apt_install('ffmpeg', 'libsndfile1')
     .uv_pip_install('audio-separator[gpu]==0.44.2', 'librosa==0.10.2.post1', 'soundfile', 'scipy', 'numpy')
     .run_function(_download)
+    .apt_install('git')
+    .run_commands('git clone -q https://github.com/ZFTurbo/Music-Source-Separation-Training /msst && '
+                  f'cd /msst && git checkout -q {MSST_COMMIT}')
+    .uv_pip_install('ml_collections', 'omegaconf', 'pyyaml', 'tqdm')
     .add_local_file(HERE / 'score.py', '/root/score.py')
 )
 
 
-@app.cls(image=image, gpu=['L4', 'A10', 'T4'], volumes={'/eval': vol}, timeout=1800, max_containers=4)
+@app.cls(image=image, gpu=['L4', 'A10', 'T4'], volumes={'/eval': vol, '/train': train_vol}, timeout=1800,
+         max_containers=4)
 class Bench:
+    ckpt: str = modal.parameter(default='')          # a checkpoint on the drumsplit-train volume, e.g. /runs/trial/x.ckpt
+
     @modal.enter()
     def load(self):
         import logging
@@ -56,6 +66,20 @@ class Bench:
                              mdxc_params={'segment_size': 256, 'override_model_segment_size': False,
                                           'batch_size': 1, 'overlap': 4, 'pitch_shift': 0})
         self.kit.load_model(model_filename='MDX23C-DrumSep-aufr33-jarredou.ckpt')
+        self.ours = None
+        if self.ckpt:                                   # our fine-tuned model replaces stage 2
+            import sys
+            import torch
+            sys.path.insert(0, '/msst')
+            from utils.settings import get_model_from_config
+            ck = Path('/train') / self.ckpt.lstrip('/')
+            model, cfg = get_model_from_config('mdx23c', str(ck.parent / 'config.yaml'))
+            sd = torch.load(str(ck), map_location='cpu', weights_only=False)
+            for k in ('state_dict', 'model_state_dict', 'state'):
+                if isinstance(sd, dict) and k in sd:
+                    sd = sd[k]
+            model.load_state_dict({k.replace('_orig_mod.', ''): v for k, v in sd.items()})
+            self.ours = (model.to('cuda').eval(), cfg)
 
     @modal.method()
     def run(self, beat: str):
@@ -82,7 +106,17 @@ class Bench:
             (self.work / Path(o).name).unlink(missing_ok=True)
         est = W / 'kit'
         est.mkdir()
-        for o in self.kit.separate(str(W / 'drums.wav')):
+        if self.ours:
+            import torch
+            from utils.model_utils import demix
+            model, cfg = self.ours
+            x, sr = sf.read(str(W / 'drums.wav'), dtype='float32', always_2d=True)
+            with torch.inference_mode():
+                res = demix(cfg, model, torch.tensor(x.T), torch.device('cuda'), 'mdx23c')
+            names = {'perc': 'toms'}                     # score.py's kit names; perc sits where toms were
+            for k, v in res.items():
+                sf.write(str(est / f"{names.get(k, k)}.wav"), v.T, sr, subtype='FLOAT')
+        for o in ([] if self.ours else self.kit.separate(str(W / 'drums.wav'))):
             nm = Path(o).name
             shutil.move(str(self.work / nm), est / (nm[nm.rfind('(') + 1:nm.rfind(')')].strip().lower() + '.wav'))
         gpu_s = time.time() - t
@@ -120,7 +154,7 @@ def board(results):
 
 
 @app.local_entrypoint()
-def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'current'):
+def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'current', ckpt: str = ''):
     root = Path(os.path.expanduser(testset))
     beats = sorted(p.name for p in root.iterdir() if (p / 'mix.flac').exists() and (not only or only.lower() in p.name.lower()))
     if not beats:
@@ -137,7 +171,9 @@ def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'cu
             for b in new:
                 up.put_directory(str(root / b), f'/testset/{b}')
     print(f'Splitting and scoring {len(beats)} beat(s) on GPUs ...')
-    results = list(Bench().run.map(beats, return_exceptions=True))
+    if ckpt:
+        print(f'Stage 2 = our model {ckpt}')
+    results = list(Bench(ckpt=ckpt).run.map(beats, return_exceptions=True))
     results = [r if isinstance(r, dict) else {'beat': b, 'error': repr(r)} for b, r in zip(beats, results)]
     print('\n' + board(results))
     out = Path('eval_results')
