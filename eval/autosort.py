@@ -28,10 +28,10 @@ import soundfile as sf
 
 WORDS = [  # (role, regex on the lowercase track name); first match wins
     ('mix', r'\b(master|current|mixdown|full ?mix|bounce)\b'),
-    ('kick', r'kick|\bkck\b|\bbd\b|bombo'),
-    ('snare', r'snare|\bsnr\b|clap|\brim\b|rimshot|\bsd\b'),
-    ('hh', r'hi ?-?hats?|(open|closed) ?hats?|\bhats?\b|\bhh\b|\boh\b|shaker|maraca|tamb(ourine)?\b|tambo\b|top loop'),
-    ('other_drums', r'perc|\bprc\b|cong[ao]|bongo|campana|cowbell|guiro|g[uü]iro|timbal|clave|tambora|\btoms?\b'
+    ('kick', r'kick|kik|\bkck\b|\bbd\b|bombo'),
+    ('snare', r'snare|sn\w?are|snr|clap|\bclp\b|\brims?\b|rimz|rimshot|\bsd\b'),
+    ('hh', r'hi ?-?hats?|(open|closed) ?hats?|\bhats?\b|\bhh\b|\boh\b|shaker|maraca|tamb(ourine)?\b|tambo\b|top loop|\btops?\b'),
+    ('other_drums', r'perc|prc\b|palito|cong[ao]|bongo|campana|cowbell|guiro|g[uü]iro|timbal|clave|tambora|\btoms?\b'
                     r'|crash|\bride\b|cymbal|log drum'
                     r'|drum ?loop|drums?\b|\bloop.*(perc|drum)|dembow loop|break'),
 ]
@@ -78,8 +78,17 @@ def sort_beat(folder, dest=None):
         return None
     prefix = common_prefix([p.stem for p in wavs])
     rows, audio = [], {}
+    stems = [p.stem.strip() for p in wavs]
     for f in wavs:
         name = track_name(f, prefix)
+        # a file whose whole name is what every other file starts with = the beat's own mixdown
+        if any(o != f.stem.strip() and o.startswith(f.stem.strip()) for o in stems) and \
+                sum(o.startswith(f.stem.strip()) for o in stems) > len(stems) * 0.8:
+            name = name or f.stem
+            rows.append(dict(name=name, file=f.name, db=0.0, guess='mix'))
+            audio[name] = load_mono(f)[0]
+            rows[-1]['db'] = round(20 * np.log10(float(np.sqrt(np.mean(audio[name] ** 2))) + 1e-12), 1)
+            continue
         y, sr = load_mono(f)
         rms = float(np.sqrt(np.mean(y ** 2))) if len(y) else 0.0
         db = 20 * np.log10(rms + 1e-12)
@@ -91,7 +100,8 @@ def sort_beat(folder, dest=None):
         if r['guess'] != 'mix' and masters:
             m, t = audio[masters[0]][:n:16], audio[r['name']][:n:16]
             c = float(np.dot(m, t) / (np.sqrt(np.dot(m, m) * np.dot(t, t)) + 1e-12))
-            if c > 0.98:
+            mdb = next(x['db'] for x in rows if x['name'] == masters[0])
+            if c > 0.98 and abs(r['db'] - mdb) < 1.0:     # same shape AND same level as the master
                 r['guess'] = 'mix'
     for r in rows:
         r['role'], r['why'] = r['guess'], 'name'
