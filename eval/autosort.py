@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """autosort.py - guess each track's role in a folder of beat stem exports, for the test set.
 
-  python3 eval/autosort.py STEMS_ROOT            # every beat folder under it
-  python3 eval/autosort.py STEMS_ROOT --only "la intencion"
+  python3 eval/autosort.py STEMS_ROOT --out ~/DrumSplits/roles      # every beat folder under it
+  python3 eval/autosort.py STEMS_ROOT --out ~/DrumSplits/roles --only "la intencion"
 
-For each beat folder it writes `roles.json` next to the stems (eval/make_truth.py and
-eval/batch_eval.py read it) and prints a table to review. It never changes or moves a stem.
+For each beat folder it writes OUT/<beat folder name>.json (eval/make_testset.py reads it) and prints
+a table to review. Nothing is written into the stems folders (they may be shared, e.g. on Dropbox).
+Without --out it writes roles.json inside each beat folder instead.
 
 How it decides, in order:
   1. Master / Current / mixdown         -> left out (that's the finished mix)
@@ -67,7 +68,7 @@ def load_mono(f, max_sec=None):
     return y.mean(axis=1), sr
 
 
-def sort_beat(folder, write=True):
+def sort_beat(folder, dest=None):
     wavs = sorted(p for p in folder.glob('*.wav') if not p.name.startswith('._'))
     if len(wavs) < 3:
         return None
@@ -113,8 +114,9 @@ def sort_beat(folder, write=True):
                 left_out={r['name']: r['why'] for r in rows if r['role'] == 'left_out'},
                 check=[r['name'] for r in rows if r['check']],
                 seconds=round(n / sr, 1), sample_rate=sr)
-    if write:
-        (folder / 'roles.json').write_text(json.dumps(spec, indent=1, ensure_ascii=False))
+    spec['stems_dir'] = str(folder)
+    if dest:
+        dest.write_text(json.dumps(spec, indent=1, ensure_ascii=False))
     return spec, rows
 
 
@@ -122,6 +124,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('root')
     ap.add_argument('--only', default='')
+    ap.add_argument('--out', default='', help='folder for the roles files (default: inside each beat folder)')
     ap.add_argument('--force', action='store_true', help='redo folders already marked reviewed')
     a = ap.parse_args()
     root = Path(a.root).expanduser()
@@ -130,12 +133,15 @@ def main():
     for d in folders:
         if a.only and a.only.lower() not in d.name.lower():
             continue
-        rj = d / 'roles.json'
+        outdir = Path(a.out).expanduser() if a.out else None
+        if outdir:
+            outdir.mkdir(parents=True, exist_ok=True)
+        rj = (outdir / f'{d.name}.json') if outdir else (d / 'roles.json')
         if rj.exists() and not a.force and json.loads(rj.read_text()).get('reviewed'):
             print(f'= {d.name}: reviewed already, skipped')
             continue
         try:
-            out = sort_beat(d)
+            out = sort_beat(d, rj)
         except Exception as e:
             print(f'! {d.name}: {type(e).__name__}: {e}')
             continue
@@ -148,7 +154,7 @@ def main():
         for r in sorted(rows, key=lambda r: (r['role'], r['name'])):
             flag = '  <- check' if r['check'] else ''
             print(f"  {r['role']:12} {r['db']:7.1f} dB  {r['name']}" + (f"   ({r['why']})" if r['why'] != 'name' else '') + flag)
-    print(f'\nWrote roles.json in {done} beat folder(s).')
+    print(f'\nWrote roles for {done} beat(s) to {outdir or "the beat folders"}.')
 
 
 if __name__ == '__main__':

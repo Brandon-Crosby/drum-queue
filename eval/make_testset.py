@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """make_testset.py - turn sorted beat folders into a compact test set for eval/batch_eval.py.
 
-  ~/XportStudio/DrumSplit/drum_queue/.venv/bin/python eval/make_testset.py STEMS_ROOT ~/DrumSplits/testset
+  ~/XportStudio/DrumSplit/drum_queue/.venv/bin/python eval/make_testset.py ~/DrumSplits/roles ~/DrumSplits/testset
+
+ROLES is either a folder of <beat>.json roles files from `autosort.py --out` (each says where its stems
+are), or a stems root whose beat folders each hold a roles.json.
 
 For every beat folder under STEMS_ROOT that has a roles.json (made by eval/autosort.py, then
 reviewed), it sums the tracks by role, picks the SECONDS-long stretch with the most drums going on,
@@ -21,8 +24,8 @@ import soundfile as sf
 ROLES = ['kick', 'snare', 'hh', 'other_drums', 'rest']
 
 
-def build(beat, out, seconds):
-    spec = json.loads((beat / 'roles.json').read_text())
+def build(beat, out, seconds, spec_file):
+    spec = json.loads(spec_file.read_text())
     prefix, roles = spec.get('prefix', ''), spec['roles']
     parts, sr = {}, None
     for role in ROLES:
@@ -66,7 +69,7 @@ def build(beat, out, seconds):
     meta = dict(beat=beat.name, start_s=round(s0 / sr, 1), seconds=round(win / sr, 1), sample_rate=sr,
                 gain=round(g, 4), roles=roles)
     (out / 'testcase.json').write_text(json.dumps(meta, indent=1, ensure_ascii=False))
-    shutil.copy(beat / 'roles.json', out / 'roles.json')
+    shutil.copy(spec_file, out / 'roles.json')
     return meta
 
 
@@ -79,18 +82,23 @@ def main():
     ap.add_argument('--force', action='store_true')
     a = ap.parse_args()
     root, outroot = Path(a.root).expanduser(), Path(a.out).expanduser()
-    beats = [root] if (root / 'roles.json').exists() else sorted(p for p in root.iterdir() if (p / 'roles.json').exists())
+    if any(root.glob('*.json')) and not (root / 'roles.json').exists():      # a folder of roles files
+        jobs = [(Path(json.loads(f.read_text())['stems_dir']), f) for f in sorted(root.glob('*.json'))]
+    elif (root / 'roles.json').exists():
+        jobs = [(root, root / 'roles.json')]
+    else:
+        jobs = [(p, p / 'roles.json') for p in sorted(root.iterdir()) if (p / 'roles.json').exists()]
     ok = 0
-    for b in beats:
+    for b, spec_file in jobs:
         if a.only and a.only.lower() not in b.name.lower():
             continue
         out = outroot / b.name
-        if not a.force and (out / 'roles.json').exists() and (out / 'roles.json').read_text() == (b / 'roles.json').read_text():
+        if not a.force and (out / 'roles.json').exists() and (out / 'roles.json').read_text() == spec_file.read_text():
             print(f'= {b.name}: up to date')
             ok += 1
             continue
         try:
-            m = build(b, out, a.seconds)
+            m = build(b, out, a.seconds, spec_file)
             ok += 1
             print(f'+ {b.name}: {m["seconds"]} s from {m["start_s"]} s')
         except Exception as e:
