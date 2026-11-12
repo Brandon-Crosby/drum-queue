@@ -102,7 +102,7 @@ def train_remote(run: str, hours: float, resume: bool, steps: int):
     out = V / 'runs' / run
     out.mkdir(parents=True, exist_ok=True)
     start = V / 'ckpt' / 'drumsep_mdx23c.ckpt'
-    if not start.exists():
+    if not start.exists() or start.stat().st_size < 100_000_000:   # missing or a failed download
         start.parent.mkdir(parents=True, exist_ok=True)
         for url in START_CKPT_URLS:
             if subprocess.run(['wget', '-q', '-O', str(start) + '.part', url]).returncode == 0:
