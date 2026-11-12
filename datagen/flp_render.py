@@ -331,6 +331,7 @@ def main():
     ap.add_argument('--midi', required=True, help='grooves (MIDI + JSON answer keys) go here')
     ap.add_argument('--only', default=None)
     ap.add_argument('--force', action='store_true')
+    ap.add_argument('--skip', action='append', default=[], help='leave out projects whose path contains this')
     a = ap.parse_args()
     root, out, gdir = Path(a.root), Path(a.out), Path(a.midi)
     gdir.mkdir(parents=True, exist_ok=True)
@@ -338,14 +339,21 @@ def main():
     flps = sorted(Path(d) / f for d, _, fs in os.walk(root, followlinks=True) for f in fs
                   if f.lower().endswith('.flp') and 'backup' not in d.lower() and not f.startswith('._'))
     seen = set()
+    tried_f = out / '_tried.txt'                   # projects already tried that gave nothing: skip them next time
+    tried = set(tried_f.read_text().splitlines()) if tried_f.exists() and not a.force else set()
+    out.mkdir(parents=True, exist_ok=True)
     for flp in flps:
         name = flp.parent.name if flp.parent != root else flp.stem
         if a.only and a.only.lower() not in str(flp).lower():
+            continue
+        if any(k.lower() in str(flp).lower() for k in a.skip):
             continue
         if name in seen:
             name = f'{name} - {flp.stem}'
         seen.add(name)
         dest = out / f'{name} (FLP)'
+        if str(flp) in tried:
+            continue
         print(f'\n## {name}  [{flp.name}]')
         if dest.exists() and not a.force:
             print('  already rendered (use --force to redo)')
@@ -354,14 +362,20 @@ def main():
             res, log = render(flp, root)
         except Exception as e:
             print(f'  could not read: {type(e).__name__}: {e}')
+            with open(tried_f, 'a') as fh:
+                fh.write(f'{flp}\n')
             continue
         print('\n'.join(log))
         if res is None:
+            with open(tried_f, 'a') as fh:
+                fh.write(f'{flp}\n')
             continue
         tracks, groove, meta = res
         print(f"  {meta['tempo']:g} bpm, {meta['seconds']} s, hits {meta['hits']}")
         if not (meta['hits']['kick'] or meta['hits']['snare']):
             print('  -> no kick or snare notes: not saved')
+            with open(tried_f, 'a') as fh:
+                fh.write(f'{flp}\n')
             continue
         peak = max(np.abs(sum(tracks.values())).max(), 1e-9)
         g = min(1.0, 0.9 / peak)
