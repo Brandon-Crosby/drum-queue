@@ -84,6 +84,8 @@ def main():
     ap.add_argument('--seconds', type=float, default=60)
     ap.add_argument('--only', default='')
     ap.add_argument('--force', action='store_true')
+    ap.add_argument('--exclude', default='/Volumes/T7/drumsplit-trainset',
+                    help='training set folder: beats in it never get a test clip (default: the T7 trainset)')
     a = ap.parse_args()
     root, outroot = Path(a.root).expanduser(), Path(a.out).expanduser()
     if any(root.glob('*.json')) and not (root / 'roles.json').exists():      # a folder of roles files
@@ -98,6 +100,8 @@ def main():
         if a.only and a.only.lower() not in b.name.lower():
             continue
         out = outroot / b.name
+        if a.exclude and (Path(a.exclude).expanduser() / spec_file.stem).exists():
+            continue                                         # a training song: never a test clip
         why = json.loads(spec_file.read_text()).get('skip')
         if why:
             print(f'- {b.name}: skipped ({why})')
