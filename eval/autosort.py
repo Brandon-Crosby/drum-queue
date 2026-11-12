@@ -28,9 +28,11 @@ import soundfile as sf
 
 WORDS = [  # (role, regex on the lowercase track name); first match wins
     ('mix', r'\b(master|current|mixdown|full ?mix|bounce)\b'),
+    # a reverb/delay return on the drums is every drum blended: can't be labeled kick or snare
+    ('fx_return', r'(drum|kick|snare|hat|perc).*(reverb|\bverbs?\b|delay|\bfx return\b)|(reverb|\bverb\b).*(drum|kick|snare)'),
     ('kick', r'kick|kik|\bkck\b|\bbd\b|bombo'),
     ('snare', r'snare|sn\w?are|snr|clap|\bclp\b|\brims?\b|rimz|rimshot|\bsd\b'),
-    ('hh', r'hi ?-?hats?|(open|closed) ?hats?|\bhats?\b|\bhh\b|\boh\b|shaker|maraca|tamb(ourine)?\b|tambo\b|top loop|\btops?\b'),
+    ('hh', r'hi ?-?hats?|(open|closed) ?hats?|\bhats?\b|\bhh\b|\boh\b|shaker|maraca|tamb(ourine)?s?\b|tambo\b|top loop|\btops?\b'),
     ('other_drums', r'perc|prc\b|palito|cong[ao]|bongo|campana|cowbell|guiro|g[uü]iro|timbal|clave|tambora|\btoms?\b'
                     r'|crash|\brides?\b|cymbal|log drum|dnb loop|jungle loop|\bamen\b|\bbreaks?\b|garage loop'
                     r'|drum ?loop|drums?\b|\bloop.*(perc|drum)|dembow loop|break'),
@@ -107,6 +109,8 @@ def sort_beat(folder, dest=None):
         r['role'], r['why'] = r['guess'], 'name'
         if r['guess'] == 'mix':
             r['role'], r['why'] = 'left_out', 'finished mix'
+        elif r['guess'] == 'fx_return':
+            r['role'], r['why'] = 'left_out', 'effect return on the drums'
         elif r['db'] < -70:
             r['role'], r['why'] = 'left_out', 'silent'
     # Buses: a drum track that is a SUM of other drum tracks (a DRUMS or HIHATS group). Non-negative
