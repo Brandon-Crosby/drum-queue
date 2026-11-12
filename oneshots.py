@@ -17,7 +17,9 @@ from pathlib import Path
 import numpy as np
 
 KIT = ['kick', 'snare', 'toms', 'hh', 'ride', 'crash']
-LABEL = {'kick': 'Kick', 'snare': 'Snare', 'toms': 'Tom', 'hh': 'Hat', 'ride': 'Ride', 'crash': 'Crash'}
+# The kit model has no percussion stem, so congas, bongos, campana etc. land in its snare stem (in the
+# dembow test only 12% of that stem was snare). Until a model with a perc stem exists, say so honestly.
+LABEL = {'kick': 'Kick', 'snare': 'Snare/Perc', 'toms': 'Tom', 'hh': 'Hat', 'ride': 'Ride', 'crash': 'Crash'}
 MAX_LEN = {'kick': 1.2, 'snare': 1.0, 'toms': 1.4, 'hh': 0.6, 'ride': 2.0, 'crash': 3.0}   # seconds
 MAX_SOUNDS = {'kick': 6, 'snare': 6, 'toms': 4, 'hh': 4, 'ride': 2, 'crash': 3}
 SAME = 5.0          # dB: average attack difference under which two hits count as the same sample (tuned on TVS)
@@ -224,7 +226,7 @@ def make_kit(split_dir, out_dir, prefix='', stems=None, log=lambda line: None):
         if piece not in audio:
             continue
         y = np.pad(audio[piece], ((0, 0), (0, n - audio[piece].shape[1])))
-        name = LABEL[piece].lower().replace('hat', 'hi-hat')
+        name = {'snare': 'snare/perc', 'hh': 'hi-hat'}.get(piece, LABEL[piece].lower())
         log(f'{name}: scanning for transients')
         if piece in OPTIONAL and _db(_rms(mono[piece])) - kit_db < QUIET_DB:
             log(f'{name}: stem is {kit_db - _db(_rms(mono[piece])):.0f} dB under the kit · not in this beat')
@@ -259,7 +261,7 @@ def make_kit(split_dir, out_dir, prefix='', stems=None, log=lambda line: None):
         for i, h in enumerate(chosen, 1):
             log(f'Rendering {LABEL[piece]} {i} · {(h["end"] - h["start"]) / SR:.2f} s · 24-bit · peak −1 dBFS')
             label = f'{LABEL[piece]} {i}'
-            fname = f'{prefix}{label}.wav'
+            fname = f'{prefix}{label.replace("/", "-")}.wav'     # 'Snare-Perc 1.wav': no slash in file names
             write(y, h, out_dir / fname)
             result.append(dict(name=fname, file=str(out_dir / fname), piece=piece, label=label,
                                count=h['count'], bleed_db=round(h['bleed'], 1),
