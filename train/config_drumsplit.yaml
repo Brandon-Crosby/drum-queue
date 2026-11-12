@@ -1,0 +1,79 @@
+# DrumSplit model v1: MDX23C, fine-tuned from aufr33/jarredou DrumSep (kick snare toms hh ride crash).
+# Takes Demucs' drum stem and splits it into kick / snare / perc / hh, plus "other" for the music that
+# leaks into that drum stem. Instrument order matters: the old model's output heads are reused in order,
+# so perc starts from the toms head and other from the ride head.
+audio:
+  chunk_size: 130560
+  dim_f: 1024
+  dim_t: 256
+  hop_length: 512
+  n_fft: 2048
+  num_channels: 2
+  sample_rate: 44100
+  min_mean_abs: 0.0      # allow silent stems in a chunk: real beats don't always have perc or hats
+
+model:
+  act: gelu
+  bottleneck_factor: 4
+  growth: 128
+  norm: InstanceNorm
+  num_blocks_per_scale: 2
+  num_channels: 128
+  num_scales: 5
+  num_subbands: 4
+  scale:
+  - 2
+  - 2
+
+training:
+  batch_size: 12
+  gradient_accumulation_steps: 1
+  grad_clip: 0
+  instruments:
+  - kick
+  - snare
+  - perc
+  - hh
+  - other
+  lr: 3.0e-05            # lower than from-scratch: we're fine-tuning
+  patience: 3
+  reduce_factor: 0.95
+  target_instrument: null
+  num_epochs: 20         # overwritten by modal_train.py --epochs
+  num_steps: 1000
+  q: 0.95
+  coarse_loss_clip: true
+  ema_momentum: 0.999
+  optimizer: adam
+  other_fix: false
+  use_amp: true
+
+augmentations:
+  enable: true
+  loudness: true
+  loudness_min: 0.5
+  loudness_max: 1.5
+  mixup: true
+  mixup_probs: !!python/tuple
+    - 0.2
+    - 0.02
+  mixup_loudness_min: 0.5
+  mixup_loudness_max: 1.5
+  all:
+    channel_shuffle: 0.5
+    random_inverse: 0.01
+    random_polarity: 0.5
+    pitch_shift: 0.1
+    pitch_shift_min_semitones: -3
+    pitch_shift_max_semitones: 3
+    seven_band_parametric_eq: 0.5
+    seven_band_parametric_eq_min_gain_db: -6
+    seven_band_parametric_eq_max_gain_db: 6
+    tanh_distortion: 0.2
+    tanh_distortion_min: 0.1
+    tanh_distortion_max: 0.5
+
+inference:
+  batch_size: 1
+  dim_t: 256
+  num_overlap: 4
