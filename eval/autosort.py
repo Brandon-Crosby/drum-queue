@@ -29,15 +29,34 @@ import soundfile as sf
 WORDS = [  # (role, regex on the lowercase track name); first match wins
     ('mix', r'\b(master|current|mixdown|full ?mix|bounce)\b'),
     # a reverb/delay return on the drums is every drum blended: can't be labeled kick or snare
-    ('fx_return', r'(drum|kick|snare|hat|perc).*(reverb|\bverbs?\b|delay|\bfx return\b)|(reverb|\bverb\b).*(drum|kick|snare)'),
+    ('fx_return', r'(drum|kick|snare|hat|perc).*(reverb|\bverbs?\b|delay|\bfx return\b)|(reverb|\bverb\b).*(drum|kick|snare)'
+                  r'|drum room|room mics?|overheads?\b'),
     ('kick', r'kick|kik|\bkck\b|\bbd\b|bombo'),
-    ('snare', r'snare|sn\w?are|snr|clap|\bclp\b|\brims?\b|rimz|rimshot|\bsd\b'),
-    ('hh', r'hi ?-?hats?|(open|closed) ?hats?|\bhats?\b|\bhh\b|\boh\b|shaker|maraca|tamb(ourine)?s?\b|tambo\b|top loop|\btops?\b'),
+    ('snare', r'snare|sn\w?are|snr|\bsn\b|clap|\bclp\b|\brims?\b|rimz|rimshot|\bsd\b|\bsnaps?\b'),
+    ('hh', r'hi ?-?hats?|(open|closed) ?hats?|\bhats?\b|\bhh\b|\boh\b|shaker|\bshakes?\b|maraca|tamb(ourine)?s?\b|tambo\b|top loop|\btops?\b'),
     ('other_drums', r'perc|prc\b|palito|cong[ao]|bongo|campana|cowbell|guiro|g[uü]iro|timbal|clave|tambora|\btoms?\b'
-                    r'|crash|\brides?\b|cymbal|log drum|dnb loop|jungle loop|\bamen\b|\bbreaks?\b|garage loop'
+                    r'|crash|\brides?\b|cymbal|log drum|dnb loop|jungle loop|\bamen\b|\bbreaks?\b|garage loop|\bkit\b'
                     r'|drum ?loop|drums?\b|\bloop.*(perc|drum)|dembow loop|break'),
 ]
 DRUM_ROLES = ('kick', 'snare', 'hh', 'other_drums')
+AUDIO = ('.wav', '.flac', '.aif', '.aiff')
+
+
+def audio_files(folder):
+    return sorted(p for p in folder.iterdir() if p.suffix.lower() in AUDIO and not p.name.startswith('._'))
+
+
+def beat_folders(root, depth=3):
+    """Every folder (down to `depth` levels) holding 3+ audio files counts as one beat."""
+    if len(audio_files(root)) >= 3:
+        return [root]
+    if depth == 0:
+        return []
+    out = []
+    for p in sorted(root.iterdir()):
+        if p.is_dir() and not p.name.startswith('.'):
+            out += beat_folders(p, depth - 1)
+    return out
 
 
 def track_name(f, prefix):
@@ -74,8 +93,10 @@ def load_mono(f, max_sec=None):
     return y.mean(axis=1), sr
 
 
-def sort_beat(folder, dest=None):
-    wavs = sorted(p for p in folder.glob('*.wav') if not p.name.startswith('._'))
+def sort_beat(folder, dest=None, overrides=None):
+    """overrides: {track name: role or 'left_out' or 'skip'} decided by a person for this beat."""
+    overrides = overrides or {}
+    wavs = audio_files(folder)
     if len(wavs) < 3:
         return None
     prefix = common_prefix([p.stem for p in wavs])
@@ -134,8 +155,13 @@ def sort_beat(folder, dest=None):
         low = r['name'].lower()
         r['check'] = ((r['role'] == 'rest' and re.search(r'insert|audio|track|untitled|sample|^hit\b|^fx\b', low) is not None)
                       or (r['role'] == 'other_drums' and re.search(r'^(intro )?drums?\b|drums$', low) is not None))
+    for r in rows:                                   # a person's decision beats any guess
+        if r['name'] in overrides:
+            r['role'], r['why'], r['check'] = overrides[r['name']], 'set by hand', False
+            if r['role'] == 'left_out':
+                r['why'] = 'left out by hand'
     roles = {k: [r['name'] for r in rows if r['role'] == k] for k in ('kick', 'snare', 'hh', 'other_drums', 'rest')}
-    spec = dict(prefix=prefix, roles=roles, reviewed=False,
+    spec = dict(prefix=prefix, roles=roles, reviewed=bool(overrides),
                 left_out={r['name']: r['why'] for r in rows if r['role'] == 'left_out'},
                 check=[r['name'] for r in rows if r['check']],
                 seconds=round(n / sr, 1), sample_rate=sr)
@@ -159,7 +185,7 @@ def main():
     ap.add_argument('--force', action='store_true', help='redo folders already marked reviewed')
     a = ap.parse_args()
     root = Path(a.root).expanduser()
-    folders = [root] if any(root.glob('*.wav')) else sorted(p for p in root.iterdir() if p.is_dir())
+    folders = beat_folders(root)
     done = 0
     for d in folders:
         if a.only and a.only.lower() not in d.name.lower():
@@ -172,7 +198,14 @@ def main():
             print(f'= {d.name}: reviewed already, skipped')
             continue
         try:
-            out = sort_beat(d, rj)
+            ov = {}
+            ovf = (outdir / '_overrides.json') if outdir else None
+            if ovf and ovf.exists():
+                ov = json.loads(ovf.read_text()).get(d.name, {})
+            out = sort_beat(d, rj, {k: v for k, v in ov.items() if k != '_skip'})
+            if out and ov.get('_skip'):
+                out[0]['skip'] = ov['_skip']
+                rj.write_text(json.dumps(out[0], indent=1, ensure_ascii=False))
         except Exception as e:
             msg = f'{type(e).__name__}: {e}'
             if 'Format not recognised' in msg or 'Error opening' in msg:

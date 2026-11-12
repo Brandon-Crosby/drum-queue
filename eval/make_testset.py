@@ -32,7 +32,8 @@ def build(beat, out, seconds, spec_file, full=False):
     parts, sr = {}, None
     for role in ROLES:
         for name in roles.get(role, []):
-            f = beat / f'{prefix}{name}.wav'
+            f = next((beat / f'{prefix}{name}{ext}' for ext in ('.wav', '.flac', '.aif', '.aiff')
+                      if (beat / f'{prefix}{name}{ext}').exists()), beat / f'{prefix}{name}.wav')
             if not f.exists():
                 raise FileNotFoundError(f.name)
             y, r = sf.read(str(f), always_2d=True, dtype='float32')
@@ -86,7 +87,8 @@ def main():
     a = ap.parse_args()
     root, outroot = Path(a.root).expanduser(), Path(a.out).expanduser()
     if any(root.glob('*.json')) and not (root / 'roles.json').exists():      # a folder of roles files
-        jobs = [(Path(json.loads(f.read_text())['stems_dir']), f) for f in sorted(root.glob('*.json'))]
+        jobs = [(Path(json.loads(f.read_text())['stems_dir']), f) for f in sorted(root.glob('*.json'))
+                if not f.name.startswith('_')]                     # _overrides.json is not a beat
     elif (root / 'roles.json').exists():
         jobs = [(root, root / 'roles.json')]
     else:
