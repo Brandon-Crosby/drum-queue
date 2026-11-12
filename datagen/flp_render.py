@@ -172,23 +172,37 @@ def render(flp: Path, root: Path):
             rel = n.position - start
             if 0 <= rel < item['length']:
                 hits.append(((item['position'] + rel) * tick, n.rack_channel, midi_key(n.key),
-                             n.velocity, n.pan, n.fine_pitch))
+                             n.velocity, n.pan, n.fine_pitch, 0.0, n.length * tick, False))
     for sec, c, off, dur in clips:
-        hits.append((sec, c, chans[c]['root'], 100, 64, 120, off, dur))
+        hits.append((sec, c, chans[c]['root'], 100, 64, 120, off, dur, True))
     if not hits:
         return None, log + ['  no notes on usable channels']
     end = min(MAX_SEC, max(h[0] for h in hits) + 3)
     n_out = int(end * SR)
     tracks = {r: np.zeros((2, n_out), np.float32) for r in ROLES}
     groove = []
-    for h in hits:
-        sec, c, key, vel, npan, fine = h[:6]
+    hits.sort(key=lambda h: h[0])
+    nxt, last = {}, {}                              # next note start on the same channel
+    for k in range(len(hits) - 1, -1, -1):
+        nxt[k] = last.get(hits[k][1], 1e9)
+        last[hits[k][1]] = hits[k][0]
+    for k, h in enumerate(hits):
+        sec, c, key, vel, npan, fine, off, dur, is_clip = h
         if sec >= end:
             continue
         ch = chans[c]
         x = repitch(ch['snd'], key - ch['root'] + (ch['cents'] + (fine - 120)) / 100)
-        if len(h) > 6:                              # audio clip: trimmed start and length
-            x = x[:, int(h[6] * SR):int((h[6] + h[7]) * SR)]
+        x = x[:, int(off * SR):]
+        stop = None
+        if ch['role'] == 'rest':                    # 808s/bass: a note stops at its length or the next note
+            stop = min(dur if dur > 0 else 1e9, nxt[k] - sec)
+        elif is_clip:
+            stop = dur                              # audio clip: trimmed to the clip
+        if stop is not None and stop * SR < x.shape[1]:
+            m = max(1, int(stop * SR))
+            x = x[:, :m].copy()
+            f = min(m, int(0.01 * SR))
+            x[:, m - f:] *= np.linspace(1, 0, f, dtype=np.float32)
         g = (vel / 100) * ch['vol']
         pn = np.clip(ch['pan'] + (npan - 64) / 64, -1, 1)
         i = int(sec * SR)
