@@ -69,13 +69,32 @@ def midi_key(k):
     return NOTE[m.group(1)] + 12 * int(m.group(2))
 
 
+AUDIO = {'.wav', '.aif', '.aiff', '.flac', '.mp3', '.ogg', '.wv'}
+_index = {}
+
+
+def index(root):
+    """name -> files, for every audio file under root (symlinked folders followed). Built once."""
+    import os
+    root = Path(root)
+    if root not in _index:
+        idx = {}
+        for d, _, files in os.walk(root, followlinks=True):
+            for f in files:
+                if Path(f).suffix.lower() in AUDIO and not f.startswith('._'):
+                    idx.setdefault(f.lower(), []).append(Path(d) / f)
+        _index[root] = idx
+    return _index[root]
+
+
 def find_sample(path, roots):
-    """FL stores the path on the producer's machine; look for the file name next to the project."""
+    """FL stores the path on the producer's machine; look for the file name next to the project first,
+    then anywhere under the folder we were given (kits that ship beside the projects)."""
     if not path:
         return None
-    name = re.split(r'[\\/]', str(path))[-1]
+    name = re.split(r'[\\/]', str(path))[-1].lower()
     for r in roots:
-        hits = [p for p in r.rglob('*') if p.name.lower() == name.lower()]
+        hits = index(r).get(name)
         if hits:
             return hits[0]
     return None
@@ -264,7 +283,9 @@ def main():
     a = ap.parse_args()
     root, out, gdir = Path(a.root), Path(a.out), Path(a.midi)
     gdir.mkdir(parents=True, exist_ok=True)
-    flps = sorted(f for f in root.rglob('*.flp') if 'backup' not in str(f).lower() and not f.name.startswith('._'))
+    import os
+    flps = sorted(Path(d) / f for d, _, fs in os.walk(root, followlinks=True) for f in fs
+                  if f.lower().endswith('.flp') and 'backup' not in d.lower() and not f.startswith('._'))
     seen = set()
     for flp in flps:
         name = flp.parent.name if flp.parent != root else flp.stem
@@ -279,7 +300,7 @@ def main():
             print('  already rendered (use --force to redo)')
             continue
         try:
-            res, log = render(flp, flp.parent)
+            res, log = render(flp, root)
         except Exception as e:
             print(f'  could not read: {type(e).__name__}: {e}')
             continue
