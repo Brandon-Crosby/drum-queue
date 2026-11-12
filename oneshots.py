@@ -17,13 +17,49 @@ from pathlib import Path
 import numpy as np
 
 KIT = ['kick', 'snare', 'toms', 'hh', 'ride', 'crash']
-LABEL = {'kick': 'Kick', 'snare': 'Snare', 'toms': 'Tom', 'hh': 'Hat', 'ride': 'Ride', 'crash': 'Crash'}
+# The kit model has no percussion stem, so congas, bongos, campana etc. land in its snare stem (in the
+# dembow test only 12% of that stem was snare). Until a model with a perc stem exists, say so honestly.
+LABEL = {'kick': 'Kick', 'snare': 'Snare/Perc', 'toms': 'Tom', 'hh': 'Hat', 'ride': 'Ride', 'crash': 'Crash'}
 MAX_LEN = {'kick': 1.2, 'snare': 1.0, 'toms': 1.4, 'hh': 0.6, 'ride': 2.0, 'crash': 3.0}   # seconds
 MAX_SOUNDS = {'kick': 6, 'snare': 6, 'toms': 4, 'hh': 4, 'ride': 2, 'crash': 3}
 SAME = 5.0          # dB: average attack difference under which two hits count as the same sample (tuned on TVS)
-MIN_HITS = 3        # a sound has to come back at least this often (one-offs are usually bleed)
+MIN_HITS = 5        # a sound has to come back at least this often (rarer ones were mostly bleed in tests)
+OPTIONAL = ('toms', 'ride', 'crash')   # pieces many beats don't have: skip a stem that's nearly silent
+QUIET_DB = -15.0    # ...when it's this far under the whole kit (the kit model leaves a little of everything)
+ON_KICK = 0.02      # s: a non-kick hit this close to a kick hit is likely kick click leaking in
 SR = 44100
-MAX_BLEED = -6.0    # dB: skip hits where the other drums + bass are within 6 dB of the hit
+MAX_BLEED = -6.0    # dB: skip hits where the other drums + bass are within 6 dB of the hit, in its own band
+# Bleed is judged only where each piece lives: a hat competes with what else is up in the highs at that
+# moment, not with the kick and 808 (which are always louder overall but don't end up in a hat sample).
+BAND = {'kick': (30, 200), 'snare': (150, 8000), 'toms': (60, 1500), 'hh': (4000, 16000),
+        'ride': (3000, 16000), 'crash': (3000, 16000)}
+FALLBACK_SHARE = 0.25   # busy beats: if too few hits pass the gate, keep the cleanest quarter instead
+
+
+def band(x, piece):
+    from scipy.signal import butter, sosfiltfilt
+    lo, hi = BAND[piece]
+    return sosfiltfilt(butter(4, [lo, min(hi, SR / 2 - 100)], 'bandpass', fs=SR, output='sos'), x)
+
+
+def sounds_like(piece, seg):
+    """Does a cut hit sound like the piece its stem is named for? Stops a snare that leaked into
+    the kick stem from becoming 'Kick 2'. Thresholds come from real hits in the test beats."""
+    a = seg[:int(0.1 * SR)]
+    X = np.abs(np.fft.rfft(a, 8192)) ** 2
+    f = np.fft.rfftfreq(8192, 1 / SR)
+    tot = X.sum() + 1e-12
+    low = X[f < 150].sum() / tot
+    centroid = (X * f).sum() / tot
+    if piece == 'kick':
+        return low > 0.5                         # real kicks: ~90% of the attack under 150 Hz
+    if piece == 'toms':
+        return centroid < 1500
+    if piece in ('hh', 'ride', 'crash'):
+        return centroid > 3000 and low < 0.2
+    if piece == 'snare':
+        return low < 0.9                         # a snare cut that's all sub is a kick that leaked
+    return True
 
 
 def _load(path):
@@ -58,6 +94,7 @@ def hits(piece, y, others):
     """All usable hits in one stem. y: (ch, n). others: mono sum of every other stem (bleed meter)."""
     import librosa
     mono = y.mean(axis=0)
+    mono_b, others_b = band(mono, piece), band(others, piece)
     peak_all = np.abs(mono).max()
     if peak_all < 1e-4:
         return []
@@ -90,8 +127,11 @@ def hits(piece, y, others):
         cut_short = end >= len(seg) - frame and nxt - s < maxlen    # next hit cut its tail off
         # bleed meter: how loud everything else is during the attack, relative to this hit
         w = slice(s, s + int(0.12 * SR))
-        bleed = _db(_rms(others[w]) + 1e-9) - _db(_rms(mono[w]) + 1e-9)
-        out.append(dict(start=int(s), end=int(s + end), peak=float(pk / peak_all),
+        bleed = _db(_rms(others_b[w]) + 1e-9) - _db(_rms(mono_b[w]) + 1e-9)
+        A = np.abs(np.fft.rfft(mono[s:s + int(0.15 * SR)], 8192)) ** 2
+        fq = np.fft.rfftfreq(8192, 1 / SR)
+        top = float(A[(fq > 1000) & (fq < 8000)].sum() / (A.sum() + 1e-12))
+        out.append(dict(start=int(s), end=int(s + end), peak=float(pk / peak_all), top=top,
                         ring=(nxt - s) / SR, bleed=float(bleed), cut_short=bool(cut_short),
                         fp=_features(mono[s:s + end])))
     return out
@@ -100,7 +140,10 @@ def hits(piece, y, others):
 def score(h, piece):
     want = MAX_LEN[piece] * 0.6                  # enough room to ring out
     ring = min(h['ring'], want) / want
-    return 1.0 * h['peak'] + 0.8 * ring - 0.04 * max(h['bleed'], -30) - (0.3 if h['cut_short'] else 0)
+    s = 1.0 * h['peak'] + 0.8 * ring - 0.04 * max(h['bleed'], -30) - (0.3 if h['cut_short'] else 0)
+    if piece == 'kick':                          # least snare/hat on top: 1-8 kHz share of the attack
+        s -= 0.5 * min(h.get('top', 0) * 50, 1)
+    return s
 
 
 def same_sound(a, b, max_lag=256):
@@ -171,31 +214,54 @@ def make_kit(split_dir, out_dir, prefix='', stems=None, log=lambda line: None):
     # pieces and the bass/808. Vocals and chords don't count against a hit.
     log('Loading kit stems · 44.1 kHz')
     audio = {k: _load(p) for k, p in found.items() if k in KIT or k == 'bass'}
+    kick_on = np.array([])
     if not audio:
         return []
     n = max(a.shape[1] for a in audio.values())
     mono = {k: np.pad(a.mean(axis=0), (0, n - a.shape[1])) for k, a in audio.items()}
     total = sum(mono.values())
+    kit_db = _db(_rms(sum(v for k, v in mono.items() if k in KIT)))
     result = []
     for piece in KIT:
         if piece not in audio:
             continue
         y = np.pad(audio[piece], ((0, 0), (0, n - audio[piece].shape[1])))
-        name = LABEL[piece].lower().replace('hat', 'hi-hat')
+        name = {'snare': 'snare/perc', 'hh': 'hi-hat'}.get(piece, LABEL[piece].lower())
         log(f'{name}: scanning for transients')
+        if piece in OPTIONAL and _db(_rms(mono[piece])) - kit_db < QUIET_DB:
+            log(f'{name}: stem is {kit_db - _db(_rms(mono[piece])):.0f} dB under the kit · not in this beat')
+            continue
         found_hits = hits(piece, y, total - mono[piece])
-        hs = [h for h in found_hits if h['bleed'] < MAX_BLEED]
+        if piece == 'kick':                      # every kick onset, soft ones too (their click leaks as well)
+            import librosa
+            kick_on = librosa.onset.onset_detect(y=mono['kick'], sr=SR, hop_length=256, backtrack=True,
+                                                 units='time', delta=0.03)
         if not found_hits:
             log(f'{name}: stem is silent · skipped')
             continue
-        log(f'{name}: {len(found_hits)} transients → {len(hs)} pass bleed gate (−{abs(MAX_BLEED):.0f} dB)')
+        right = [h for h in found_hits if sounds_like(piece, mono[piece][h['start']:h['end']])]
+        if piece != 'kick' and len(kick_on):
+            # Prefer hits that don't land on a kick: those can carry the kick's click. Real snares and
+            # hats also play between kicks, so this only bites when enough of those remain.
+            off = [h for h in right if np.min(np.abs(kick_on - h['start'] / SR)) > ON_KICK]
+            if len(off) >= 2 * MIN_HITS:
+                right = off
+        hs = [h for h in right if h['bleed'] < MAX_BLEED]
+        how = f'pass bleed gate (−{abs(MAX_BLEED):.0f} dB in band)'
+        if len(hs) < 2 * MIN_HITS and len(right) >= 2 * MIN_HITS:
+            # Dense beat: almost nothing plays alone. Keep the cleanest quarter rather than nothing,
+            # but never hits where something else is clearly louder than the drum in its own band.
+            cut = np.percentile([h['bleed'] for h in right], FALLBACK_SHARE * 100)
+            hs = [h for h in right if h['bleed'] <= min(cut, 3.0)]
+            how = 'kept as cleanest 25% (busy pattern)'
+        log(f'{name}: {len(found_hits)} transients → {len(right)} sound like a {name} → {len(hs)} {how}')
         chosen = pick(piece, hs, y.mean(axis=0))
         log(f'{name}: {len(chosen)} distinct sound{"s" if len(chosen) != 1 else ""} by {int(ATTACK * 1000)} ms attack fingerprint'
             if chosen else f'{name}: no sound repeats cleanly · skipped')
         for i, h in enumerate(chosen, 1):
             log(f'Rendering {LABEL[piece]} {i} · {(h["end"] - h["start"]) / SR:.2f} s · 24-bit · peak −1 dBFS')
             label = f'{LABEL[piece]} {i}'
-            fname = f'{prefix}{label}.wav'
+            fname = f'{prefix}{label.replace("/", "-")}.wav'     # 'Snare-Perc 1.wav': no slash in file names
             write(y, h, out_dir / fname)
             result.append(dict(name=fname, file=str(out_dir / fname), piece=piece, label=label,
                                count=h['count'], bleed_db=round(h['bleed'], 1),
