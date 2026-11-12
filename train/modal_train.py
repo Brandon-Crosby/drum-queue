@@ -24,8 +24,12 @@ import modal
 
 MSST = 'https://github.com/ZFTurbo/Music-Source-Separation-Training'
 MSST_COMMIT = '1d4b3c431b37de696b3795ed2018493aacba946f'
-START_CKPT = ('https://github.com/jarredou/models/releases/download/aufr33-jarredou_MDX23C_DrumSep_model_v0.1/'
-              'aufr33-jarredou_DrumSep_model_mdx23c_ep_141_sdr_10.8059.ckpt')
+START_CKPT_URLS = [
+    'https://github.com/nomadkaraoke/python-audio-separator/releases/download/model-configs/'
+    'MDX23C-DrumSep-aufr33-jarredou.ckpt',
+    ('https://github.com/jarredou/models/releases/download/aufr33-jarredou_MDX23C_DrumSep_model_v0.1/'
+              'aufr33-jarredou_DrumSep_model_mdx23c_ep_141_sdr_10.8059.ckpt'),
+]
 SKIP_REQS = 'pyaudio|wxpython|keyboard|sageattention|bitsandbytes|moises-light'
 
 app = modal.App('drumsplit-train')
@@ -100,7 +104,14 @@ def train_remote(run: str, hours: float, resume: bool, steps: int):
     start = V / 'ckpt' / 'drumsep_mdx23c.ckpt'
     if not start.exists():
         start.parent.mkdir(parents=True, exist_ok=True)
-        subprocess.run(['wget', '-q', '-O', str(start), START_CKPT], check=True)
+        for url in START_CKPT_URLS:
+            if subprocess.run(['wget', '-q', '-O', str(start) + '.part', url]).returncode == 0:
+                os.replace(str(start) + '.part', start)
+                break
+        else:
+            raise SystemExit('Could not download the DrumSep model. Upload it once from your Mac:\n'
+                             '  modal volume put drumsplit-train <path>/MDX23C-DrumSep-aufr33-jarredou.ckpt '
+                             '/ckpt/drumsep_mdx23c.ckpt')
     cfg = yaml.load(open('/repo/train/config_drumsplit.yaml'), Loader=yaml.FullLoader)
     cfg['training']['num_steps'] = steps
     cfg['training']['num_epochs'] = 10_000              # we stop on time instead

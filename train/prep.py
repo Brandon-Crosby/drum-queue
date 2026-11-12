@@ -36,8 +36,12 @@ def _read(p, n=None):
     if not p.exists():
         return None
     x, sr = sf.read(str(p), dtype='float32', always_2d=True)
-    assert sr == SR, (p, sr)
     x = x.T
+    if sr != SR:                                  # e.g. 48 kHz sessions
+        from math import gcd
+        from scipy.signal import resample_poly
+        g = gcd(SR, sr)
+        x = resample_poly(x, SR // g, sr // g, axis=1).astype(np.float32)
     if x.shape[0] == 1:
         x = np.repeat(x, 2, 0)
     return x[:2]
@@ -95,7 +99,10 @@ def all_real(trainset: Path, out: Path):
     vs = valid_songs([p.name for p in songs])
     for p in songs:
         v = p.name in vs
-        print(real_song(p, out / ('valid' if v else 'real') / p.name, v), flush=True)
+        try:
+            print(real_song(p, out / ('valid' if v else 'real') / p.name, v), flush=True)
+        except Exception as e:                    # one bad song shouldn't stop the rest
+            print(f'skip {p.name}: {type(e).__name__}: {e}', flush=True)
 
 
 def synth_clips(out: Path, n: int, seed: int):
