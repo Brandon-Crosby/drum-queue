@@ -24,7 +24,9 @@ import soundfile as sf
 ROLES = ['kick', 'snare', 'hh', 'other_drums', 'rest']
 
 
-def build(beat, out, seconds, spec_file):
+def build(beat, out, seconds, spec_file, full=False):
+    """60 s test clip (default), or with full=True the whole beat by role, for training
+    (no mix.flac: training remixes the roles itself)."""
     spec = json.loads(spec_file.read_text())
     prefix, roles = spec.get('prefix', ''), spec['roles']
     parts, sr = {}, None
@@ -52,7 +54,7 @@ def build(beat, out, seconds, spec_file):
     full = {r: parts[r][:n] if r in parts else np.zeros((n, 2), 'float32') for r in ROLES}
     # the stretch with the most kit going on (kick + snare + hats), in 1 s steps
     kit = np.abs(full['kick']).mean(1) + np.abs(full['snare']).mean(1) + np.abs(full['hh']).mean(1)
-    win = int(seconds * sr)
+    win = n if full else int(seconds * sr)
     if n > win:
         c = np.concatenate([[0], np.cumsum(kit)])
         starts = np.arange(0, n - win, sr)
@@ -65,10 +67,11 @@ def build(beat, out, seconds, spec_file):
     out.mkdir(parents=True, exist_ok=True)
     for r, v in clip.items():
         sf.write(str(out / f'{r}.flac'), v * g, sr, subtype='PCM_24')
-    sf.write(str(out / 'mix.flac'), mix * g, sr, subtype='PCM_24')
+    if not full:
+        sf.write(str(out / 'mix.flac'), mix * g, sr, subtype='PCM_24')
     meta = dict(beat=beat.name, start_s=round(s0 / sr, 1), seconds=round(win / sr, 1), sample_rate=sr,
                 gain=round(g, 4), roles=roles)
-    (out / 'testcase.json').write_text(json.dumps(meta, indent=1, ensure_ascii=False))
+    (out / ('trainbeat.json' if full else 'testcase.json')).write_text(json.dumps(meta, indent=1, ensure_ascii=False))
     shutil.copy(spec_file, out / 'roles.json')
     return meta
 

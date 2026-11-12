@@ -149,6 +149,9 @@ def main():
     ap.add_argument('--out', default='', help='folder for the roles files (default: inside each beat folder)')
     ap.add_argument('--testset', default='', help='also build each beat\'s 60 s test clip here right away, so its '
                                                   'stems can go back to online-only afterwards')
+    ap.add_argument('--trainset', default='', help='also save each beat full-length by role here, for training. '
+                                                   'Beats already in --holdout (the test set) are never saved here.')
+    ap.add_argument('--holdout', default='', help='the test set folder: beats in it stay out of the training set')
     ap.add_argument('--force', action='store_true', help='redo folders already marked reviewed')
     a = ap.parse_args()
     root = Path(a.root).expanduser()
@@ -177,6 +180,19 @@ def main():
             continue
         spec, rows = out
         done += 1
+        if a.trainset:
+            import make_testset
+            held = Path(a.holdout).expanduser() if a.holdout else None
+            if held and (held / d.name).exists():
+                print(f'  -> {d.name} is in the test set: NOT saved for training')
+            elif json.loads(rj.read_text()).get('skip'):
+                print('  -> skipped for training (marked skip)')
+            else:
+                try:
+                    m = make_testset.build(d, Path(a.trainset).expanduser() / d.name, 0, rj, full=True)
+                    print(f'  -> training copy saved ({m["seconds"]} s by role)')
+                except Exception as e:
+                    print(f'  -> training copy failed: {type(e).__name__}: {e}')
         if a.testset:
             import make_testset
             try:
