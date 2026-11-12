@@ -61,6 +61,12 @@ function showTsHelp() {
 // The Turnstile script itself was blocked from loading
 setTimeout(() => { if (SITE.turnstile && !window.turnstile) showTsHelp(); }, 8000);
 function resetTurnstile() { tsToken = ''; if (tsWidget != null && window.turnstile) turnstile.reset(tsWidget); }
+// Each pass of the bot check works for one upload. Asking again right after an upload made the
+// empty box pop back while the song was still splitting, which looked like the check had failed.
+// So the box hides during a split and comes back, fresh, when the split ends (or a new song is dropped).
+let tsParked = false;
+function tsPark() { tsToken = ''; tsParked = true; $('#ts').hidden = true; }
+function tsUnpark() { if (!tsParked) return; tsParked = false; $('#ts').hidden = false; resetTurnstile(); }
 
 // ---------- upload
 const drop = $('#drop'), input = $('#file');
@@ -82,6 +88,7 @@ async function start(f) {
   if (!AUD.test(f.name)) return showMsg('That file type is not supported. Use mp3, wav, flac, m4a, aiff or ogg.');
   if (f.size > LIM.max_mb * 1024 * 1024) return showMsg(`That file is over ${LIM.max_mb} MB. Try an mp3 of the song.`);
   busy = true;
+  tsUnpark();
   const ready = await waitToken(); busy = false;
   if (!ready) return showMsg('Please finish the "verify you are human" check above, then try again.');
   busy = true; stopMixer(); openJob(f.name); setStep('upload', 0);
@@ -90,8 +97,9 @@ async function start(f) {
   x.open('POST', '/api/jobs');
   x.upload.onprogress = e => { if (e.lengthComputable) setStep('upload', Math.round(e.loaded / e.total * 100)); };
   x.onload = () => {
-    busy = false; resetTurnstile();
+    busy = false;
     let d = {}; try { d = JSON.parse(x.responseText); } catch (_) {}
+    if (x.status === 200) tsPark(); else resetTurnstile();
     if (x.status !== 200) { $('#job').style.display = 'none'; showMsg(d.error || 'Upload failed. Please try again.'); loadLimits(); return; }
     store.add(d.id, f.name); location.hash = d.id; loadLimits();
   };
@@ -165,6 +173,7 @@ async function poll(id) {
   $('#jname').textContent = j.name || 'Your song';
   const live = j.status === 'queued' || j.status === 'running';
   $('#cancelrow').hidden = !live;
+  if (j.status === 'done' || j.status === 'error') tsUnpark();
   if (j.status === 'done') return showResult(id, j);
   if (j.status === 'error') { $('#steps').hidden = true; $('#log').hidden = true; showMsg(j.error || 'Something went wrong.'); loadLimits(); return; }
   showMsg(''); const k = stepOf(j); setStep(k); logTick(j, k);
