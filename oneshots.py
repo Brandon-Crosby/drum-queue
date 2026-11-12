@@ -126,7 +126,10 @@ def hits(piece, y, others):
         # bleed meter: how loud everything else is during the attack, relative to this hit
         w = slice(s, s + int(0.12 * SR))
         bleed = _db(_rms(others_b[w]) + 1e-9) - _db(_rms(mono_b[w]) + 1e-9)
-        out.append(dict(start=int(s), end=int(s + end), peak=float(pk / peak_all),
+        A = np.abs(np.fft.rfft(mono[s:s + int(0.15 * SR)], 8192)) ** 2
+        fq = np.fft.rfftfreq(8192, 1 / SR)
+        top = float(A[(fq > 1000) & (fq < 8000)].sum() / (A.sum() + 1e-12))
+        out.append(dict(start=int(s), end=int(s + end), peak=float(pk / peak_all), top=top,
                         ring=(nxt - s) / SR, bleed=float(bleed), cut_short=bool(cut_short),
                         fp=_features(mono[s:s + end])))
     return out
@@ -135,7 +138,10 @@ def hits(piece, y, others):
 def score(h, piece):
     want = MAX_LEN[piece] * 0.6                  # enough room to ring out
     ring = min(h['ring'], want) / want
-    return 1.0 * h['peak'] + 0.8 * ring - 0.04 * max(h['bleed'], -30) - (0.3 if h['cut_short'] else 0)
+    s = 1.0 * h['peak'] + 0.8 * ring - 0.04 * max(h['bleed'], -30) - (0.3 if h['cut_short'] else 0)
+    if piece == 'kick':                          # least snare/hat on top: 1-8 kHz share of the attack
+        s -= 0.5 * min(h.get('top', 0) * 50, 1)
+    return s
 
 
 def same_sound(a, b, max_lag=256):
