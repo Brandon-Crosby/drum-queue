@@ -30,7 +30,7 @@ WORDS = [  # (role, regex on the lowercase track name); first match wins
     ('mix', r'\b(master|current|mixdown|full ?mix|bounce)\b'),
     # a reverb/delay return on the drums is every drum blended: can't be labeled kick or snare
     # an 808 / sub / bass is bass even when its name mentions the kick ('808 (Sidechained by Kick)')
-    ('kick', r'bass ?drum|\bbd\b'),
+    ('kick', r'bass ?drum|\bbd\b|sub ?kick|kick ?sub'),
     ('rest', r'\b808s?\b|\bsub\b|sub ?bass|\bbass\b|sidechain'),
     ('fx_return', r'(drum|kick|snare|hat|perc).*(reverb|\bverbs?\b|delay|\bfx return\b)|(reverb|\bverb\b).*(drum|kick|snare)'
                   r'|drum room|room mics?|overheads?\b'),
@@ -123,7 +123,9 @@ def sort_beat(folder, dest=None, overrides=None):
             lens.append(i.frames / i.samplerate)
         except Exception:
             pass
-    if lens and (np.median(lens) < 20 or np.mean(np.abs(np.array(lens) - np.median(lens)) < 1.0) < 0.6):
+    med = float(np.median(lens)) if lens else 0
+    same = float(np.mean(np.abs(np.array(lens) - med) < 1.0)) if lens else 1
+    if lens and (med < 20 or (same < 0.6 and med < 60)):      # songs run over a minute; packs are short
         raise ValueError('looks like a sample pack (short or mismatched files), not a song\'s stems')
     prefix = common_prefix([p.stem for p in wavs])
     rows, audio = [], {}
