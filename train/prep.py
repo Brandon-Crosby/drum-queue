@@ -67,9 +67,26 @@ def _headroom(stems):
     return {k: v * g for k, v in stems.items()}
 
 
-def valid_songs(names):
-    """The same few songs every time (chosen by name hash), so validation scores stay comparable."""
-    return set(sorted(names, key=_seed)[:VALID_N])
+DRUMS = ('kick', 'snare', 'hh', 'other_drums')
+
+
+def has_all_drums(p):
+    """A validation song needs every drum part, or the silent part's score (-100 dB) swamps the rest."""
+    for r in DRUMS:
+        x = _read(p / f'{r}.flac')
+        if x is None or np.abs(x).max() < 1e-3:
+            return False
+    return True
+
+
+def valid_songs(songs):
+    """The same few songs every time (chosen by name hash, among songs with all four drum parts),
+    so validation scores stay comparable: 3 multitrack songs + 2 rebuilt FL projects (Latin)."""
+    pick = []
+    for flp, n in ((False, 3), (True, 2)):
+        group = sorted((p for p in songs if p.name.endswith('(FLP)') == flp), key=lambda p: _seed(p.name))
+        pick += [p.name for p in group if has_all_drums(p)][:n]
+    return set(pick)
 
 
 def real_song(src: Path, out: Path, valid: bool):
@@ -81,22 +98,29 @@ def real_song(src: Path, out: Path, valid: bool):
     stems = {'kick': _fit(raw['kick'], n), 'snare': _fit(raw['snare'], n), 'hh': _fit(raw['hh'], n),
              'perc': _fit(raw['other_drums'], n),
              'other': _fit(raw['rest'], n) * np.float32(10 ** (rng.uniform(-26, -16) / 20))}
-    if valid:                                     # the 30 s with the most drum activity
-        drums = np.abs(stems['kick'] + stems['snare'] + stems['hh'] + stems['perc']).mean(0)
+    if valid:                                     # 30 s where every drum part plays (then the busiest)
         win = VALID_SECONDS * SR
         if n > win:
             hop = SR
-            energy = [drums[i:i + win].mean() for i in range(0, n - win, hop)]
-            i = int(np.argmax(energy)) * hop
+            act = {k: np.abs(stems[k]).mean(0) for k in ('kick', 'snare', 'hh', 'perc')}
+            best, i = None, 0
+            for j in range(0, n - win, hop):
+                lv = [a[j:j + win].mean() / (a.max() + 1e-9) for a in act.values()]
+                key = (sum(v > 1e-3 for v in lv), min(lv), sum(lv))
+                if best is None or key > best:
+                    best, i = key, j
             stems = {k: v[:, i:i + win] for k, v in stems.items()}
     stems = _headroom(stems)
     _write(out, stems, mixture=valid)
     return f"{'valid' if valid else 'train'} {src.name}"
 
 
-def all_real(trainset: Path, out: Path):
-    songs = sorted(p for p in trainset.iterdir() if p.is_dir() and (p / 'kick.flac').exists())
-    vs = valid_songs([p.name for p in songs])
+def all_real(trainsets, out: Path):
+    if isinstance(trainsets, Path):
+        trainsets = [trainsets]
+    songs = sorted((p for t in trainsets if t.exists() for p in t.iterdir()
+                    if p.is_dir() and (p / 'kick.flac').exists()), key=lambda p: p.name)
+    vs = valid_songs(songs)
     for p in songs:
         v = p.name in vs
         try:

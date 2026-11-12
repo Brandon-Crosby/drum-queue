@@ -3,6 +3,7 @@
 One-time upload of the training copies (never the test set):
   modal volume create drumsplit-train
   modal volume put drumsplit-train /Volumes/T7/drumsplit-trainset /trainset
+  modal volume put drumsplit-train ~/DrumSplits/flp-test/train /trainset-flp     # FLP rebuilds (datagen/flp_render.py)
 
 Then:
   modal run train/modal_train.py::prep                      # CPU: lay out real songs + render synth clips
@@ -72,7 +73,7 @@ def prep_real():
     prep = _prep_mod()
     for d in ('real', 'valid'):
         shutil.rmtree(V / 'data' / d, ignore_errors=True)
-    prep.all_real(V / 'trainset', V / 'data')
+    prep.all_real([V / 'trainset', V / 'trainset-flp'], V / 'data')   # stems + rebuilt FL projects
     vol.commit()
     return sorted(p.name for p in (V / 'data' / 'valid').iterdir())
 
