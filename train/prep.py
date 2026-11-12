@@ -35,7 +35,13 @@ def _seed(name):
 def _read(p, n=None):
     if not p.exists():
         return None
-    x, sr = sf.read(str(p), dtype='float32', always_2d=True)
+    try:
+        if sf.info(str(p)).frames > SR * 1200:      # a damaged header (e.g. cut-off upload)
+            return None
+        x, sr = sf.read(str(p), dtype='float32', always_2d=True)
+    except Exception as e:
+        print(f'unreadable {p}: {e}', flush=True)
+        return None
     x = x.T
     if sr != SR:                                  # e.g. 48 kHz sessions
         from math import gcd
