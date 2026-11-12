@@ -38,7 +38,10 @@ GM = {'kick': 36, 'snare': 38, 'hh': 42, 'other_drums': 47, 'rest': 35}   # GM d
 
 
 def _words(name):
+    import unicodedata
+    name = unicodedata.normalize('NFKC', name)          # 'ⓀICK', 'ⓈNARE' -> 'KICK', 'SNARE'
     low = re.sub(r'[_\-=+()\[\]{}|.,#@!]+', ' ', name.lower())
+    low = re.sub(r'\b([oc])(?=hats?\b)', r'\1 ', low)       # 'ohat' / 'chat': open / closed hat
     return re.sub(r'(?<=\d)(?=[a-z])|(?<=[a-z])(?=\d)', ' ', low)
 
 
@@ -55,7 +58,7 @@ def role_of(*names):
             if role in ('mix', 'fx_return'):
                 continue
             if re.search(rx, low):
-                if role in DRUMS and re.search(r'\bloops?\b|\bbreaks?\b|\bkit\b|\bdrums?\b|\bfill', low) \
+                if role in DRUMS and re.search(r'loops?\b|\bbreaks?\b|\bkit\b|\bdrums?\b|\bfill', low) \
                         and not re.search(r'\btop loop', low):
                     return 'loop'          # several drums in one sample: can't label it
                 return role
@@ -170,7 +173,7 @@ def render(flp: Path, root: Path):
     pats = {pat.iid: pat for pat in p.patterns}
     hits = []                                       # (sec, chan, key, vel, note pan, fine pitch)
     clips = []                                      # one-shots dragged straight into the playlist
-    for track_on, item in playlist(p):
+    for track_on, item in playlist(p, flp):
         if not track_on or item['item_flags'] & MUTED:
             continue
         if item['item_index'] <= item['pattern_base']:
@@ -234,7 +237,53 @@ def render(flp: Path, root: Path):
     return (tracks, sorted(groove, key=lambda h: h['t']), meta), log
 
 
-def playlist(p):
+def _raw_playlist(flp):
+    """Playlist items straight from the file, for FL versions whose item size pyflp doesn't know
+    (FL 25 stores 80 bytes per item). The first 32 bytes of an item are the same in every version."""
+    import struct
+    b = Path(flp).read_bytes()
+    i, events = b.index(b'FLdt') + 8, []
+    while i < len(b):
+        eid = b[i]
+        i += 1
+        if eid < 64:
+            n = 1
+        elif eid < 128:
+            n = 2
+        elif eid < 192:
+            n = 4
+        else:
+            n = sh = 0
+            while True:
+                c = b[i]
+                i += 1
+                n |= (c & 0x7F) << sh
+                sh += 7
+                if not c & 0x80:
+                    break
+        if eid == 233:
+            events.append(b[i:i + n])
+        i += n
+    if not events:
+        return []
+    e = events[0]
+    for size in range(32, 257, 4):
+        if len(e) % size == 0 and all(struct.unpack_from('<H', e, k * size + 4)[0] == 20480
+                                      for k in range(len(e) // size)):
+            break
+    else:
+        return []
+    items = []
+    for k in range(len(e) // size):
+        pos, base, idx, length, rv, _g = struct.unpack_from('<IHHIHH', e, k * size)
+        flags, = struct.unpack_from('<H', e, k * size + 18)
+        so, eo = struct.unpack_from('<ff', e, k * size + 24)
+        items.append(dict(position=pos, pattern_base=base, item_index=idx, length=length, track_rvidx=rv,
+                          item_flags=flags, start_offset=so, end_offset=eo))
+    return items
+
+
+def playlist(p, flp=None):
     """(track enabled?, raw playlist item) for the first arrangement. Reads the playlist event directly:
     pyflp's own Arrangement.tracks crashes on clips whose channel was deleted."""
     from pyflp.arrangement import ArrangementID, TrackID, Track
@@ -243,6 +292,8 @@ def playlist(p):
     if ArrangementID.Playlist not in arr.events.ids:
         return
     pl = arr.events.first(ArrangementID.Playlist)
+    if not hasattr(pl, 'data') and flp is not None:   # an item size pyflp can't parse (FL 25)
+        pl = _raw_playlist(flp)
     max_idx = 499 if arr._kw['version'] >= FLVersion(12, 9, 1) else 198
     enabled = {}
     for i, ed in enumerate(arr.events.divide(TrackID.Data, *TrackID)):

@@ -94,7 +94,8 @@ def common_prefix(names):
 
 def by_name(name):
     # '2_RIM', 'drum_rubberslover_hats', '909crash': make separators spaces so word matching works
-    low = re.sub(r'[_\-=+()\[\]{}|.,#@!]+', ' ', name.lower())
+    import unicodedata
+    low = re.sub(r'[_\-=+()\[\]{}|.,#@!]+', ' ', unicodedata.normalize('NFKC', name).lower())
     low = re.sub(r'(?<=\d)(?=[a-z])|(?<=[a-z])(?=\d)', ' ', low)
     for role, rx in WORDS:
         if re.search(rx, low):
