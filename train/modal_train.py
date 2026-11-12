@@ -67,17 +67,31 @@ def synth_part(seed: int, n: int):
     return r
 
 
-@app.function(image=image, volumes={V: vol}, cpu=4, memory=16384, timeout=3 * 3600)
+@app.function(image=image, volumes={V: vol}, cpu=2, memory=8192, timeout=1800, max_containers=40)
+def prep_song(src: str, dest: str, valid: bool):
+    from pathlib import Path as P
+    try:
+        r = _prep_mod().real_song(P(src), P(dest), valid)
+    except Exception as e:                        # one bad song shouldn't stop the rest
+        r = f'skip {P(src).name}: {type(e).__name__}: {e}'
+    vol.commit()
+    return r
+
+
+@app.function(image=image, volumes={V: vol}, cpu=2, memory=8192, timeout=3 * 3600)
 def prep_real():
     import shutil
     prep = _prep_mod()
     for d in ('real', 'valid'):
         shutil.rmtree(V / 'data' / d, ignore_errors=True)
+    vol.commit()
     sets = sorted(V.glob('trainset*'))              # /trainset (stems) + /trainset-flp* (rebuilt FL projects)
     print('reading', [p.name for p in sets], flush=True)
-    prep.all_real(sets, V / 'data')
-    vol.commit()
-    return sorted(p.name for p in (V / 'data' / 'valid').iterdir())
+    jobs = prep.plan(sets, V / 'data')
+    print(f'{len(jobs)} songs, in parallel', flush=True)
+    for line in prep_song.starmap(jobs):
+        print(line, flush=True)
+    return sorted(dest.split('/')[-1] for _, dest, v in jobs if v)
 
 
 @app.local_entrypoint()
@@ -89,6 +103,20 @@ def prep(synth: int = 80, synth_only: bool = False):
         print(line)
     if jobs:
         print('held out for validation:', jobs.get())
+
+
+@app.function(image=image, volumes={V: vol}, cpu=1, memory=2048, timeout=24 * 3600)
+def pipeline(run: str, hours: float, steps: int):
+    """Prep the data, then train - all in the cloud, so the Mac can be off."""
+    held = prep_real.remote()
+    print('held out for validation:', held, flush=True)
+    return train_remote.remote(run, hours, False, steps)
+
+
+@app.local_entrypoint()
+def everything(run: str = 'helyx-1', hours: float = 6.0, steps: int = 1000):
+    """modal run --detach train/modal_train.py::everything --run helyx-1 --hours 6"""
+    print(pipeline.remote(run, hours, steps))
 
 
 def _committer(stop):

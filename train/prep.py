@@ -121,6 +121,18 @@ def real_song(src: Path, out: Path, valid: bool):
     return f"{'valid' if valid else 'train'} {src.name}"
 
 
+SKIP = ('Ocean Eyes',)                           # whole kit on one track: wrong labels
+
+
+def plan(trainsets, out: Path):
+    """[(song folder, destination, is_validation)] for every training song, so they can be done in parallel."""
+    songs = sorted((p for t in trainsets if t.exists() for p in t.iterdir()
+                    if p.is_dir() and (p / 'kick.flac').exists() and not any(k in p.name for k in SKIP)),
+                   key=lambda p: p.name)
+    vs = valid_songs(songs)
+    return [(str(p), str(out / ('valid' if p.name in vs else 'real') / p.name), p.name in vs) for p in songs]
+
+
 def all_real(trainsets, out: Path):
     if isinstance(trainsets, Path):
         trainsets = [trainsets]
