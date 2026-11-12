@@ -73,7 +73,9 @@ def prep_real():
     prep = _prep_mod()
     for d in ('real', 'valid'):
         shutil.rmtree(V / 'data' / d, ignore_errors=True)
-    prep.all_real([V / 'trainset', V / 'trainset-flp'], V / 'data')   # stems + rebuilt FL projects
+    sets = sorted(V.glob('trainset*'))              # /trainset (stems) + /trainset-flp* (rebuilt FL projects)
+    print('reading', [p.name for p in sets], flush=True)
+    prep.all_real(sets, V / 'data')
     vol.commit()
     return sorted(p.name for p in (V / 'data' / 'valid').iterdir())
 
