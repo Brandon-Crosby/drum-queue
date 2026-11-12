@@ -18,6 +18,7 @@ Names win over sound; anything doubtful is marked "check" in the table so a pers
 A roles.json that has "reviewed": true is left alone (so corrections aren't overwritten).
 """
 import argparse
+import sys
 import json
 import re
 from pathlib import Path
@@ -29,8 +30,9 @@ WORDS = [  # (role, regex on the lowercase track name); first match wins
     ('mix', r'\b(master|current|mixdown|full ?mix|bounce)\b'),
     ('kick', r'kick|\bkck\b|\bbd\b|bombo'),
     ('snare', r'snare|\bsnr\b|clap|\brim\b|rimshot|\bsd\b'),
-    ('hh', r'hi ?-?hats?|(open|closed) ?hats?|\bhats?\b|\bhh\b|\boh\b|shaker|maraca|tamb(ourine)?\b|\bride\b|\bcrash\b|cymbal'),
-    ('other_drums', r'perc|conga|bongo|campana|cowbell|guiro|g[uü]iro|timbal|clave|tambora|tom\b|toms\b'
+    ('hh', r'hi ?-?hats?|(open|closed) ?hats?|\bhats?\b|\bhh\b|\boh\b|shaker|maraca|tamb(ourine)?\b|tambo\b|top loop'),
+    ('other_drums', r'perc|\bprc\b|cong[ao]|bongo|campana|cowbell|guiro|g[uü]iro|timbal|clave|tambora|\btoms?\b'
+                    r'|crash|\bride\b|cymbal|log drum'
                     r'|drum ?loop|drums?\b|\bloop.*(perc|drum)|dembow loop|break'),
 ]
 DRUM_ROLES = ('kick', 'snare', 'hh', 'other_drums')
@@ -54,7 +56,9 @@ def common_prefix(names):
 
 
 def by_name(name):
-    low = name.lower()
+    # '2_RIM', 'drum_rubberslover_hats', '909crash': make separators spaces so word matching works
+    low = re.sub(r'[_\-=+()\[\]{}|.,#@!]+', ' ', name.lower())
+    low = re.sub(r'(?<=\d)(?=[a-z])|(?<=[a-z])(?=\d)', ' ', low)
     for role, rx in WORDS:
         if re.search(rx, low):
             return role
@@ -82,6 +86,13 @@ def sort_beat(folder, dest=None):
         rows.append(dict(name=name, file=f.name, db=round(db, 1), guess=by_name(name)))
         audio[name] = y
     n = min(len(a) for a in audio.values())
+    masters = [r['name'] for r in rows if r['guess'] == 'mix']
+    for r in rows:
+        if r['guess'] != 'mix' and masters:
+            m, t = audio[masters[0]][:n:16], audio[r['name']][:n:16]
+            c = float(np.dot(m, t) / (np.sqrt(np.dot(m, m) * np.dot(t, t)) + 1e-12))
+            if c > 0.98:
+                r['guess'] = 'mix'
     for r in rows:
         r['role'], r['why'] = r['guess'], 'name'
         if r['guess'] == 'mix':
@@ -121,10 +132,13 @@ def sort_beat(folder, dest=None):
 
 
 def main():
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
     ap = argparse.ArgumentParser()
     ap.add_argument('root')
     ap.add_argument('--only', default='')
     ap.add_argument('--out', default='', help='folder for the roles files (default: inside each beat folder)')
+    ap.add_argument('--testset', default='', help='also build each beat\'s 60 s test clip here right away, so its '
+                                                  'stems can go back to online-only afterwards')
     ap.add_argument('--force', action='store_true', help='redo folders already marked reviewed')
     a = ap.parse_args()
     root = Path(a.root).expanduser()
@@ -143,13 +157,23 @@ def main():
         try:
             out = sort_beat(d, rj)
         except Exception as e:
-            print(f'! {d.name}: {type(e).__name__}: {e}')
+            msg = f'{type(e).__name__}: {e}'
+            if 'Format not recognised' in msg or 'Error opening' in msg:
+                msg = 'stems not readable - in Dropbox, right-click the folder > Make available offline, then rerun'
+            print(f'! {d.name}: {msg}')
             continue
         if not out:
             print(f'- {d.name}: fewer than 3 WAVs, skipped')
             continue
         spec, rows = out
         done += 1
+        if a.testset:
+            import make_testset
+            try:
+                m = make_testset.build(d, Path(a.testset).expanduser() / d.name, 60, rj)
+                print(f'  -> test clip saved ({m["seconds"]} s from {m["start_s"]} s)')
+            except Exception as e:
+                print(f'  -> test clip failed: {type(e).__name__}: {e}')
         print(f'\n## {d.name}  ({spec["seconds"]} s)')
         for r in sorted(rows, key=lambda r: (r['role'], r['name'])):
             flag = '  <- check' if r['check'] else ''
