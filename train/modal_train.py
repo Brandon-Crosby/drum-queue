@@ -119,6 +119,16 @@ def everything(run: str = 'helyx-1', hours: float = 6.0, steps: int = 1000):
     print(pipeline.remote(run, hours, steps))
 
 
+@app.local_entrypoint()
+def launch(run: str = 'helyx-1', hours: float = 6.0, steps: int = 1000, resume: bool = False):
+    """Start training on the DEPLOYED app, so it keeps going if this Mac disconnects or reboots.
+    First: modal deploy train/modal_train.py   Then: modal run train/modal_train.py::launch --run helyx-1 --hours 6"""
+    f = modal.Function.from_name('drumsplit-train', 'train_remote')
+    call = f.spawn(run, hours, resume, steps)
+    print(f'Training started ({call.object_id}). Safe to close the terminal or reboot now.')
+    print('Watch it: modal.com -> Apps -> drumsplit-train (deployed) -> train_remote')
+
+
 def _committer(stop):
     while not stop.wait(600):
         try:
