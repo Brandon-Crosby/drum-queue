@@ -106,11 +106,24 @@ def prep(synth: int = 80, synth_only: bool = False):
 
 
 @app.function(image=image, volumes={V: vol}, cpu=1, memory=2048, timeout=24 * 3600)
-def pipeline(run: str, hours: float, steps: int):
-    """Prep the data, then train - all in the cloud, so the Mac can be off."""
+def pipeline(run: str, hours: float, steps: int, resume: bool = False, synth: int = 0):
+    """(Re)render `synth` synthesized clips, prep the songs, then train - all in the cloud."""
+    if synth:
+        for line in synth_part.starmap([(s, 10) for s in range(max(1, synth // 10))]):
+            print(line, flush=True)
     held = prep_real.remote()
     print('held out for validation:', held, flush=True)
-    return train_remote.remote(run, hours, False, steps)
+    return train_remote.remote(run, hours, resume, steps)
+
+
+@app.local_entrypoint()
+def go(run: str = 'helyx-1', hours: float = 8.0, steps: int = 1000, resume: bool = False, synth: int = 200):
+    """Synth + prep + training as ONE job on the deployed app: safe to close the Mac right after.
+    First: modal deploy train/modal_train.py   Then: modal run train/modal_train.py::go --resume"""
+    call = modal.Function.from_name('drumsplit-train', 'pipeline').spawn(run, hours, steps, resume, synth)
+    print(f'Started ({call.object_id}): synth clips, prep, then {hours} h of training on {run}.')
+    print('Safe to close the terminal or turn the Mac off now.')
+    print('Watch it: modal.com -> Apps -> drumsplit-train (deployed) -> pipeline / train_remote')
 
 
 @app.local_entrypoint()
