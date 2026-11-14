@@ -82,7 +82,7 @@ class Bench:
             self.ours = (model.to('cuda').eval(), cfg)
 
     @modal.method()
-    def run(self, beat: str):
+    def run(self, beat: str, listen: bool = False):
         import shutil
         import subprocess
         import time
@@ -120,6 +120,16 @@ class Bench:
             nm = Path(o).name
             shutil.move(str(self.work / nm), est / (nm[nm.rfind('(') + 1:nm.rfind(')')].strip().lower() + '.wav'))
         gpu_s = time.time() - t
+        if listen:                                    # save what the model actually produced, to listen to
+            dest = Path('/eval/listen') / beat
+            shutil.rmtree(dest, ignore_errors=True)
+            dest.mkdir(parents=True)
+            shutil.copy(W / 'mix.wav', dest / 'mix.wav')
+            for o in est.glob('*.wav'):
+                shutil.copy(o, dest / f'ours_{o.name}')
+            for t_ in (W / 'truth').glob('*.wav'):
+                shutil.copy(t_, dest / f'truth_{t_.name}')
+            vol.commit()
         p = subprocess.run(['python', '/root/score.py', str(W / 'truth'), str(est), '--json', str(W / 's.json'),
                             '--label', beat], capture_output=True, text=True)
         if p.returncode:
@@ -154,7 +164,11 @@ def board(results):
 
 
 @app.local_entrypoint()
-def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'current', ckpt: str = ''):
+def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'current', ckpt: str = '',
+         listen: str = ''):
+    """--listen "beat name" also saves the model's actual separated audio (not just scores) for that one
+    beat to the eval volume, so you can download and listen to it: modal volume get drumsplit-eval
+    /listen/<beat> ~/Desktop/listen"""
     root = Path(os.path.expanduser(testset))
     beats = sorted(p.name for p in root.iterdir() if (p / 'mix.flac').exists() and (not only or only.lower() in p.name.lower()))
     if not beats:
@@ -173,7 +187,11 @@ def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'cu
     print(f'Splitting and scoring {len(beats)} beat(s) on GPUs ...')
     if ckpt:
         print(f'Stage 2 = our model {ckpt}')
-    results = list(Bench(ckpt=ckpt).run.map(beats, return_exceptions=True))
+    listen_beat = next((b for b in beats if listen and listen.lower() in b.lower()), None)
+    if listen and not listen_beat:
+        print(f'! --listen "{listen}" matched no beat in the test set; scoring without saving audio')
+    args = [(b, b == listen_beat) for b in beats]
+    results = list(Bench(ckpt=ckpt).run.starmap(args, return_exceptions=True))
     results = [r if isinstance(r, dict) else {'beat': b, 'error': repr(r)} for b, r in zip(beats, results)]
     print('\n' + board(results))
     out = Path('eval_results')
@@ -181,3 +199,5 @@ def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'cu
     f = out / f"{dt.date.today().isoformat()}-{label}.json"
     f.write_text(json.dumps(results, indent=1))
     print(f'\nSaved {f}')
+    if listen_beat:
+        print(f'\nTo listen: modal volume get drumsplit-eval "/listen/{listen_beat}" ~/Desktop/listen')

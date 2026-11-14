@@ -27,6 +27,9 @@ except ImportError:                              # run as a script
 SR = synth.SR
 STEMS = ['kick', 'snare', 'toms', 'hh', 'perc', 'ride', 'crash']
 LEVEL_DB = {'kick': 0, 'snare': -3, 'toms': -6, 'hh': -11, 'perc': -8, 'ride': -14, 'crash': -13}
+# Some clips layer a snare/clap exactly on top of kick hits (same sample, no timing gap), often much
+# quieter than the kick - the 'kick + clap' layer that real beats use and the model used to merge.
+STACK_P = 0.35
 
 
 # ---------------------------------------------------------------- processing
@@ -124,7 +127,7 @@ def render_clip(rng, genre=None, bars=8):
     step = 60 / bpm / 4
     n = int((bars * 16 * step + 3.0) * SR)       # + tail for the last hits
     tracks = {c: np.zeros((2, n)) for c in STEMS}
-    used = {}
+    used, kit, kick_at = {}, {}, []
     for cls, grids in g['parts'].items():
         if cls not in STEMS:
             continue
@@ -132,6 +135,7 @@ def render_clip(rng, genre=None, bars=8):
             continue                             # not every beat has every piece
         sounds = pick_sounds(cls, genre, rng, 1 if cls in ('kick', 'crash') else int(rng.integers(1, 3)))
         used[cls] = [s[0] for s in sounds]
+        kit[cls] = sounds
         grid = grids[rng.integers(len(grids))]
         for b in range(bars):
             if b % 4 == 0 and rng.random() < 0.3:
@@ -148,16 +152,37 @@ def render_clip(rng, genre=None, bars=8):
                 seg = snd[:n - i] * vel
                 tracks[cls][0, i:i + len(seg)] += seg * (1 - pan) / 2 * 2 ** 0.5
                 tracks[cls][1, i:i + len(seg)] += seg * (1 + pan) / 2 * 2 ** 0.5
+                if cls == 'kick':
+                    kick_at.append(i)
+    stacked, quiet_db = 0, 0.0
+    if kick_at and rng.random() < STACK_P:       # clap/snare layered dead on the kick
+        layer = [s for s in kit.get('snare', []) if s[0] in ('clap', 'snare')] or \
+                [s for s in pick_sounds('snare', genre, rng, 3) if s[0] in ('clap', 'snare')] or \
+                pick_sounds('snare', genre, rng, 1)
+        q = rng.uniform(0.25, 0.9)               # share of kicks that get the layer
+        for i in kick_at:
+            if rng.random() >= q:
+                continue
+            name, snd, pan = layer[rng.integers(len(layer))]
+            seg = snd[:n - i] * rng.uniform(0.6, 1.0)
+            tracks['snare'][0, i:i + len(seg)] += seg * (1 - pan) / 2 * 2 ** 0.5
+            tracks['snare'][1, i:i + len(seg)] += seg * (1 + pan) / 2 * 2 ** 0.5
+            stacked += 1
+        used.setdefault('snare', [])
+        used['snare'] = sorted(set(used['snare']) | {s[0] for s in layer})
+        quiet_db = rng.uniform(0, 20)            # often well under the kick, like TABLAaLAS2am's clap (~22 dB)
     for cls in STEMS:
         if np.abs(tracks[cls]).max() > 0:
             x = process(tracks[cls], rng)
-            x *= 10 ** ((LEVEL_DB[cls] + rng.uniform(-4, 4)) / 20) / (np.abs(x).max() + 1e-9)
+            lvl = LEVEL_DB[cls] + rng.uniform(-4, 4) - (quiet_db if cls == 'snare' else 0)
+            x *= 10 ** (lvl / 20) / (np.abs(x).max() + 1e-9)
             tracks[cls] = x
     rest = leftover_music(n, bpm, rng) * 10 ** (rng.uniform(-34, -20) / 20) if rng.random() < 0.6 else np.zeros((2, n))
     mix = sum(tracks.values()) + rest
     gain = 0.89 / (np.abs(mix).max() + 1e-9)
     tracks = {k: v * gain for k, v in tracks.items()}
-    meta = dict(genre=genre, bpm=round(bpm, 1), swing=round(swing, 3), bars=bars, sounds=used)
+    meta = dict(genre=genre, bpm=round(bpm, 1), swing=round(swing, 3), bars=bars, sounds=used,
+                stacked=stacked, stacked_quiet_db=round(quiet_db, 1))
     return tracks, rest * gain, mix * gain, meta
 
 

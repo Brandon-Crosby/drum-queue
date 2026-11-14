@@ -28,6 +28,9 @@ import soundfile as sf
 
 WORDS = [  # (role, regex on the lowercase track name); first match wins
     ('mix', r'\b(master|current|mixdown|full ?mix|bounce)\b'),
+    # several drums at once, can't be labeled: a bare "Fills" track, a "No Kick Loop" (everything but the kick)
+    ('fx_return', r'^\W*(drum )?fills?\W*\d*\W*$|\bno ?kicks?\b|\bwithout kick'
+                  r'|\bdrums? ?(bus|group|sum|submix|master)\b|\b(all|full) ?drums?\b'),   # every drum summed
     # a reverb/delay return on the drums is every drum blended: can't be labeled kick or snare
     # an 808 / sub / bass is bass even when its name mentions the kick ('808 (Sidechained by Kick)')
     ('kick', r'bass ?drum|\bbd\b|sub ?kick|kick ?sub'),
@@ -38,6 +41,7 @@ WORDS = [  # (role, regex on the lowercase track name); first match wins
     ('snare', r'snare|sn\w?are|snr|\bsn\b|clap|\bclp\b|\brims?\b|rimz|rimshot|\bsd\b|\bsnaps?\b'),
     ('hh', r'hi ?-?hats?|(open|closed) ?hats?|\bhats?\b|\bhh\b|\boh\b|shaker|\bshakes?\b|maraca|tamb(ourine)?s?\b|tambo\b|top loop|\btops?\b'),
     ('other_drums', r'perc|prc\b|palito|cong[ao]|bongo|campana|cowbell|guiro|g[uü]iro|timbal|clave|tambora|\btoms?\b'
+                    r'|darbuka|daire|\briq\b|djembe|tabla\b|frame drum|cajon|\budu\b|bendir'
                     r'|crash|\brides?\b|cymbal|log drum|dnb loop|jungle loop|\bamen\b|\bbreaks?\b|garage loop|\bkit\b'
                     r'|drum ?loop|drums?\b|\bloop.*(perc|drum)|dembow loop|break'),
 ]
@@ -96,10 +100,15 @@ def by_name(name):
     # '2_RIM', 'drum_rubberslover_hats', '909crash': make separators spaces so word matching works
     import unicodedata
     low = re.sub(r'[_\-=+()\[\]{}|.,#@!]+', ' ', unicodedata.normalize('NFKC', name).lower())
+    low = re.sub(r'\b([oc])(?=hats?\b)', r'\1 ', low)       # 'ohat' / 'chat': open / closed hat
     low = re.sub(r'(?<=\d)(?=[a-z])|(?<=[a-z])(?=\d)', ' ', low)
+    if re.search(r'\b808\b', low) and re.search(r'kick|snare|clap|hi ?hat|\bhh\b|\btom|rim|cowbell|conga', low):
+        low = re.sub(r'\b808\b', ' ', low)                  # "808 Kick": the TR-808, not an 808 bass
     for role, rx in WORDS:
         if re.search(rx, low):
             return role
+    if re.search(r'\bfills?\b', low):                       # 'Short Fill', 'Drop Fills': drums, but which?
+        return 'fx_return'
     return 'rest'
 
 
