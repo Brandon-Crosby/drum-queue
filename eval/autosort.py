@@ -31,6 +31,8 @@ WORDS = [  # (role, regex on the lowercase track name); first match wins
     # several drums at once, can't be labeled: a bare "Fills" track, a "No Kick Loop" (everything but the kick)
     ('fx_return', r'^\W*(drum )?fills?\W*\d*\W*$|\bno ?kicks?\b|\bwithout kick'
                   r'|\bdrums? ?(bus|group|sum|submix|master)\b|\b(all|full) ?drums?\b'),   # every drum summed
+    # amapiano log drum: a drum hit even when it plays the bassline ('Log Bass'), so it's perc
+    ('other_drums', r'log ?drums?|\blogs?\b'),
     # a reverb/delay return on the drums is every drum blended: can't be labeled kick or snare
     # an 808 / sub / bass is bass even when its name mentions the kick ('808 (Sidechained by Kick)')
     ('kick', r'bass ?drum|\bbd\b|sub ?kick|kick ?sub'),

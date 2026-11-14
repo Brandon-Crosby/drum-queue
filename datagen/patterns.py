@@ -86,6 +86,18 @@ GENRES = {
             'perc': [bar(2, 5, 7, 10, 13, p=0.8), bar(1, 4, 6, 9, 12, 14, p=0.7)],
             'toms': [bar(13, 14, 15, p=0.1)],
         }),
+    # Amapiano: four-on-the-floor (or sparser) kick, offbeat shakers, claps/rims on 2 & 4, and the
+    # syncopated log drum bassline
+    'amapiano': dict(
+        bpm=(108, 116), swing=(0.06, 0.14),
+        parts={
+            'kick': [bar(0, 4, 8, 12), bar(0, 8), mix(bar(0, 4, 8, 12), bar(14, p=0.3))],
+            'snare': [bar(4, 12), mix(bar(4, 12), bar(7, 15, p=0.3))],
+            'hh': [EVERY_16TH, mix(bar(2, 6, 10, 14), bar(1, 3, 5, 7, 9, 11, 13, 15, p=0.6))],
+            'perc': [bar(3, 7, 11, 15, p=0.6), bar(2, 5, 10, 13, p=0.5)],
+            'log': [bar(3, 6, 10, 14), mix(bar(3, 6, 10), bar(13, 14, 15, p=0.5)), bar(2, 3, 7, 10, 11, p=0.85),
+                    mix(bar(0, 6, 10), bar(3, 14, p=0.6))],
+        }),
     # Merengue / tambora: fast, tambora and güiro driving
     'merengue': dict(
         bpm=(140, 160), swing=(0.0, 0.03),
@@ -107,4 +119,5 @@ FAVOR = {
     'rnb': {'snare': ['snare', 'rim', 'clap'], 'hh': ['hat closed']},
     'afro': {'perc': ['conga', 'bongo', 'campana', 'clave'], 'hh': ['shaker', 'hat closed'], 'snare': ['rim', 'clap']},
     'merengue': {'perc': ['tambora', 'guiro', 'campana'], 'hh': ['shaker', 'hat closed']},
+    'amapiano': {'perc': ['conga', 'clave', 'campana'], 'hh': ['shaker', 'hat closed'], 'snare': ['clap', 'rim']},
 }

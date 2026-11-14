@@ -155,7 +155,8 @@ def synth_clips(out: Path, n: int, seed: int):
         tracks, rest, _mix, meta = render.render_clip(rng)
         m = tracks['kick'].shape[1]
         stems = {'kick': tracks['kick'], 'snare': tracks['snare'], 'hh': tracks['hh'],
-                 'perc': tracks['toms'] + tracks['perc'] + tracks['ride'] + tracks['crash'],
+                 'perc': tracks['toms'] + tracks['perc'] + tracks['ride'] + tracks['crash']
+                 + tracks.get('log', 0),                                     # amapiano log drum = perc
                  'other': rest}
         stems = _headroom({k2: v.astype(np.float32)[:, :m] for k2, v in stems.items()})
         _write(out / f'clip_{seed:03d}_{k:05d}', stems)

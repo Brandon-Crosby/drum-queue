@@ -59,7 +59,7 @@ def role_of(*names):
                 continue
             if re.search(rx, low):
                 if role in DRUMS and re.search(r'loops?\b|\bbreaks?\b|\bkit\b|\bdrums?\b|\bfill', low) \
-                        and not re.search(r'\btop loop', low):
+                        and not re.search(r'\btop loop|log ?drum', low):
                     return 'loop'          # several drums in one sample: can't label it
                 return role
     return None

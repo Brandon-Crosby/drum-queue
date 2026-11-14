@@ -25,8 +25,8 @@ except ImportError:                              # run as a script
     import patterns
 
 SR = synth.SR
-STEMS = ['kick', 'snare', 'toms', 'hh', 'perc', 'ride', 'crash']
-LEVEL_DB = {'kick': 0, 'snare': -3, 'toms': -6, 'hh': -11, 'perc': -8, 'ride': -14, 'crash': -13}
+STEMS = ['kick', 'snare', 'toms', 'hh', 'perc', 'ride', 'crash', 'log']
+LEVEL_DB = {'kick': 0, 'snare': -3, 'toms': -6, 'hh': -11, 'perc': -8, 'ride': -14, 'crash': -13, 'log': -2}
 # Some clips layer a snare/clap exactly on top of kick hits (same sample, no timing gap), often much
 # quieter than the kick - the 'kick + clap' layer that real beats use and the model used to merge.
 STACK_P = 0.35
