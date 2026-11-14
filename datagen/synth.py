@@ -198,19 +198,36 @@ def clave(rng):
     return _norm(np.sin(2 * np.pi * rng.uniform(1800, 2600) * _t(sec)) * _env(sec, rng.uniform(0.02, 0.05)))
 
 
-def log_drum(rng):
-    """Amapiano log drum: a low pitched knock with a fast pitch drop, a woody click and some grit.
-    Played like a bassline, but it's a drum hit, so it counts as perc."""
-    f = 55 * 2 ** (rng.integers(0, 24) / 12)                 # A1..G#3: it plays melodies
-    sec = rng.uniform(0.25, 0.9)
-    tone = _sweep(f * rng.uniform(1.6, 3.0), f, rng.uniform(0.008, 0.04), sec)
-    tone += rng.uniform(0.1, 0.4) * _sweep(2 * f * rng.uniform(1.4, 2.5), 2 * f, 0.02, sec)
-    x = tone * _env(sec, rng.uniform(0.12, 0.45), attack=0.002)
-    click = _bp(_noise(int(0.02 * SR), rng), 800, 3500) * _env(0.02, 0.004)
-    x[:len(click)] += rng.uniform(0.05, 0.3) * click
-    d = rng.uniform(1.5, 6)                                   # the saturated 'wah' bite
-    x = np.tanh(x * d) / np.tanh(d)
-    x = _lp(x, f * rng.uniform(4, 14))
+def log_patch(rng):
+    """One log drum 'preset' for a whole clip, so every note sounds like the same instrument."""
+    return dict(ratio=float(rng.choice([2.0, 2.0, 4.0, 1.0, 3.0])),   # modulator 1-2 octaves up (the knock)
+                index=rng.uniform(3, 9), index_tau=rng.uniform(0.004, 0.02), index_floor=rng.uniform(0, 0.4),
+                blip=rng.uniform(7, 12), blip_tau=rng.uniform(0.006, 0.014),   # +7..12 st, gone in ~30 ms
+                decay=rng.uniform(0.06, 0.2), length=rng.uniform(0.35, 0.6),
+                drive=rng.uniform(2, 7), ping=rng.uniform(0.1, 0.5), glide_tau=rng.uniform(0.015, 0.06))
+
+
+def log_drum(rng, f=None, glide_from=None, patch=None):
+    """Amapiano log drum, the way the original FL preset makes it: FM, a low carrier at the note, a
+    modulator 1-2 octaves up whose depth dies in a few ms (the woody knock), a fast pitch blip, a
+    short body with almost no sustain, glide from the previous note, and drive so it reads on a
+    phone speaker. Played like a bassline, but it's a drum hit, so it counts as perc."""
+    p = patch or log_patch(rng)
+    if f is None:
+        f = 41.2 * 2 ** (rng.integers(0, 16) / 12)               # E1..G2, where log drums live
+    t = _t(p['length'])
+    base = f if glide_from is None else f + (glide_from - f) * np.exp(-t / p['glide_tau'])
+    fr = base * 2 ** (p['blip'] * np.exp(-t / p['blip_tau']) / 12)
+    phase_c = 2 * np.pi * np.cumsum(fr) / SR
+    phase_m = 2 * np.pi * np.cumsum(fr * p['ratio']) / SR
+    idx = p['index'] * np.exp(-t / p['index_tau']) + p['index_floor']
+    x = np.sin(phase_c + idx * np.sin(phase_m))
+    x *= _env(p['length'], p['decay'], attack=0.0015)
+    x = np.tanh(x * p['drive']) / np.tanh(p['drive'])
+    x = x + p['ping'] * _bp(x, 700, 2200)                     # the upper-mid 'ping'
+    x = _hp(x, 28)                                            # no rumble below the note
+    tail = int(0.01 * SR)
+    x[-tail:] *= np.linspace(1, 0, tail)
     return _norm(x)
 
 

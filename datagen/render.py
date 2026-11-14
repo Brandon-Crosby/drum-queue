@@ -98,7 +98,7 @@ def pick_sounds(cls, genre, rng, k):
         else:
             name, gen = opts[rng.integers(len(opts))]
         sound = gen(rng)
-        pan = rng.uniform(-0.6, 0.6) if cls not in ('kick', 'snare') else rng.uniform(-0.1, 0.1)
+        pan = rng.uniform(-0.6, 0.6) if cls not in ('kick', 'snare', 'log') else rng.uniform(-0.1, 0.1)
         out.append((name, sound, pan))
     return out
 
@@ -136,6 +136,11 @@ def render_clip(rng, genre=None, bars=8):
         sounds = pick_sounds(cls, genre, rng, 1 if cls in ('kick', 'crash') else int(rng.integers(1, 3)))
         used[cls] = [s[0] for s in sounds]
         kit[cls] = sounds
+        if cls == 'log':                         # a bassline: one preset, notes from the key, glides
+            patch = synth.log_patch(rng)
+            root = 41.2 * 2 ** (rng.integers(0, 9) / 12)          # E1..C2
+            scale = [0, 0, 0, 7, 7, 3, 5, 10, 12, -2]             # root and fifth most of the time
+            note, last_i = root, -10 ** 9
         grid = grids[rng.integers(len(grids))]
         for b in range(bars):
             if b % 4 == 0 and rng.random() < 0.3:
@@ -148,6 +153,13 @@ def render_clip(rng, genre=None, bars=8):
                 t = (b * 16 + s) * step + (swing * step if s % 2 else 0) + rng.normal(0, 0.004)
                 i = max(0, int(t * SR))
                 name, snd, pan = sounds[rng.integers(len(sounds))]
+                if cls == 'log':
+                    prev = note
+                    note = root * 2 ** (scale[rng.integers(len(scale))] / 12) if rng.random() < 0.6 else note
+                    close = (i - last_i) < 3 * step * SR              # notes this close slide into each other
+                    snd = synth.log_drum(rng, f=note, glide_from=prev if close and prev != note and
+                                         rng.random() < 0.7 else None, patch=patch)
+                    last_i = i
                 vel = rng.uniform(0.75, 1.0) if s % 4 == 0 else rng.uniform(0.45, 0.95)
                 seg = snd[:n - i] * vel
                 tracks[cls][0, i:i + len(seg)] += seg * (1 - pan) / 2 * 2 ** 0.5
