@@ -54,13 +54,18 @@ def role_of(*names):
         low = _words(name)
         if re.search(r'\b808\b', low) and re.search(r'kick|snare|clap|hi ?hat|\bhh\b|\btom|rim|cowbell|conga', low):
             low = re.sub(r'\b808\b', ' ', low)     # "808 Kick": the TR-808 drum machine, not an 808 bass
+        if re.search(r'^\W*(drum )?fills?\W*\d*\W*$|\bno ?kicks?\b|\bwithout kick|\bdrums? ?(bus|group|sum|submix)\b'
+                     r'|\b(all|full) ?drums?\b', low):
+            return 'loop'                  # a fills track, a 'No Kick Loop', a drum bus: several drums
         for role, rx in WORDS:
             if role in ('mix', 'fx_return'):
                 continue
             if re.search(rx, low):
-                if role in DRUMS and re.search(r'loops?\b|\bbreaks?\b|\bkit\b|\bdrums?\b|\bfill', low) \
-                        and not re.search(r'\btop loop|log ?drum', low):
-                    return 'loop'          # several drums in one sample: can't label it
+                # several drums in one sample can't be labeled ('Drum Loop', 'Break', 'Kit 3'), but a loop of
+                # one instrument can ('Hat Loop', 'Shaker Loop', 'Perc Loop', 'Top Loop', 'Log Drum')
+                if role in DRUMS and re.search(r'\bbreaks?\b|\bkit\b|\bdrums?\b', low) \
+                        and not re.search(r'log ?drum', low):
+                    return 'loop'
                 return role
     return None
 

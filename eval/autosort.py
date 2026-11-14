@@ -32,7 +32,7 @@ WORDS = [  # (role, regex on the lowercase track name); first match wins
     ('fx_return', r'^\W*(drum )?fills?\W*\d*\W*$|\bno ?kicks?\b|\bwithout kick'
                   r'|\bdrums? ?(bus|group|sum|submix|master)\b|\b(all|full) ?drums?\b'),   # every drum summed
     # amapiano log drum: a drum hit even when it plays the bassline ('Log Bass'), so it's perc
-    ('other_drums', r'log ?drums?|\blogs?\b'),
+    ('other_drums', r'log ?drums?|\blogs?\b|sub ?toms?'),
     # a reverb/delay return on the drums is every drum blended: can't be labeled kick or snare
     # an 808 / sub / bass is bass even when its name mentions the kick ('808 (Sidechained by Kick)')
     ('kick', r'bass ?drum|\bbd\b|sub ?kick|kick ?sub'),
@@ -41,7 +41,7 @@ WORDS = [  # (role, regex on the lowercase track name); first match wins
                   r'|drum room|room mics?|overheads?\b'),
     ('kick', r'kick|kik|\bkck\b|\bbd\b|bombo'),
     ('snare', r'snare|sn\w?are|snr|\bsn\b|clap|\bclp\b|\brims?\b|rimz|rimshot|\bsd\b|\bsnaps?\b'),
-    ('hh', r'hi ?-?hats?|(open|closed) ?hats?|\bhats?\b|\bhh\b|\boh\b|shaker|\bshakes?\b|maraca|tamb(ourine)?s?\b|tambo\b|top loop|\btops?\b'),
+    ('hh', r'\b[co]hh\b|hi ?-?hats?|(open|closed) ?hats?|\bhats?\b|\bhh\b|\boh\b|shaker|\bshakes?\b|maraca|tamb(ourine)?s?\b|tambo\b|top loop|\btops?\b'),
     ('other_drums', r'perc|prc\b|palito|cong[ao]|bongo|campana|cowbell|guiro|g[uü]iro|timbal|clave|tambora|\btoms?\b'
                     r'|darbuka|daire|\briq\b|djembe|tabla\b|frame drum|cajon|\budu\b|bendir'
                     r'|crash|\brides?\b|cymbal|log drum|dnb loop|jungle loop|\bamen\b|\bbreaks?\b|garage loop|\bkit\b'

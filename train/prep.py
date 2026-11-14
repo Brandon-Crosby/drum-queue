@@ -90,7 +90,7 @@ def valid_songs(songs):
     so validation scores stay comparable: 3 multitrack songs + 2 rebuilt FL projects (Latin)."""
     pick = []
     for flp, n in ((False, 3), (True, 2)):
-        group = sorted((p for p in songs if p.name.endswith('(FLP)') == flp), key=lambda p: _seed(p.name))
+        group = sorted((p for p in songs if p.name.endswith(('(FLP)', '(ALS)')) == flp), key=lambda p: _seed(p.name))
         pick += [p.name for p in group if has_all_drums(p)][:n]
     return set(pick)
 
