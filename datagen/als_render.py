@@ -20,6 +20,7 @@ import argparse
 import gzip
 import json
 import os
+import re
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -107,6 +108,34 @@ def tracks_of(ls):
             yield t, chain(t)
 
 
+def voice(sim, als, roots, names, gain, pan, play):
+    """One Simpler: its sample (trimmed to start/end), pitch, volume and label. `names` are tried in
+    order for the label; None in it marks where the sample's own file name goes. `play` is the note a
+    Drum Rack pad sends (None: the played note)."""
+    fr = sim.find('.//SampleRef/FileRef')
+    sname = Path(_v(fr, 'RelativePath', '', str) or _v(fr, 'Path', '', str)).name if fr is not None else ''
+    names = [sname if n is None else n for n in names]
+    role = role_of(*names)
+    label = names[0]
+    if role is None or role == 'loop':
+        return dict(log=f'  left out  {label!r} ({sname}): {"drum loop" if role else "unknown sound"}')
+    f = sample_file(fr, als, roots) if fr is not None else None
+    if f is None:
+        return dict(log=f'  missing   {label!r}: {sname} not found')
+    snd, osr = load(f)
+    part = sim.find('Player/MultiSampleMap/SampleParts/MultiSamplePart')
+    r = SR / osr
+    s0 = int(_v(part, 'SampleStart', 0) * r)
+    s1 = int(_v(part, 'SampleEnd', snd.shape[1] / r) * r) or snd.shape[1]
+    return dict(log='', role=role, label=label, file=f.name, snd=snd[:, s0:max(s0 + 1, s1)],
+                root=_v(part, 'RootKey', 60), play=play,
+                tr=_v(sim, 'Pitch/TransposeKey/Manual', 0) + _v(sim, 'Pitch/TransposeFine/Manual', 0) / 100,
+                gain=gain * _v(part, 'Volume', 1.0) * 10 ** (_v(sim, 'VolumeAndPan/Volume/Manual', 0) / 20),
+                one_shot=_v(sim, 'Globals/PlaybackMode', 0) == 1,
+                release=min(2.0, _v(sim, 'VolumeAndPan/Envelope/ReleaseTime/Manual', 50) / 1000),
+                pan=float(np.clip(pan + _v(sim, 'VolumeAndPan/Panorama/Manual', 0), -1, 1)))
+
+
 def render(als: Path, root: Path):
     ls = ET.fromstring(gzip.open(als).read()).find('LiveSet')
     tempo = _v(ls, './/MasterTrack/DeviceChain/Mixer/Tempo/Manual') or _v(ls, './/Tempo/Manual', 120)
@@ -125,35 +154,38 @@ def render(als: Path, root: Path):
                      if not _v(c, 'Disabled', False, bool)]
             if not clips:
                 continue
-            sim = t.find('.//OriginalSimpler')
-            if sim is None:
-                if t.find('.//PluginDevice') is not None or t.find('.//InstrumentVector') is not None:
-                    if role_of(name, *groups) not in (None, 'rest', 'loop'):
-                        log.append(f'  left out  {name!r}: drums from a plugin (can\'t play it here)')
-                continue
-            fr = sim.find('.//SampleRef/FileRef')
-            f = sample_file(fr, als, roots) if fr is not None else None
-            sname = Path(_v(fr, 'RelativePath', '', str) or _v(fr, 'Path', '', str)).name if fr is not None else ''
-            role = role_of(name, sname, *groups)
-            if role is None or role == 'loop':
-                log.append(f'  left out  {name!r} ({sname}): {"drum loop" if role else "unknown sound"}')
-                continue
-            if f is None:
-                log.append(f'  missing   {name!r}: {sname} not found')
-                continue
-            snd, osr = load(f)
-            part = sim.find('Player/MultiSampleMap/SampleParts/MultiSamplePart')
-            r = SR / osr
-            s0 = int(_v(part, 'SampleStart', 0) * r)
-            s1 = int(_v(part, 'SampleEnd', snd.shape[1] / r) * r) or snd.shape[1]
-            snd = snd[:, s0:max(s0 + 1, s1)]
-            root_key = _v(part, 'RootKey', 60)
-            tr_semi = _v(sim, 'Pitch/TransposeKey/Manual', 0) + _v(sim, 'Pitch/TransposeFine/Manual', 0) / 100
-            g = gain * _v(part, 'Volume', 1.0) * 10 ** (_v(sim, 'VolumeAndPan/Volume/Manual', 0) / 20)
-            one_shot = _v(sim, 'Globals/PlaybackMode', 0) == 1
-            release = min(2.0, _v(sim, 'VolumeAndPan/Envelope/ReleaseTime/Manual', 50) / 1000)
-            pn = float(np.clip(pan + _v(sim, 'VolumeAndPan/Panorama/Manual', 0), -1, 1))
-            n_notes = 0
+            # voices: MIDI note -> (sound, label). A Drum Rack has one per pad; a Simpler track one for all notes.
+            dg = t.find('.//DrumGroupDevice')
+            voices, label_log = {}, []
+            if dg is not None:
+                for b in dg.findall('Branches/DrumBranch'):
+                    rn = _v(b, 'BranchInfo/ReceivingNote', None)
+                    if rn is None or not _v(b, 'MixerDevice/Speaker/Manual', True, bool):
+                        continue                     # no note, or the pad is muted
+                    pad = _v(b, 'Name/EffectiveName', '', str)
+                    sim = b.find('.//OriginalSimpler')
+                    if sim is None:
+                        if role_of(pad, name) not in (None, 'rest', 'loop'):
+                            label_log.append(f'  left out  {name!r} pad {pad!r}: not a sample (plugin or synth)')
+                        continue
+                    v = voice(sim, als, roots, [pad, None, name, *groups], gain * _v(b, 'MixerDevice/Volume/Manual', 1.0),
+                              pan + _v(b, 'MixerDevice/Pan/Manual', 0.0), _v(b, 'BranchInfo/SendingNote', 60))
+                    label_log.append(v.pop('log'))
+                    if v.get('role'):
+                        voices[128 - int(rn)] = v    # Live stores the pad's note as 128 - note
+            else:
+                sim = t.find('.//OriginalSimpler')
+                if sim is None:
+                    if t.find('.//PluginDevice') is not None or t.find('.//InstrumentVector') is not None:
+                        if role_of(name, *groups) not in (None, 'rest', 'loop'):
+                            log.append(f'  left out  {name!r}: drums from a plugin (can\'t play it here)')
+                    continue
+                v = voice(sim, als, roots, [name, None, *groups], gain, pan, None)
+                label_log.append(v.pop('log'))
+                if v.get('role'):
+                    voices = {k: v for k in range(128)}
+            log += [m for m in label_log if m]
+            n_notes = {}
             for c in clips:
                 notes = []
                 for kt in c.findall('Notes/KeyTracks/KeyTrack'):
@@ -164,19 +196,21 @@ def render(als: Path, root: Path):
                                           float(n.get('Velocity', 100))))
                 for cf, ct, a in spans(c):
                     for nt, dur, key, vel in notes:
-                        if cf <= nt < ct:
-                            sec = (a + nt - cf) * spb
-                            x = repitch(snd, key - root_key + tr_semi)
-                            if not one_shot:         # classic mode: the note gates the sample
-                                m = int((min(dur, ct - nt) * spb + release) * SR)
-                                if m < x.shape[1]:
-                                    x = x[:, :m].copy()
-                                    fd = min(m, int(max(release, 0.005) * SR))
-                                    x[:, m - fd:] *= np.linspace(1, 0, fd, dtype=np.float32)
-                            events.append((sec, role, name, x, g * vel / 127, pn, int(vel)))
-                            n_notes += 1
-            if n_notes:
-                log.append(f'  {role:<11} {name!r} <- {f.name} ({n_notes} hits)')
+                        v = voices.get(key)
+                        if v is None or not cf <= nt < ct:
+                            continue
+                        sec = (a + nt - cf) * spb
+                        x = repitch(v['snd'], (v['play'] if v['play'] is not None else key) - v['root'] + v['tr'])
+                        if not v['one_shot']:            # classic mode: the note gates the sample
+                            m = int((min(dur, ct - nt) * spb + v['release']) * SR)
+                            if m < x.shape[1]:
+                                x = x[:, :m].copy()
+                                fd = min(m, int(max(v['release'], 0.005) * SR))
+                                x[:, m - fd:] *= np.linspace(1, 0, fd, dtype=np.float32)
+                        events.append((sec, v['role'], v['label'], x, v['gain'] * vel / 127, v['pan'], int(vel)))
+                        n_notes[(v['role'], v['label'], v['file'])] = n_notes.get((v['role'], v['label'], v['file']), 0) + 1
+            for (role, label, fname), k in n_notes.items():
+                log.append(f'  {role:<11} {label!r} <- {fname} ({k} hits)')
         else:                                        # audio track
             clips = [c for c in t.findall('.//ArrangerAutomation/Events/AudioClip')
                      if not _v(c, 'Disabled', False, bool)]
@@ -250,9 +284,19 @@ def render(als: Path, root: Path):
     return (out, groove, meta), log
 
 
+GENERIC_DIR = re.compile(r'^\W*(ableton( live)?( \d+)?|project( files?)?|projects|bonus project|als|live set)\W*$', re.I)
+
+
+def project_name(als, root):
+    """The folder's name, unless it's a generic one ('Ableton Live 11', 'Project File'): then the file's."""
+    d = als.parent
+    return als.stem if d == root or GENERIC_DIR.match(d.name) else d.name
+
+
 def pick_projects(root):
-    """One .als per project folder: '[Merged Drums]' first, else the shortest name; no backups."""
-    by_dir = {}
+    """One .als per project folder: '[Merged Drums]' first, else the shortest name; no backups. The same
+    file in two copies of a pack (same name and size) is used once."""
+    by_dir, seen = {}, set()
     for d, _, fs in os.walk(root, followlinks=True):
         if 'backup' in d.lower():
             continue
@@ -260,7 +304,11 @@ def pick_projects(root):
             if f.lower().endswith('.als') and not f.startswith('._'):
                 by_dir.setdefault(Path(d), []).append(Path(d) / f)
     for d in sorted(by_dir):
-        yield sorted(by_dir[d], key=lambda p: ('merged drums' not in p.name.lower(), len(p.name), p.name))[0]
+        best = sorted(by_dir[d], key=lambda p: ('merged drums' not in p.name.lower(), len(p.name), p.name))[0]
+        key = (best.name.lower(), best.stat().st_size)
+        if key not in seen:
+            seen.add(key)
+            yield best
 
 
 def main():
@@ -280,7 +328,7 @@ def main():
     for als in pick_projects(root):
         if a.only and a.only.lower() not in str(als).lower():
             continue
-        name = als.parent.name if als.parent != root else als.stem
+        name = project_name(als, root)
         if name in seen:
             name = f'{name} - {als.stem}'
         seen.add(name)

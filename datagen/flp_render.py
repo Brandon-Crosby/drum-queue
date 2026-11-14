@@ -63,7 +63,7 @@ def role_of(*names):
             if re.search(rx, low):
                 # several drums in one sample can't be labeled ('Drum Loop', 'Break', 'Kit 3'), but a loop of
                 # one instrument can ('Hat Loop', 'Shaker Loop', 'Perc Loop', 'Top Loop', 'Log Drum')
-                if role in DRUMS and re.search(r'\bbreaks?\b|\bkit\b|\bdrums?\b', low) \
+                if role in DRUMS and re.search(r'\bbreaks?\b|breakbeats?|\bamen\b|(dnb|jungle|garage) ?loop|\bkit\b|\bdrums?\b', low) \
                         and not re.search(r'log ?drum', low):
                     return 'loop'
                 return role
