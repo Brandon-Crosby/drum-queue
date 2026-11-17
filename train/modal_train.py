@@ -47,6 +47,8 @@ image = (
         f"grep -v -i -E '{SKIP_REQS}' /msst/requirements.txt > /tmp/req.txt",
         'pip install -q -r /tmp/req.txt lameenc',
     )
+    .add_local_file(HERE / 'msst_patch.py', '/opt/msst_patch.py', copy=True)
+    .run_commands('python /opt/msst_patch.py /msst')       # adds stem_l1_snr_loss (see msst_patch.py)
     .add_local_dir(HERE.parent / 'datagen', '/repo/datagen', ignore=['__pycache__'])
     .add_local_file(HERE / 'prep.py', '/repo/train/prep.py')
     .add_local_file(HERE / 'config_drumsplit.yaml', '/repo/train/config_drumsplit.yaml')
@@ -115,21 +117,26 @@ def prep(synth: int = 80, synth_only: bool = False):
 
 
 @app.function(image=image, volumes={V: vol}, cpu=1, memory=2048, timeout=24 * 3600)
-def pipeline(run: str, hours: float, steps: int, resume: bool = False, synth: int = 0):
+def pipeline(run: str, hours: float, steps: int, resume: bool = False, synth: int = 0, init: str = '',
+             loss: str = 'stem', snare_weight: float = 1.5):
     """(Re)render `synth` synthesized clips, prep the songs, then train - all in the cloud."""
     if synth:
         for line in synth_part.starmap([(s, 10) for s in range(max(1, synth // 10))]):
             print(line, flush=True)
     held = prep_real.remote()
     print('held out for validation:', held, flush=True)
-    return train_remote.remote(run, hours, resume, steps)
+    return train_remote.remote(run, hours, resume, steps, init, loss, snare_weight)
 
 
 @app.local_entrypoint()
-def go(run: str = 'helyx-1', hours: float = 8.0, steps: int = 1000, resume: bool = False, synth: int = 200):
+def go(run: str = 'helyx-3', hours: float = 8.0, steps: int = 1000, resume: bool = False, synth: int = 200,
+       init: str = 'runs/helyx-1/last_mdx23c.ckpt', loss: str = 'stem', snare_weight: float = 1.5):
     """Synth + prep + training as ONE job on the deployed app: safe to close the Mac right after.
-    First: modal deploy train/modal_train.py   Then: modal run train/modal_train.py::go --resume"""
-    call = modal.Function.from_name('drumsplit-train', 'pipeline').spawn(run, hours, steps, resume, synth)
+    First: modal deploy train/modal_train.py   Then: modal run train/modal_train.py::go
+    init: the checkpoint a NEW run starts from (path on the volume); ignored with --resume.
+    loss: 'stem' = per-stem L1-SNR (each stem counts equally, snare x snare_weight), 'mse' = MSST default."""
+    call = modal.Function.from_name('drumsplit-train', 'pipeline').spawn(run, hours, steps, resume, synth, init,
+                                                                          loss, snare_weight)
     print(f'Started ({call.object_id}): synth clips, prep, then {hours} h of training on {run}.')
     print('Safe to close the terminal or turn the Mac off now.')
     print('Watch it: modal.com -> Apps -> drumsplit-train (deployed) -> pipeline / train_remote')
@@ -160,7 +167,8 @@ def _committer(stop):
 
 
 @app.function(image=image, volumes={V: vol}, gpu='A100-40GB', cpu=8, memory=32768, timeout=24 * 3600)
-def train_remote(run: str, hours: float, resume: bool, steps: int):
+def train_remote(run: str, hours: float, resume: bool, steps: int, init: str = '', loss: str = 'mse',
+                 snare_weight: float = 1.0):
     import yaml
     out = V / 'runs' / run
     out.mkdir(parents=True, exist_ok=True)
@@ -186,10 +194,18 @@ def train_remote(run: str, hours: float, resume: bool, steps: int):
            '--data_path', str(V / 'data/real'), str(V / 'data/real'), str(V / 'data/synth'),
            '--valid_path', str(V / 'data/valid'), '--num_workers', '6', '--pin_memory',
            '--device_ids', '0', '--metrics', 'sdr', '--metric_for_scheduler', 'sdr']
+    if loss == 'stem':                 # each stem scored on its own, in dB, so a quiet snare counts (msst_patch.py)
+        w = {'snare': snare_weight}
+        cmd += ['--loss', 'stem_l1_snr_loss', '--stem_loss_weights'] + [str(w.get(k, 1.0)) for k in cfg['training']['instruments']]
     if resume and last.exists():
         cmd += ['--start_check_point', str(last), '--load_optimizer', '--load_scheduler', '--load_epoch',
                 '--load_best_metric']
+    elif init and (V / init.lstrip('/')).exists():
+        # a new run from another run's weights: fresh optimizer (its state belongs to the old loss)
+        cmd += ['--start_check_point', str(V / init.lstrip('/')), '--pre_valid']
     else:
+        if init:
+            print(f'! init checkpoint {init} not found on the volume: starting from DrumSep', flush=True)
         cmd += ['--start_check_point', str(start), '--pre_valid']   # pre_valid = score before any training
     print(' '.join(cmd), flush=True)
     stop = threading.Event()
