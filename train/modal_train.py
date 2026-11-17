@@ -79,17 +79,26 @@ def prep_song(src: str, dest: str, valid: bool):
 
 
 @app.function(image=image, volumes={V: vol}, cpu=2, memory=8192, timeout=3 * 3600)
-def prep_real():
+def prep_real(redo: bool = False):
+    """Lays out every training song. Only new songs are prepped (redo=True does them all); songs
+    whose source is gone, or that moved between training and validation, are cleared first."""
     import shutil
     prep = _prep_mod()
-    for d in ('real', 'valid'):
-        shutil.rmtree(V / 'data' / d, ignore_errors=True)
-    vol.commit()
-    sets = sorted(V.glob('trainset*'))              # /trainset (stems) + /trainset-flp* (rebuilt FL projects)
+    if redo:
+        for d in ('real', 'valid'):
+            shutil.rmtree(V / 'data' / d, ignore_errors=True)
+    sets = sorted(V.glob('trainset*'))              # /trainset (stems) + /trainset-flp*, -als (rebuilt projects)
     print('reading', [p.name for p in sets], flush=True)
     jobs = prep.plan(sets, V / 'data')
-    print(f'{len(jobs)} songs, in parallel', flush=True)
-    for line in prep_song.starmap(jobs):
+    want = {dest for _, dest, _ in jobs}
+    for d in ('real', 'valid'):
+        for old in (V / 'data' / d).glob('*') if (V / 'data' / d).exists() else []:
+            if str(old) not in want:
+                shutil.rmtree(old, ignore_errors=True)
+    vol.commit()
+    todo = [j for j in jobs if not prep.done(Path(j[1]), j[2])]
+    print(f'{len(jobs)} songs, {len(jobs) - len(todo)} already prepped, {len(todo)} to do', flush=True)
+    for line in prep_song.starmap(todo):
         print(line, flush=True)
     return sorted(dest.split('/')[-1] for _, dest, v in jobs if v)
 

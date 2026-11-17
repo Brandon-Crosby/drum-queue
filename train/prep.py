@@ -85,13 +85,21 @@ def has_all_drums(p):
     return True
 
 
-def valid_songs(songs):
+def valid_songs(songs, keep=()):
     """The same few songs every time (chosen by name hash, among songs with all four drum parts),
-    so validation scores stay comparable: 3 multitrack songs + 2 rebuilt FL projects (Latin)."""
+    so validation scores stay comparable: 3 multitrack songs + 2 rebuilt projects (FL or Ableton).
+    Songs already in `keep` (last run's validation set) stay, so adding songs doesn't reshuffle it.
+    Stops reading audio as soon as it has enough."""
     pick = []
     for flp, n in ((False, 3), (True, 2)):
         group = sorted((p for p in songs if p.name.endswith(('(FLP)', '(ALS)')) == flp), key=lambda p: _seed(p.name))
-        pick += [p.name for p in group if has_all_drums(p)][:n]
+        got = [p.name for p in group if p.name in keep][:n]
+        for p in group:
+            if len(got) >= n:
+                break
+            if p.name not in got and has_all_drums(p):
+                got.append(p.name)
+        pick += got
     return set(pick)
 
 
@@ -129,8 +137,15 @@ def plan(trainsets, out: Path):
     songs = sorted((p for t in trainsets if t.exists() for p in t.iterdir()
                     if p.is_dir() and (p / 'kick.flac').exists() and not any(k in p.name for k in SKIP)),
                    key=lambda p: p.name)
-    vs = valid_songs(songs)
+    keep = {d.name for d in (out / 'valid').iterdir()} if (out / 'valid').exists() else set()
+    vs = valid_songs(songs, keep)
     return [(str(p), str(out / ('valid' if p.name in vs else 'real') / p.name), p.name in vs) for p in songs]
+
+
+def done(dest: Path, valid: bool):
+    """Already prepped: every stem (and the mixture for a validation song) is there."""
+    need = INSTRUMENTS + (['mixture'] if valid else [])
+    return all((dest / f'{k}.flac').exists() and (dest / f'{k}.flac').stat().st_size > 0 for k in need)
 
 
 def all_real(trainsets, out: Path):
