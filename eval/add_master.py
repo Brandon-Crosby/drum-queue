@@ -86,10 +86,16 @@ def main():
         em, ey = em - em.mean(), ey - ey.mean()
         c = np.correlate(ey, em, mode='valid')
         k = int(np.argmax(c)) * hop
-        lo, hi = max(0, k - 2 * hop), min(len(y) - len(mix), k + 2 * hop)
-        ref = mix[:sr * 5].mean(1)
-        best = max(range(lo, hi + 1), key=lambda j: float(y[j:j + len(ref)].mean(1) @ ref))
+        # a master chain often delays the audio (limiter lookahead, linear-phase EQ: a few ms) and some
+        # flip polarity, so search +-15 ms on the waveform and allow either sign
+        w = int(0.015 * sr)
+        lo, hi = max(0, k - w), min(len(y) - len(mix), k + w)
+        ref = mix[sr * 5:sr * 15].mean(1) if len(mix) > sr * 15 else mix.mean(1)
+        r0 = sr * 5 if len(mix) > sr * 15 else 0
+        best = max(range(lo, hi + 1), key=lambda j: abs(float(y[j + r0:j + r0 + len(ref)].mean(1) @ ref)))
         out = y[best:best + len(mix)]
+        if float(out[r0:r0 + len(ref)].mean(1) @ ref) < 0:
+            out = -out                                  # polarity flipped in the master chain
         r = float(np.corrcoef(out.mean(1), mix.mean(1))[0, 1])
         sf.write(str(beat / 'mix_master.flac'), np.clip(out, -1, 1), sr, subtype='PCM_24')
         loud = 20 * np.log10(np.sqrt((out ** 2).mean()) / (np.sqrt((mix ** 2).mean()) + 1e-9) + 1e-9)
