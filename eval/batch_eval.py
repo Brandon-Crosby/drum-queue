@@ -50,7 +50,7 @@ image = (
 @app.cls(image=image, gpu=['L4', 'A10', 'T4'], volumes={'/eval': vol, '/train': train_vol}, timeout=1800,
          max_containers=4)
 class Bench:
-    mix: str = modal.parameter(default='mix')        # 'mix' = stems summed, 'master' = the session's Master bounce
+    source: str = modal.parameter(default='mix')     # 'mix' = stems summed, 'master' = the session's Master bounce
     ckpt: str = modal.parameter(default='')          # a checkpoint on the drumsplit-train volume, e.g. /runs/trial/x.ckpt
 
     @modal.enter()
@@ -94,7 +94,8 @@ class Bench:
         W = self.work / 'job'
         shutil.rmtree(W, ignore_errors=True)
         (W / 'truth').mkdir(parents=True)
-        want = 'mix_master' if self.mix == 'master' else 'mix'
+        want = 'mix_master' if self.source == 'master' else 'mix'
+        print(f'{beat}: splitting {want}.flac', flush=True)
         if not (src / f'{want}.flac').exists():
             return {'beat': beat, 'error': f'no {want}.flac for this beat (run eval/add_master.py)'}
         for f in src.glob('*.flac'):                     # score.py reads WAV
@@ -146,7 +147,7 @@ class Bench:
         if p.returncode:
             return {'beat': beat, 'error': (p.stdout + p.stderr)[-800:]}
         s = json.loads((W / 's.json').read_text())
-        return {'beat': beat, 'gpu_s': round(gpu_s), 'sdr': s.get('sdr', {}), 'leakage': s.get('leakage', {}),
+        return {'beat': beat, 'split': want, 'gpu_s': round(gpu_s), 'sdr': s.get('sdr', {}), 'leakage': s.get('leakage', {}),
                 'hits': s.get('hits', {})}
 
 
@@ -212,7 +213,7 @@ def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'cu
             for b in beats:
                 if (root / b / 'mix_master.flac').exists():
                     up.put_file(str(root / b / 'mix_master.flac'), f'/testset/{b}/mix_master.flac')
-    results = list(Bench(ckpt=ckpt, mix=mix).run.starmap(args, return_exceptions=True))
+    results = list(Bench(ckpt=ckpt, source=mix).run.starmap(args, return_exceptions=True))
     results = [r if isinstance(r, dict) else {'beat': b, 'error': repr(r)} for b, r in zip(beats, results)]
     print('\n' + board(results))
     out = Path('eval_results')
