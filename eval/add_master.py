@@ -17,8 +17,18 @@ import numpy as np
 import soundfile as sf
 
 
+REMAP = []          # (from, to) path prefixes, for running where the session folders sit elsewhere
+
+
+def local(path):
+    for a, b in REMAP:
+        if path.startswith(a):
+            return Path(b + path[len(a):])
+    return Path(path)
+
+
 def find_master(spec):
-    d, prefix = Path(spec['stems_dir']), spec.get('prefix', '')
+    d, prefix = local(spec['stems_dir']), spec.get('prefix', '')
     names = [k for k, v in spec.get('left_out', {}).items() if 'finished mix' in str(v)]
     names.sort(key=lambda k: (0 if 'master' in k.lower() else 1, k))
     for nm in names:
@@ -43,7 +53,9 @@ def main():
     ap.add_argument('testset')
     ap.add_argument('--only', default='')
     ap.add_argument('--search', type=float, default=3.0, help='seconds either way to look for the alignment')
+    ap.add_argument('--remap', action='append', default=[], help='FROM=TO path prefix (repeatable)')
     a = ap.parse_args()
+    REMAP.extend(tuple(r.split('=', 1)) for r in a.remap)
     for beat in sorted(p for p in Path(a.testset).expanduser().iterdir() if (p / 'testcase.json').exists()):
         if a.only and a.only.lower() not in beat.name.lower():
             continue
