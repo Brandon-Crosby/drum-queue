@@ -3,6 +3,9 @@
 
   make  STEMS_DIR OUT_DIR INDEX_DIR LIB_ROOT [--name NAME] [--midi GROOVE.mid] [--include-matches]
   eval  TRAIN_DIR GROOVE_DIR LOG.txt INDEX_DIR [--n 20]
+  realtest SPLITS_DIR INDEX_DIR [--out KITS_DIR]   real songs: Helyx's split vs the true stems
+
+STEMS_DIR may also be a batch_eval listen folder (ours_kick.wav ... / truth_kick.wav ...).
 
 STEMS_DIR holds kick / snare / hh / other_drums .flac (what the splitter writes). For each stem the
 hit cutter (hits.py) finds the distinct sounds; each is looked up in the fingerprint index
@@ -74,6 +77,19 @@ def confidence(sim):
     return 'exact' if sim >= EXACT else 'close' if sim >= CLOSE else 'none'
 
 
+ALIASES = {'kick': ['kick'], 'snare': ['snare'], 'hh': ['hh'], 'other_drums': ['other_drums', 'toms', 'perc']}
+
+
+def find_stem(stems, role, prefix=''):
+    """kick.flac (splitter output), or ours_kick.wav / truth_kick.wav (batch_eval listen folders)."""
+    for a in ALIASES[role]:
+        for ext in ('.flac', '.wav'):
+            f = stems / f'{prefix}{a}{ext}'
+            if f.exists():
+                return f
+    return None
+
+
 def make(stems, out, index_dir, lib_root, name=None, midi=None, include=False, V=None, R=None, P=None):
     name = name or stems.name.replace(' (FLP)', '').replace(' (ALS)', '')
     kit = out / f'Kit - {name}'
@@ -81,8 +97,8 @@ def make(stems, out, index_dir, lib_root, name=None, midi=None, include=False, V
         V, R, P, _, _ = M.load_index(index_dir)
     report = dict(name=name, sounds=[])
     for role, folder, label in ROLES:
-        f = stems / f'{role}.flac'
-        if not f.exists():
+        f = find_stem(stems, role) or find_stem(stems, role, 'ours_')
+        if f is None:
             continue
         x, on, lab, sounds = H.sounds(f)
         for k, s in enumerate(sounds):
@@ -197,14 +213,85 @@ def evaluate(train, grooves, log, index_dir, n=20):
     Path('kit_eval.json').write_text(json.dumps(rows, indent=1))
 
 
+# ---------- real songs: what survives Helyx's split
+def _cut(f):
+    """Distinct sounds in a stem: [(fingerprint, hits, segment)] plus all onset times in seconds."""
+    if f is None:
+        return [], np.array([])
+    x, on, lab, snd = H.sounds(f)
+    out = []
+    for s in snd:
+        seg = x[s['start']:s['end']]
+        v = M.fingerprint(to22k(seg))
+        if v is not None:
+            out.append((v, s['hits'], seg))
+    return out, on / H.SR
+
+
+def realtest(splits, index_dir, kits=None, tol=0.03):
+    """For each beat (a batch_eval --listen folder): cut sounds from the true stem and from Helyx's stem.
+    found     = share of true hits (by count) that Helyx's stem also has within 30 ms
+    sounds    = share of the true distinct sounds, weighted by how often they play, that have a twin
+                (>= CLOSE) among Helyx's sounds
+    fake      = Helyx sounds with no true twin in that stem (bleed, smears, split hits)
+    same_match= of true sounds whose library match is 'exact', share whose Helyx twin finds the same file
+    """
+    V, R, P, _, _ = M.load_index(index_dir)
+    beats = sorted(d for d in splits.iterdir() if d.is_dir() and any(d.glob('ours_*.wav')))
+    rows = []
+    for b in beats:
+        for role, _, _ in ROLES:
+            tr, t_on = _cut(find_stem(b, role, 'truth_'))
+            ou, o_on = _cut(find_stem(b, role, 'ours_'))
+            if not tr:
+                continue
+            found = np.mean([np.abs(o_on - t).min() <= tol if len(o_on) else False for t in t_on])
+            Ov = np.stack([v for v, _, _ in ou]) if ou else np.zeros((0, len(tr[0][0])))
+            w = np.array([h for _, h, _ in tr], float)
+            best = [(Ov @ v).max() if len(Ov) else 0 for v, _, _ in tr]
+            twin = [int(np.argmax(Ov @ v)) if len(Ov) else -1 for v, _, _ in tr]
+            got = np.array(best) >= CLOSE
+            Tv = np.stack([v for v, _, _ in tr])
+            fake = sum((Tv @ v).max() < CLOSE for v, _, _ in ou)
+            same, tot = 0, 0
+            for (v, h, seg), ok, j in zip(tr, got, twin):
+                t1 = lookup(V, R, to22k(seg), role, k=1)
+                if not t1 or t1[0][1] < EXACT:
+                    continue
+                tot += 1
+                if ok:
+                    o1 = lookup(V, R, to22k(ou[j][2]), role, k=1)
+                    same += bool(o1) and o1[0][0] == t1[0][0]
+            rows.append(dict(beat=b.name, role=role, true_hits=len(t_on), found=round(float(found), 3),
+                             true_sounds=len(tr), ours_sounds=len(ou), sounds=round(float((w * got).sum() / w.sum()), 3),
+                             fake=int(fake), exact_true=tot, same_match=same))
+            r = rows[-1]
+            print(f"{b.name[:24]:24} {role:11} hits {r['found']:5.0%} of {r['true_hits']:4d}   sounds {r['sounds']:5.0%} "
+                  f"({r['true_sounds']} true, {r['ours_sounds']} ours, {r['fake']} fake)   same file {same}/{tot}", flush=True)
+        if kits:
+            make(b, kits, index_dir, Path('/'), name=b.name, V=V, R=R, P=P)
+    print('\nOVERALL')
+    for role, _, _ in ROLES:
+        rs = [r for r in rows if r['role'] == role]
+        if not rs:
+            continue
+        th = sum(r['true_hits'] for r in rs)
+        print(f"  {role:11} hits found {sum(r['found'] * r['true_hits'] for r in rs) / th:5.0%}   "
+              f"sounds kept {np.mean([r['sounds'] for r in rs]):5.0%}   fake sounds {sum(r['fake'] for r in rs):3d} "
+              f"(of {sum(r['ours_sounds'] for r in rs)})   same library file {sum(r['same_match'] for r in rs)}/"
+              f"{sum(r['exact_true'] for r in rs)}")
+    Path('realtest.json').write_text(json.dumps(rows, indent=1))
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('cmd', choices=['make', 'eval'])
+    ap.add_argument('cmd', choices=['make', 'eval', 'realtest'])
     ap.add_argument('args', nargs='+')
     ap.add_argument('--name')
     ap.add_argument('--midi')
     ap.add_argument('--include-matches', action='store_true')
     ap.add_argument('--n', type=int, default=20)
+    ap.add_argument('--out')
     a = ap.parse_args()
     if a.cmd == 'make':
         stems, out, idx, lib = map(Path, a.args[:4])
@@ -213,6 +300,8 @@ def main():
             print(f"{s['file']:34} {s['hits']:4d} hits  {s.get('confidence', '-'):6} {s.get('similarity', 0):.3f}  "
                   f"pitch {s.get('pitch', 0):+d}  {Path(s.get('match', '')).name}")
         print('->', kit)
+    elif a.cmd == 'realtest':
+        realtest(Path(a.args[0]), Path(a.args[1]), Path(a.out) if a.out else None)
     else:
         train, grooves, log, idx = map(Path, a.args[:4])
         evaluate(train, grooves, log, idx, a.n)
