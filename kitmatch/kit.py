@@ -100,7 +100,9 @@ def make(stems, out, index_dir, lib_root, name=None, midi=None, include=False, V
         f = find_stem(stems, role) or find_stem(stems, role, 'ours_')
         if f is None:
             continue
-        x, on, lab, sounds = H.sounds(f)
+        others = [o for r2, _, _ in ROLES if r2 != role
+                  for o in [find_stem(stems, r2) or find_stem(stems, r2, 'ours_')] if o]
+        x, on, lab, sounds = H.sounds(f, others=others)
         for k, s in enumerate(sounds):
             seg = x[s['start']:s['end']].copy()
             fd = min(len(seg), int(0.01 * H.SR))
@@ -214,11 +216,11 @@ def evaluate(train, grooves, log, index_dir, n=20):
 
 
 # ---------- real songs: what survives Helyx's split
-def _cut(f):
+def _cut(f, others=None):
     """Distinct sounds in a stem: [(fingerprint, hits, segment)] plus all onset times in seconds."""
     if f is None:
         return [], np.array([])
-    x, on, lab, snd = H.sounds(f)
+    x, on, lab, snd = H.sounds(f, others=others)
     out = []
     for s in snd:
         seg = x[s['start']:s['end']]
@@ -242,7 +244,8 @@ def realtest(splits, index_dir, kits=None, tol=0.03):
     for b in beats:
         for role, _, _ in ROLES:
             tr, t_on = _cut(find_stem(b, role, 'truth_'))
-            ou, o_on = _cut(find_stem(b, role, 'ours_'))
+            mine = find_stem(b, role, 'ours_')
+            ou, o_on = _cut(mine, [o for r2, _, _ in ROLES if r2 != role for o in [find_stem(b, r2, 'ours_')] if o])
             if not tr:
                 continue
             found = np.mean([np.abs(o_on - t).min() <= tol if len(o_on) else False for t in t_on])

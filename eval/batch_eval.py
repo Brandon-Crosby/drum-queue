@@ -86,6 +86,7 @@ class Bench:
         import shutil
         import subprocess
         import time
+        import numpy as np
         import soundfile as sf
         vol.reload()
         src = Path('/eval/testset') / beat
@@ -124,11 +125,15 @@ class Bench:
             dest = Path('/eval/listen') / (listen if isinstance(listen, str) else '') / beat
             shutil.rmtree(dest, ignore_errors=True)
             dest.mkdir(parents=True)
-            shutil.copy(W / 'mix.wav', dest / 'mix.wav')
+            def flac(a, b):                           # FLAC: ~1/4 the size of the float WAVs
+                y, r = sf.read(str(a), dtype='float32')
+                sf.write(str(b.with_suffix('.flac')), np.clip(y, -1, 1), r, subtype='PCM_16')
+            flac(W / 'mix.wav', dest / 'mix.wav')
             for o in est.glob('*.wav'):
-                shutil.copy(o, dest / f'ours_{o.name}')
+                flac(o, dest / f'ours_{o.name}')
             for t_ in (W / 'truth').glob('*.wav'):
-                shutil.copy(t_, dest / f'truth_{t_.name}')
+                if t_.stem != 'rest':
+                    flac(t_, dest / f'truth_{t_.name}')
             vol.commit()
         p = subprocess.run(['python', '/root/score.py', str(W / 'truth'), str(est), '--json', str(W / 's.json'),
                             '--label', beat], capture_output=True, text=True)

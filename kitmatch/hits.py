@@ -198,9 +198,43 @@ def group(F, level, thr=0.9, min_share=0.01):
     return np.array([ids.get(g, -1) for g in lab])
 
 
-def sounds(stem, max_len=1.5):
-    x = load(stem)
+def peak_at(x, on, a=0.0, b=0.03):
+    """Loudest sample from a seconds before to b seconds after each onset."""
+    mono = np.abs(x).max(1)
+    return np.array([mono[max(0, i - int(a * SR)):i + int(b * SR)].max(initial=0) for i in on])
+
+
+def drop_bleed(x, on, others, bleed_db=12.0, alike=0.85):
+    """A separated stem carries faint copies of the other drums. A 'hit' here that lines up with a hit
+    at least bleed_db louder in another stem AND sounds like it (feature cosine >= alike) is that other
+    drum leaking through: drop it. A different sound layered on a louder one (a clap on a kick) stays."""
+    if not others or len(on) == 0:
+        return on
+    here = peak_at(x, on)
+    lv = np.stack([peak_at(o, on, a=0.01, b=0.03) for o in others])        # [stems, hits]
+    keep = []
+    for j, i in enumerate(on):
+        k = int(np.argmax(lv[:, j]))
+        if here[j] >= lv[k, j] * 10 ** (-bleed_db / 20):
+            keep.append(i)
+            continue
+        a, b = feature(x, i), feature(others[k], i)
+        cos = float(a @ b / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-9))
+        if cos < alike:
+            keep.append(i)
+    return np.array(keep, dtype=np.int64)
+
+
+def sounds(stem, max_len=1.5, others=None, bleed_db=12.0):
+    """others: the song's other drum stems (paths or arrays) - pass them for a separated song so
+    bleed from them isn't cut into fake sounds."""
+    x = load(stem) if not isinstance(stem, np.ndarray) else stem
     on = onsets(x)
+    if others:
+        ox = [load(o) if not isinstance(o, np.ndarray) else o for o in others]
+        n = len(x)
+        ox = [np.pad(o, ((0, max(0, n - len(o))), (0, 0)))[:n] for o in ox]
+        on = drop_bleed(x, on, ox, bleed_db)
     if len(on) == 0:
         return x, on, np.array([], int), []
     nxt = np.append(on[1:], len(x))
