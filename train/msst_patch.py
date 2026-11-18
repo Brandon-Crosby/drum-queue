@@ -66,7 +66,41 @@ def patch(root: Path):
                       '                        help="per-stem weights for stem_l1_snr_loss, config instrument order")\n'
                       + anchor, 1)
         sf.write_text(s)
-    print('msst patched: stem_l1_snr_loss')
+    patch_dataset(root)
+    print('msst patched: stem_l1_snr_loss, mixaug (aligned grooves, restack, master chain)')
+
+
+def patch_dataset(root: Path):
+    """helyx-4: training mixes from real grooves (some of the time), re-stacked snares, master chain.
+    See mixaug.py; all three are off unless the config's augmentations set their probabilities."""
+    import shutil
+    shutil.copy(Path(__file__).resolve().parent / 'mixaug.py', root / 'utils' / 'mixaug.py')
+    df = root / 'utils' / 'dataset.py'
+    s = df.read_text()
+    if 'mixaug' in s:
+        return
+    a = "import warnings"
+    assert a in s, 'dataset.py: imports not found'
+    s = s.replace(a, a + "\ntry:\n    from utils import mixaug\nexcept ImportError:\n    import mixaug", 1)
+    a = """        elif self.dataset_type in [1, 2, 3]:
+            res = self.load_random_mix()"""
+    assert a in s, 'dataset.py: random-mix branch not found'
+    s = s.replace(a, """        elif self.dataset_type in [1, 2, 3]:
+            _aug = self.config['augmentations'] if self.aug else {}
+            if self.aug and random.random() < mixaug._get(_aug, 'aligned_prob'):
+                res, _ = self.load_aligned_data()           # one song's stems as the producer placed them
+            else:
+                res = self.load_random_mix()
+            if self.aug:
+                res = mixaug.restack(res, list(self.instruments), _aug)""", 1)
+    a = """        if self.dataset_type != 6 and self.dataset_type!=7:
+            mix = res.sum(0)
+"""
+    assert a in s, 'dataset.py: mix sum not found'
+    s = s.replace(a, a + """        if self.aug and self.dataset_type in [1, 2, 3]:
+            res, mix = mixaug.master(res, self.config['augmentations'])
+""", 1)
+    df.write_text(s)
 
 
 if __name__ == '__main__':

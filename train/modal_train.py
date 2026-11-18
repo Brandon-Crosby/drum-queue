@@ -48,6 +48,7 @@ image = (
         'pip install -q -r /tmp/req.txt lameenc',
     )
     .add_local_file(HERE / 'msst_patch.py', '/opt/msst_patch.py', copy=True)
+    .add_local_file(HERE / 'mixaug.py', '/opt/mixaug.py', copy=True)
     .run_commands('python /opt/msst_patch.py /msst')       # adds stem_l1_snr_loss (see msst_patch.py)
     .add_local_dir(HERE.parent / 'datagen', '/repo/datagen', ignore=['__pycache__'])
     .add_local_file(HERE / 'prep.py', '/repo/train/prep.py')
@@ -129,8 +130,8 @@ def pipeline(run: str, hours: float, steps: int, resume: bool = False, synth: in
 
 
 @app.local_entrypoint()
-def go(run: str = 'helyx-3', hours: float = 8.0, steps: int = 1000, resume: bool = False, synth: int = 200,
-       init: str = 'runs/helyx-1/last_mdx23c.ckpt', loss: str = 'stem', snare_weight: float = 1.5):
+def go(run: str = 'helyx-4', hours: float = 4.0, steps: int = 1000, resume: bool = False, synth: int = 0,
+       init: str = 'runs/helyx-3/last_mdx23c.ckpt', loss: str = 'mse', snare_weight: float = 1.0):
     """Synth + prep + training as ONE job on the deployed app: safe to close the Mac right after.
     First: modal deploy train/modal_train.py   Then: modal run train/modal_train.py::go
     init: the checkpoint a NEW run starts from (path on the volume); ignored with --resume.
