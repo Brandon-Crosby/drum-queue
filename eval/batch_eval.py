@@ -50,6 +50,7 @@ image = (
 @app.cls(image=image, gpu=['L4', 'A10', 'T4'], volumes={'/eval': vol, '/train': train_vol}, timeout=1800,
          max_containers=4)
 class Bench:
+    mix: str = modal.parameter(default='mix')        # 'mix' = stems summed, 'master' = the session's Master bounce
     ckpt: str = modal.parameter(default='')          # a checkpoint on the drumsplit-train volume, e.g. /runs/trial/x.ckpt
 
     @modal.enter()
@@ -93,9 +94,14 @@ class Bench:
         W = self.work / 'job'
         shutil.rmtree(W, ignore_errors=True)
         (W / 'truth').mkdir(parents=True)
+        want = 'mix_master' if self.mix == 'master' else 'mix'
+        if not (src / f'{want}.flac').exists():
+            return {'beat': beat, 'error': f'no {want}.flac for this beat (run eval/add_master.py)'}
         for f in src.glob('*.flac'):                     # score.py reads WAV
+            if f.stem.startswith('mix') and f.stem != want:
+                continue
             y, sr = sf.read(str(f), dtype='float32')
-            sf.write(str(W / 'truth' / (f.stem + '.wav')) if f.stem != 'mix' else str(W / 'mix.wav'), y, sr,
+            sf.write(str(W / 'truth' / (f.stem + '.wav')) if f.stem != want else str(W / 'mix.wav'), y, sr,
                      subtype='FLOAT')
         t = time.time()
         for f in self.work.glob('*.wav'):
@@ -169,7 +175,7 @@ def board(results):
 
 
 @app.local_entrypoint()
-def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'current', ckpt: str = '',
+def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'current', ckpt: str = '', mix: str = 'mix',
          listen: str = ''):
     """--listen "beat name" also saves the model's actual separated audio (not just scores) for that one
     beat to the eval volume, so you can download and listen to it: modal volume get drumsplit-eval
@@ -200,7 +206,13 @@ def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'cu
         if listen and not listen_beat:
             print(f'! --listen "{listen}" matched no beat in the test set; scoring without saving audio')
         args = [(b, b == listen_beat) for b in beats]
-    results = list(Bench(ckpt=ckpt).run.starmap(args, return_exceptions=True))
+    if mix == 'master':                           # the Master cuts are added to beats already uploaded
+        print('Splitting each beat\'s Master bounce (scores vs the stems are only a guide here)')
+        with vol.batch_upload(force=True) as up:
+            for b in beats:
+                if (root / b / 'mix_master.flac').exists():
+                    up.put_file(str(root / b / 'mix_master.flac'), f'/testset/{b}/mix_master.flac')
+    results = list(Bench(ckpt=ckpt, mix=mix).run.starmap(args, return_exceptions=True))
     results = [r if isinstance(r, dict) else {'beat': b, 'error': repr(r)} for b, r in zip(beats, results)]
     print('\n' + board(results))
     out = Path('eval_results')
