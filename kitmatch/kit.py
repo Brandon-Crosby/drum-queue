@@ -239,7 +239,7 @@ def realtest(splits, index_dir, kits=None, tol=0.03):
     same_match= of true sounds whose library match is 'exact', share whose Helyx twin finds the same file
     """
     V, R, P, _, _ = M.load_index(index_dir)
-    beats = sorted(d for d in splits.iterdir() if d.is_dir() and any(d.glob('ours_*.wav')))
+    beats = sorted(d for d in splits.iterdir() if d.is_dir() and any(d.glob('ours_*.*')))
     rows = []
     for b in beats:
         for role, _, _ in ROLES:
@@ -265,9 +265,9 @@ def realtest(splits, index_dir, kits=None, tol=0.03):
                 if ok:
                     o1 = lookup(V, R, to22k(ou[j][2]), role, k=1)
                     same += bool(o1) and o1[0][0] == t1[0][0]
-            rows.append(dict(beat=b.name, role=role, true_hits=len(t_on), found=round(float(found), 3),
+            rows.append(dict(beat=b.name, role=role, true_hits=int(len(t_on)), found=round(float(found), 3),
                              true_sounds=len(tr), ours_sounds=len(ou), sounds=round(float((w * got).sum() / w.sum()), 3),
-                             fake=int(fake), exact_true=tot, same_match=same))
+                             fake=int(fake), exact_true=int(tot), same_match=int(same)))
             r = rows[-1]
             print(f"{b.name[:24]:24} {role:11} hits {r['found']:5.0%} of {r['true_hits']:4d}   sounds {r['sounds']:5.0%} "
                   f"({r['true_sounds']} true, {r['ours_sounds']} ours, {r['fake']} fake)   same file {same}/{tot}", flush=True)
