@@ -63,12 +63,33 @@ def average(x, on, nxt, max_len=MAX_LEN, ref=None):
             continue
         acc[:k] += x[i:i + k]
         cnt[:k] += 1
-    keep = cnt >= min(3, len(on))                 # where at least 3 hits (or all, if fewer) still count
+    # only where a fair share of the hits still count (a tail made of 2 hits is mostly whatever came next)
+    keep = cnt >= max(min(3, len(on)), 0.25 * len(on))
     k = int(np.flatnonzero(keep)[-1]) + 1 if keep.any() else 1
     avg = acc[:k] / cnt[:k, None]
-    fd = min(k, int(0.01 * SR))
-    avg[k - fd:] *= np.linspace(1, 0, fd)[:, None]
+    k = tail_end(avg)
+    avg = avg[:k].copy()
+    fd = min(k, int(0.02 * SR))
+    avg[k - fd:] *= np.linspace(1, 0, fd)[:, None] ** 2
     return avg.astype(np.float32), int(cnt.max())
+
+
+def tail_end(seg, blk=int(0.005 * SR), rise_db=8.0):
+    """Where a one-shot really ends: follow its decay from the peak and stop at the quietest point
+    before the level climbs again by rise_db (the next hit or bleed creeping in)."""
+    m = np.abs(seg).max(1) if seg.ndim == 2 else np.abs(seg)
+    n = len(m) // blk
+    if n < 3:
+        return len(seg)
+    db = 20 * np.log10(m[:n * blk].reshape(n, blk).max(1) + 1e-9)
+    i = int(np.argmax(db))
+    lo, lo_i = db[i], i
+    for j in range(i + 1, n):
+        if db[j] < lo:
+            lo, lo_i = db[j], j
+        elif db[j] > lo + rise_db:
+            return (lo_i + 1) * blk
+    return len(seg)
 
 
 def fp(seg):

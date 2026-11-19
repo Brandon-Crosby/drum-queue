@@ -107,7 +107,7 @@ def make(stems, out, index_dir, lib_root, name=None, midi=None, include=False, V
             seg = x[s['start']:s['end']].copy()
             fd = min(len(seg), int(0.01 * H.SR))
             seg[len(seg) - fd:] *= np.linspace(1, 0, fd)[:, None]
-            o = kit / folder / 'Original' / f'{label} {k + 1}.wav'
+            o = kit / folder / 'Original' / f'{name} - {label} {k + 1}.wav'
             o.parent.mkdir(parents=True, exist_ok=True)
             sf.write(str(o), seg, H.SR, subtype='PCM_24')
             top = lookup(V, R, to22k(seg), role)
@@ -117,7 +117,7 @@ def make(stems, out, index_dir, lib_root, name=None, midi=None, include=False, V
                 entry.update(match=str(P[t]), similarity=round(sim, 3), pitch=semis, confidence=confidence(sim),
                              alternatives=[dict(match=str(P[a]), similarity=round(b, 3), pitch=c) for a, b, c in top[1:4]])
                 if include and sim >= CLOSE:
-                    m = kit / folder / 'Matched' / f'{label} {k + 1} - {Path(P[t]).name}'
+                    m = kit / folder / 'Matched' / f'{name} - {label} {k + 1} - {Path(P[t]).name}'
                     m.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(lib_root / P[t], m)
                     entry['matched_file'] = str(m.relative_to(kit))
