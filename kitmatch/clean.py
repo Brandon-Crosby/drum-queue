@@ -271,6 +271,46 @@ def _drop_impostors(ks, split_dir, log, bass_like=0.5, kick_like=0.9):
     return keep
 
 
+def _outside_core_db(seg, lo=100, hi=5000):
+    """Energy outside the 100 Hz - 5 kHz core, relative to the core: a hat on top, or bass under it."""
+    m = seg.mean(1) if seg.ndim == 2 else seg
+    X = np.abs(np.fft.rfft(m[:int(0.15 * SR)], 8192)) ** 2
+    f = np.fft.rfftfreq(8192, 1 / SR)
+    core = X[(f >= lo) & (f <= hi)].sum()
+    return float(10 * np.log10(X[(f < lo) | (f > hi)].sum() / (core + 1e-12) + 1e-12))
+
+
+def _noisiness(seg):
+    m = seg.mean(1) if seg.ndim == 2 else seg
+    X = np.abs(np.fft.rfft(m[:int(0.1 * SR)], 8192)) ** 2
+    f = np.fft.rfftfreq(8192, 1 / SR)
+    X = X[(f > 40) & (f < 4000)]
+    return float(np.exp(np.mean(np.log(X + 1e-12))) / (np.mean(X) + 1e-12))
+
+
+def _merge_same_core(sounds, log, same=0.85, tonal=0.1):
+    """A tonal sound (a cowbell, a clave) with a hi-hat landing on it louder in some places than
+    others gets split into 'different' sounds. Below the hat range they're the same, so keep one
+    copy - the one with the least outside its own range - counting all their hits. Noisy sounds
+    (snares, claps) aren't merged: their top end is part of the sound."""
+    core = [_spec(s['seg'], 100, 5000) for s in sounds]
+    ton = [_noisiness(s['seg']) < tonal for s in sounds]
+    used, out = set(), []
+    for i in range(len(sounds)):
+        if i in used:
+            continue
+        fam = [i]
+        if ton[i]:
+            fam += [j for j in range(i + 1, len(sounds))
+                    if j not in used and ton[j] and float(core[i] @ core[j]) >= same]
+        used.update(fam)
+        best = min(fam, key=lambda j: _outside_core_db(sounds[j]['seg']))
+        if len(fam) > 1:
+            log(f'one sound heard {len(fam)} ways (with something on top in some places): kept the cleanest')
+        out.append(dict(sounds[best], hits=sum(sounds[j]['hits'] for j in fam)))
+    return sorted(out, key=lambda s: -s['hits'])
+
+
 def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None):
     """split_dir holds kick/snare/perc/hh.wav from Helyx. Writes the strongest few sounds per piece
     (each averaged over all its hits, snare and perc read together, kick-stem stowaways rescued) as
@@ -286,6 +326,8 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None):
     for role in ('kick', 'sp', 'hh'):
         mine = sorted([s for s in ks if GROUP.get(s['role']) == role and s['hits'] >= min_hits],
                       key=lambda s: -s['hits'])
+        if role == 'sp':
+            mine = _merge_same_core(mine, log)
         mine = mine[:MAX_SOUNDS[role]]
         log(f'{LABELS[role].lower()}: {len(mine)} sound{"" if len(mine) == 1 else "s"}'
             + (f' (heard {", ".join(str(s["hits"]) for s in mine)} times)' if mine else ''))
