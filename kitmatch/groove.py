@@ -1,9 +1,9 @@
 """groove.py - the beat's drum pattern as a MIDI file, one track per one-shot.
 
-Each note sits exactly where that sound plays in the song (not snapped to a grid, so the swing and
-the push and pull survive), with a velocity from how hard that hit was. Tracks are named like the
-one-shot WAVs, so in FL Studio each track lands on a channel you load the matching sample into;
-notes follow the General MIDI drum map so a drum rack plays something sensible too.
+Each sound gets its own track, named like its one-shot WAV, with every note on C5 (MIDI 60) - the key
+that plays a sample at its own pitch in FL Studio. Notes are snapped to the grid that fits each sound:
+16ths for most, 16th triplets or 32nds only for sounds that really play that fast (hat rolls).
+Velocity comes from how hard each hit was.
 
 The tempo comes from the song's name when it says one ("breakdown136", "ONEAZZ 130 bpm"), else it
 is estimated from the hits. Either way the notes keep their real times: the tempo only decides how
@@ -14,16 +14,10 @@ import struct
 
 import numpy as np
 
-GM = {'Kick': 36, 'Snare': 38, 'Clap': 39, 'Rim': 37, 'Hat': 42, 'Open Hat': 46, 'Shaker': 70, 'Cymbal': 49,
-      'Tom': 45, 'Cowbell': 56, 'Perc': 63, 'Snare-Perc': 40}
 PPQ = 960
 
 
-def note_for(label):
-    """'Snare 2' -> GM snare + 1: same-kind sounds step up a key each so they don't share one."""
-    m = re.match(r'(.*?)\s*(\d+)$', label)
-    base, n = (m.group(1), int(m.group(2))) if m else (label, 1)
-    return min(127, GM.get(base, 60) + n - 1)
+ROOT = 60          # C5 in FL Studio: a sample on a channel plays at its own pitch
 
 
 def bpm_from_name(name):
@@ -92,6 +86,31 @@ def align(parts, bpm):
     return [dict(p, times=p['times'] - start) for p in parts], start
 
 
+def quantize(parts, bpm):
+    """Snap each sound to the coarsest grid its hits fit: 16ths, else 16th triplets, else 32nds.
+    A hit detected a little late (a kick's slow rise) lands back on its 16th; a real hat roll keeps
+    its fast notes. Two hits in one slot become one (the louder)."""
+    step = 60 / bpm / 4
+    out = []
+    for p in parts:
+        t = np.asarray(p['times'], float)
+        v = np.asarray(p['velocities'])
+        g = step / 2
+        for cand in (step, step * 2 / 3):
+            err = np.abs(t - np.round(t / cand) * cand) / step
+            if len(t) and np.median(err) < 0.12 and np.percentile(err, 90) < 0.3:
+                g = cand
+                break
+        slot = np.round(t / g).astype(int)
+        keep = {}
+        for sl, vel in zip(slot, v):
+            keep[sl] = max(keep.get(sl, 0), int(vel))
+        sl = np.array(sorted(keep))
+        out.append(dict(p, times=sl * g, velocities=np.array([keep[k] for k in sl]),
+                        grid={step: '16th', step / 2: '32nd'}.get(g, '16th triplet')))
+    return out
+
+
 def loop(parts, bpm, max_bars=8):
     """The beat's main groove, max_bars long (4 if the pattern truly repeats every 4 bars). Bars are
     scored by how much of the kit plays in them plus how typical they are of the song (so the main
@@ -139,17 +158,9 @@ def write(path, parts, bpm, title=''):
             (0, b'\xff\x51\x03' + int(round(60e6 / bpm)).to_bytes(3, 'big')),
             (0, b'\xff\x58\x04\x04\x02\x18\x08')]                 # 4/4
     tracks = [_track(head)]
-    # every sound its own key, for drum racks; each kind's first sound gets its standard key
-    keys, used = {}, set()
-    for p in sorted(parts, key=lambda p: not re.search(r'\s1$', p['label'])):
-        n = note_for(p['label'])
-        while n in used and n < 127:
-            n += 1
-        keys[p['label']] = n
-        used.add(n)
     for p in parts:
         nm = p['label'].encode()
-        n = keys[p['label']]
+        n = ROOT
         ev = [(0, b'\xff\x03' + _vlq(len(nm)) + nm)]
         dur = PPQ // 8                                           # a 32nd: one-shots ignore note length
         for t, v in zip(p['times'], p['velocities']):
