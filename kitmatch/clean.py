@@ -292,6 +292,66 @@ def _outside_core_db(seg, lo=100, hi=5000):
     return float(10 * np.log10(X[(f < lo) | (f > hi)].sum() / (core + 1e-12) + 1e-12))
 
 
+# ---------- releases cut short by the next hit
+
+def extend_tonal(seg, sr=SR, fit_ms=60, max_peaks=8, floor_db=-60.0, max_len=1.5):
+    """Continue a tonal one-shot past where it was cut: fit the strongest partials of the last stretch
+    (frequency, amplitude, phase, decay) and let them ring out. Returns (new seg, ms added, info)."""
+    from scipy.signal import find_peaks as _find_peaks
+    x = seg.mean(1) if seg.ndim == 2 else seg
+    n = int(fit_ms / 1000 * sr)
+    if len(x) < 3 * n:
+        return seg, 0, 'too short'
+    pk = np.abs(x).max()
+    # decay over the clean tail: RMS of two halves of the last 2n samples
+    a1 = np.sqrt(np.mean(x[-2 * n:-n] ** 2)) + 1e-12
+    a2 = np.sqrt(np.mean(x[-n:] ** 2)) + 1e-12
+    rate = np.log(a2 / a1) / (n / sr)                    # per second, negative when dying
+    if rate >= -1.0:
+        return seg, 0, f'not decaying ({rate:.1f}/s)'
+    lvl = 20 * np.log10(a2 / pk)
+    if lvl < floor_db + 6:
+        return seg, 0, f'already quiet ({lvl:.0f} dB)'
+    w = x[-n:]
+    N = 1 << 16
+    X = np.abs(np.fft.rfft(w * np.hanning(n), N))
+    f = np.fft.rfftfreq(N, 1 / sr)
+    p, _ = _find_peaks(X, distance=int(30 / (sr / N)))
+    p = p[np.argsort(-X[p])][:max_peaks]
+    p = p[X[p] > X[p].max() * 10 ** (-30 / 20)]
+    fr = []
+    for i in p:                                           # parabolic refinement
+        if 0 < i < len(X) - 1:
+            a, b, c = np.log(X[i - 1:i + 2] + 1e-12)
+            fr.append(f[i] + 0.5 * (a - c) / (a - 2 * b + c) * (sr / N))
+    fr = np.array(fr)
+    t = (np.arange(n) - (n - 1)) / sr                     # t = 0 at the last sample
+    env = np.exp(rate * t)
+    M = np.concatenate([np.cos(2 * np.pi * fr[None] * t[:, None]), np.sin(2 * np.pi * fr[None] * t[:, None])], 1) * env[:, None]
+    coef, *_ = np.linalg.lstsq(M, w, rcond=None)
+    fit = M @ coef
+    explained = 1 - np.sum((w - fit) ** 2) / np.sum(w ** 2)
+    if explained < 0.7:
+        return seg, 0, f'not tonal enough ({explained:.2f} explained)'
+    # how long until floor_db below the peak
+    need = (floor_db - lvl) / 20 * np.log(10) / rate      # seconds
+    add = int(min(need, max_len - len(x) / sr) * sr)
+    if add <= 0:
+        return seg, 0, 'no room'
+    tt = np.arange(1, add + 1) / sr
+    M2 = np.concatenate([np.cos(2 * np.pi * fr[None] * tt[:, None]), np.sin(2 * np.pi * fr[None] * tt[:, None])], 1) * np.exp(rate * tt)[:, None]
+    ext = M2 @ coef
+    fd = min(add, int(0.01 * sr))
+    ext[-fd:] *= np.linspace(1, 0, fd) ** 2
+    # undo any fade-out already applied to the end of seg: replace the last 20 ms with the model
+    k = min(int(0.02 * sr), n)
+    out = np.concatenate([x[:-k], fit[-k:], ext]) if seg.ndim == 1 else None
+    if seg.ndim == 2:
+        g = np.concatenate([fit[-k:], ext])
+        out = np.concatenate([seg[:-k], np.repeat(g[:, None], seg.shape[1], 1) * 1.0], 0)
+    return out.astype(np.float32), add * 1000 // sr, f'{len(fr)} partials, {explained:.2f} explained, decay {rate * 20 / np.log(10):.0f} dB/s'
+
+
 def _noisiness(seg):
     m = seg.mean(1) if seg.ndim == 2 else seg
     X = np.abs(np.fft.rfft(m[:int(0.1 * SR)], 8192)) ** 2
@@ -374,7 +434,14 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
             if drop:
                 continue
             count[name] = count.get(name, 0) + 1
-            seg = s['seg'] * (10 ** (-1 / 20) / (np.abs(s['seg']).max() + 1e-9))
+            seg = s['seg']
+            if role == 'sp' and _noisiness(seg) < 0.1:
+                fd = int(0.02 * SR)
+                longer, added, why = extend_tonal(seg[:-fd] if len(seg) > 3 * fd else seg)
+                if added:
+                    seg = longer
+                    log(f'{name}: let its release ring out {added} ms longer ({why})')
+            seg = seg * (10 ** (-1 / 20) / (np.abs(seg).max() + 1e-9))
             lab = f'{name} {count[name]}'
             fname = f'{prefix}{lab}.wav'
             sf.write(str(out_dir / fname), seg, SR, subtype='PCM_24')
