@@ -14,6 +14,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import hmac
 import re
 import shutil
 import tempfile
@@ -54,6 +55,10 @@ class Settings:
         # Set in production: only the Cloudflare proxy (site/functions/api) knows it, so nobody can
         # call Modal directly or fake their IP to dodge the daily limit.
         self.proxy_secret = os.environ.get('PROXY_SECRET', '')
+        # Beta team: uploads made with this code (the site opened as ?team=<code>) are KEPT for testing,
+        # in /team/<id>/ (upload + every output), skip the daily limits, and are never shown to anyone
+        # else. Empty = off. Lives in the drumsplit-team Modal secret, never in the code.
+        self.team_code = os.environ.get('TEAM_CODE', '')
 
 
 # ------------------------------------------------------------------ stores
@@ -245,7 +250,7 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
                 'turnstile': bool(S.turnstile_secret)}
 
     @app.post('/api/jobs')
-    def create_job(request: Request, file: UploadFile = File(...), token: str = Form('')):
+    def create_job(request: Request, file: UploadFile = File(...), token: str = Form(''), team: str = Form('')):
         # Plain def (not async): FastAPI runs it in a worker thread, so the blocking job-store and
         # Modal calls below never stall other visitors' requests.
         name = re.sub(r'[\x00-\x1f/\\]', '_', Path(file.filename or 'song').name)[:120]
@@ -253,10 +258,13 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
             raise HTTPException(400, 'That file type is not supported. Use mp3, wav, flac, m4a, aiff or ogg.')
         vkey = visitor_key(request, S.salt, trusted)
         mine, total = counts(vkey)
-        if total >= S.daily_cap:
+        is_team = bool(S.team_code) and hmac.compare_digest(team.encode(), S.team_code.encode())
+        if is_team:
+            pass                                    # the team tests freely; the bot check still applies
+        elif total >= S.daily_cap:
             bump(store, f'stats:{today()}:api', site_full=1)
             raise HTTPException(429, "We've hit today's limit for free splits. Please come back tomorrow.")
-        if mine >= S.per_ip_per_day:
+        elif mine >= S.per_ip_per_day:
             bump(store, f'stats:{today()}:api', limited=1)
             raise HTTPException(429, "You've used today's free splits. Come back tomorrow.")
         ok, why = verify_turnstile(S.turnstile_secret, token)
@@ -284,8 +292,9 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
             shutil.rmtree(d.parent, ignore_errors=True)
             raise HTTPException(400, f'Song is {secs / 60:.1f} minutes; the limit is {S.max_minutes}.')
 
-        store.put(f'n:{today()}:{vkey}', mine + 1)
-        store.put(f'n:{today()}:all', total + 1)
+        if not is_team:                               # team tests don't use up the public's splits
+            store.put(f'n:{today()}:{vkey}', mine + 1)
+            store.put(f'n:{today()}:all', total + 1)
         # Location comes from Cloudflare's lookup (passed by the proxy), kept only as daily totals.
         country = (request.headers.get('x-country') or '').upper()[:2] if trusted else ''
         region = (request.headers.get('x-region') or '').upper()[:3] if trusted else ''
@@ -293,11 +302,11 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
         bump(store, f'stats:{today()}:api', started=1, uploaders=1 if mine == 0 else 0,
              countries={country or '??': 1}, regions={loc: 1})
         update_job(store, jid, status='queued', stage='Waiting for a GPU', name=name, created=time.time(),
-                   stems=[], error='', day=today(), vkey=vkey, **eta_fields(secs))
+                   stems=[], error='', day=today(), vkey=vkey, team=is_team, **eta_fields(secs))
         call = submit(jid)
         if call:
             update_job(store, jid, call=call)
-        return {'id': jid, 'left': max(0, S.per_ip_per_day - mine - 1)}
+        return {'id': jid, 'left': max(0, S.per_ip_per_day - mine - 1), 'team': is_team}
 
     def job_or_404(jid):
         if not JOB_ID.match(jid):
@@ -480,7 +489,26 @@ def run_job(jid, root, store, models, mix_model='htdemucs_ft', max_seconds=None)
                    detail=f'{type(e).__name__}: {e}'[:500])
         bump(store, f'stats:{today()}:gpu', failed=1, gpu_s=time.time() - ((store.get(f'job:{jid}') or {}).get('started') or time.time()))
     finally:
-        shutil.rmtree(root / 'jobs' / jid / 'input', ignore_errors=True)   # never keep the upload
+        if (store.get(f'job:{jid}') or {}).get('team'):
+            keep_team(root, store, jid)
+        shutil.rmtree(root / 'jobs' / jid / 'input', ignore_errors=True)   # never keep a visitor's upload
+
+
+def keep_team(root, store, jid):
+    """A team split: copy the upload and every output to team/<date> <id> <song>/ with job.json.
+    The hourly cleanup only looks in jobs/, so these stay until someone deletes them."""
+    try:
+        j = store.get(f'job:{jid}') or {}
+        song = re.sub(r'[\x00-\x1f/\\]', '_', Path(j.get('name') or 'song').stem)[:80]
+        dest = Path(root) / 'team' / f"{today()} {jid} {song}"
+        dest.mkdir(parents=True, exist_ok=True)
+        for sub in ('input', 'out'):
+            src = Path(root) / 'jobs' / jid / sub
+            if src.exists():
+                shutil.copytree(src, dest / sub, dirs_exist_ok=True)
+        (dest / 'job.json').write_text(json.dumps({k: v for k, v in j.items() if k != 'vkey'}, indent=1, default=str))
+    except Exception as e:                          # keeping is a bonus; never fail the split over it
+        print(f'team keep failed for {jid}: {e}', flush=True)
 
 
 def cleanup(root, store, keep_hours=24):

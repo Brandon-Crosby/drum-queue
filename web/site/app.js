@@ -12,6 +12,25 @@ const store = {
 };
 
 function showMsg(text) { const m = $('#msg'); m.replaceChildren(); if (text) m.append(el('div', 'msg err', text)); }
+// Beta team link (?team=<code>): remembered on this device and sent with uploads; the server keeps
+// those splits for testing. Removed from the address bar so it isn't copied along with a split link.
+let TEAM = '';
+try {
+  const q = new URLSearchParams(location.search);
+  if (q.has('team')) {
+    const c = q.get('team') || '';
+    if (c) localStorage.setItem('dsTeam', c); else localStorage.removeItem('dsTeam');
+    q.delete('team'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash);
+  }
+  TEAM = localStorage.getItem('dsTeam') || '';
+} catch (_) {}
+function teamBadge() {
+  const b = document.createElement('div'); b.className = 'teambadge';
+  b.textContent = 'Team mode: your splits are kept for testing';
+  document.body.prepend(b);
+}
+if (TEAM) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', teamBadge); else teamBadge(); }
+
 
 function renderRecent() {
   const r = store.get().filter(x => Date.now() - x.t < 24 * 3600e3 && (!current || x.id !== current));
@@ -24,9 +43,10 @@ function renderRecent() {
 async function loadLimits() {
   try {
     LIM = await (await fetch('/api/limits')).json();
-    const parts = [`Up to ${LIM.max_minutes} minutes per song`, `${LIM.left} of ${LIM.per_day} free splits left today`, 'files deleted after 24 hours'];
+    const parts = TEAM ? [`Up to ${LIM.max_minutes} minutes per song`, 'team mode: no daily limit, splits kept for testing']
+      : [`Up to ${LIM.max_minutes} minutes per song`, `${LIM.left} of ${LIM.per_day} free splits left today`, 'files deleted after 24 hours'];
     $('#limits').textContent = parts.join(' · ');
-    if (LIM.site_full) showMsg("We've hit today's limit for free splits. Please come back tomorrow.");
+    if (TEAM) {} else if (LIM.site_full) showMsg("We've hit today's limit for free splits. Please come back tomorrow.");
     else if (LIM.left <= 0) showMsg("You've used today's free splits. Come back tomorrow.");
   } catch (_) { /* limits line keeps its default text */ }
 }
@@ -93,6 +113,7 @@ async function start(f) {
   if (!ready) return showMsg('Please finish the "verify you are human" check above, then try again.');
   busy = true; stopMixer(); openJob(f.name); setStep('upload', 0);
   const fd = new FormData(); fd.append('file', f, f.name); fd.append('token', tsToken);
+  if (TEAM) fd.append('team', TEAM);
   const x = new XMLHttpRequest();
   x.open('POST', '/api/jobs');
   x.upload.onprogress = e => { if (e.lengthComputable) setStep('upload', Math.round(e.loaded / e.total * 100)); };
@@ -101,6 +122,7 @@ async function start(f) {
     let d = {}; try { d = JSON.parse(x.responseText); } catch (_) {}
     if (x.status === 200) tsPark(); else resetTurnstile();
     if (x.status !== 200) { $('#job').style.display = 'none'; showMsg(d.error || 'Upload failed. Please try again.'); loadLimits(); return; }
+    if (TEAM && !d.team) showMsg("That team code wasn't recognized, so this split won't be kept.");
     store.add(d.id, f.name); location.hash = d.id; loadLimits();
   };
   x.onerror = () => { busy = false; resetTurnstile(); $('#job').style.display = 'none'; showMsg('Upload failed. Check your connection and try again.'); };

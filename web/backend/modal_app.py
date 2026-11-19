@@ -11,6 +11,7 @@ Pieces:
 
 State: a modal.Volume holds files, a modal.Dict holds job records and daily counters.
 Secrets (modal secret create drumsplit-secrets ...): PROXY_SECRET, IP_SALT, TURNSTILE_SECRET.
+                 drumsplit-team: TEAM_CODE (the beta team link; kept splits land in /team on the volume).
 """
 from pathlib import Path
 
@@ -41,6 +42,9 @@ app = modal.App('drumsplit')
 vol = modal.Volume.from_name('drumsplit-data', create_if_missing=True)
 kv = modal.Dict.from_name('drumsplit-state', create_if_missing=True)
 secrets = [modal.Secret.from_name('drumsplit-secrets')]
+# TEAM_CODE for the beta team link (service.Settings.team_code). Create once:
+#   modal secret create drumsplit-team TEAM_CODE=<a long random code>
+team_secret = [modal.Secret.from_name('drumsplit-team')]
 train_vol = modal.Volume.from_name('drumsplit-train')
 
 
@@ -148,7 +152,7 @@ class Splitter:
             vol.commit()
 
 
-@app.function(image=web_image, volumes={'/data': vol}, secrets=secrets, scaledown_window=300,
+@app.function(image=web_image, volumes={'/data': vol}, secrets=secrets + team_secret, scaledown_window=300,
               timeout=1800)                     # a full split's zip is a few hundred MB on a slow connection
 @modal.concurrent(max_inputs=40)
 @modal.asgi_app()
