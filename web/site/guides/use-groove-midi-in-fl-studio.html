@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en"><head>
+{{HEAD}}
+<title>How to use drum groove MIDI in FL Studio and Ableton | {{SITE_NAME}}</title>
+<meta name="description" content="Load a drum groove MIDI file onto one-shots in FL Studio or Ableton Live: why every note is on C5, how the tracks map to samples, and how to edit the pattern.">
+<link rel="canonical" href="https://{{DOMAIN}}/guides/use-groove-midi-in-fl-studio">
+</head><body>
+{{HEADER}}
+<main class="wrap content">
+<h1>How to use drum groove MIDI in FL Studio and Ableton</h1>
+<p class="lede">The groove MIDI that comes with every kit is the song's drum pattern, ready to play your one-shots. Here's how it's laid out and how to get it running in a couple of minutes.</p>
+
+<h2>How the file is laid out</h2>
+<ul>
+  <li><strong>One track per one-shot.</strong> The track named "Snare 1" plays <code>Snare 1.wav</code>, and so on. Nothing to remap.</li>
+  <li><strong>Every note is on the same key: MIDI note 60.</strong> FL Studio calls that C5, Ableton calls it C3. Same note, different names. A sampler plays a sample at its original pitch on its root note, and in FL Studio the default root note is C5, so every hit plays back exactly as it sounded in the song.</li>
+  <li><strong>Velocity follows the song.</strong> Louder hits in the song get higher velocities, so accents and ghost notes survive.</li>
+  <li><strong>Quantized per sound.</strong> Each sound is snapped to the grid that fits it: 16th notes for most parts, triplets or 32nd notes only for real rolls. Nothing is forced onto a grid it didn't play on.</li>
+  <li><strong>Bar 1 is the downbeat.</strong> The pattern is lined up so the first kick of the groove lands on bar 1.</li>
+</ul>
+<p>The zip has two files. <code>Groove.mid</code> is the most typical 8 bars of the song (or 4, if those repeat exactly). <code>Groove (full song).mid</code> is the whole song, for when you want the fills and changes too.</p>
+
+<h2>FL Studio</h2>
+<ol>
+  <li><strong>Set the tempo</strong> to the song's BPM. The MIDI file carries it, and FL can pick it up on import.</li>
+  <li><strong>Load the one-shots.</strong> Drag each WAV from the browser into the Channel rack. Each becomes a Sampler channel. Name the channels the same as the files to keep things easy.</li>
+  <li><strong>Import the MIDI.</strong> Drag <code>Groove.mid</code> into the Channel rack, or use <em>File → Import → MIDI file</em>. FL creates a channel per MIDI track with its notes. Then, for each one, either move the notes onto the matching Sampler channel, or simply load the matching WAV into that new channel (drag the sample onto it).</li>
+  <li><strong>Check one channel's root note</strong> (in the channel's settings, the keyboard root note). It should be C5. If someone changed it, the hits will play back pitched.</li>
+  <li><strong>Hit play.</strong> You should hear the song's drums, played by your project.</li>
+</ol>
+<p>Tip: if you only want the pattern for one sound, open that channel's Piano roll and drag the single-track MIDI notes into it.</p>
+
+<h2>Ableton Live</h2>
+<ol>
+  <li><strong>Create a Drum Rack</strong> and drop each one-shot onto its own pad, or create one MIDI track per one-shot with Simpler on it.</li>
+  <li><strong>Drag <code>Groove.mid</code></strong> into the Arrangement. Live asks whether to import tempo and time signature; say yes.</li>
+  <li><strong>With separate Simpler tracks:</strong> each MIDI track lands on its own track. Since every note is C3 (note 60) and Simpler plays the sample unpitched on C3, it just works.</li>
+  <li><strong>With a Drum Rack:</strong> every note arrives on C3, so they'd all trigger one pad. Move each track's notes to its pad's note in the clip editor (select all, then drag), or use one Drum Rack chain per track.</li>
+</ol>
+
+<h2>Other DAWs</h2>
+<p>Any DAW that imports multi-track MIDI works the same way: one sampler per track, sample root note on MIDI note 60, and the notes play the samples at their original pitch. Depending on the DAW, note 60 is labeled C3, C4 or C5. It's the same note in all of them.</p>
+
+<h2>Editing the groove</h2>
+<ul>
+  <li><strong>Swing.</strong> The MIDI is quantized straight. If the song had swing, use your DAW's swing or groove template to put it back (FL Studio: the Channel rack's swing knob; Ableton: groove pool).</li>
+  <li><strong>Humanize.</strong> Small random velocity changes on the hats bring back life that quantizing removes.</li>
+  <li><strong>Make it yours.</strong> Shift one kick, add a hat roll, change the snare on the last beat of bar 4. The pattern is a starting point, not a finished beat.</li>
+</ul>
+
+<h2>When notes seem wrong</h2>
+<p>If a track has hits where you don't hear that sound, it's usually because two sounds are similar enough that some hits of one were counted as the other (a rim and a snare, two hats). Delete the stray notes, or move them to the right track. Extra kick notes in a song with a loud 808 are the most common case; <a href="/guides/kick-vs-808">here's why</a>.</p>
+</main>
+{{FOOTER}}
+</body></html>

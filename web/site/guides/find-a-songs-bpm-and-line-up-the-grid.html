@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head>
+{{HEAD}}
+<title>How to find a song's BPM and line it up to your DAW's grid | {{SITE_NAME}}</title>
+<meta name="description" content="Find the tempo of any song, avoid the half-time and double-time trap, and line imported audio or stems up with bar 1 of your DAW's grid.">
+<link rel="canonical" href="https://{{DOMAIN}}/guides/find-a-songs-bpm-and-line-up-the-grid">
+</head><body>
+{{HEADER}}
+<main class="wrap content">
+<h1>How to find a song's BPM and line it up to your DAW's grid</h1>
+<p class="lede">Sampling, remixing or studying a song all start the same way: the right tempo and the first downbeat on bar 1. Get those two right and everything else snaps into place.</p>
+
+<h2>Finding the tempo</h2>
+<h3>Tap it</h3>
+<p>Every DAW has a tap-tempo button. Tap along with the kick or snare for 8–16 beats and read the number. It gets you within a BPM or two.</p>
+<h3>Measure it</h3>
+<p>For an exact value, measure a long stretch: find the start of bar 1 and the start of a bar far later (say bar 17). Tempo = 60 × number of beats ÷ seconds between them. Sixteen bars of 4/4 is 64 beats; if they take 30.0 seconds, the tempo is 60 × 64 ÷ 30 = 128 BPM. Measuring over many bars averages out small errors in where you clicked.</p>
+<h3>Let software guess, then check</h3>
+<p>DAW tempo detection and online tools are usually right, but they often land on half or double the real tempo. Always sanity-check by ear.</p>
+
+<h2>Half time, double time</h2>
+<p>A trap beat at 140 BPM can also be counted at 70. A reggaeton song at 92 can be counted at 184. Both counts fit the same audio. The convention that matters is what other producers and your sample packs use:</p>
+<ul>
+  <li><strong>Trap, drill, modern hip-hop:</strong> usually written at the faster value (130–160), with the snare on beat 3.</li>
+  <li><strong>Reggaeton:</strong> usually 85–100, with the dembow snare pattern fitting in one bar. <a href="/guides/reggaeton-dembow-drum-pattern">More on dembow.</a></li>
+  <li><strong>House:</strong> usually 118–128, kick on every beat.</li>
+</ul>
+<p>If the drums in your grid look like they fit two bars into one, halve or double it.</p>
+
+<h2>Lining up bar 1</h2>
+<ol>
+  <li>Set the project tempo first.</li>
+  <li>Drop the audio at the start of the project, then zoom in on the first strong downbeat, usually the first kick of the first full bar.</li>
+  <li>Slide the audio so that downbeat sits exactly on a bar line. Turn snap off for this, or zoom in far enough that snapping is sample-accurate.</li>
+  <li>Play a metronome against it for a few bars in the middle and near the end. If it drifts, the tempo is a little off: adjust it by a fraction of a BPM until bar 64 lines up as well as bar 1.</li>
+</ol>
+<p>Songs recorded with a live drummer, or older records, may not have a steady tempo at all. In that case use your DAW's warp or tempo-map tools to follow the band instead of forcing them to the grid.</p>
+
+<h2>Stems from {{SITE_NAME}}</h2>
+<p>Every stem starts at exactly the same point as the song you uploaded, so line up one and the rest follow. The groove MIDI is already aligned for you: its tempo is read from the file name when it contains one (like "song 128bpm.wav") or estimated from the drums otherwise, and the pattern is shifted so the first kick of the groove lands on bar 1.</p>
+</main>
+{{FOOTER}}
+</body></html>

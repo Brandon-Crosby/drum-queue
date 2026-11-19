@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head>
+{{HEAD}}
+<title>How to make a drum kit from any song | {{SITE_NAME}}</title>
+<meta name="description" content="Turn a finished song into a sampler-ready drum kit: one-shots of every kick, snare, clap, percussion and hat, plus the groove as MIDI. What to expect and how to use it.">
+<link rel="canonical" href="https://{{DOMAIN}}/guides/make-a-drum-kit-from-a-song">
+</head><body>
+{{HEADER}}
+<main class="wrap content">
+<h1>How to make a drum kit from any song</h1>
+<p class="lede">Chopping one-shots out of a record by hand works for a hit or two. Getting the whole kit, cleanly, is a different job. Here's how to do it in one pass, and how to get the most out of the result.</p>
+
+<h2>Why hand-chopping falls short</h2>
+<p>The classic method is to find a spot where the snare plays alone, cut it out and fade the edges. On a sparse soul record from the 70s that works. On a modern mix it rarely does:</p>
+<ul>
+  <li>The 808 or bass is sustaining under almost every drum hit, so your "snare" comes with a low note baked in.</li>
+  <li>Hats play on nearly every step, so every kick and snare you cut has a hat on top.</li>
+  <li>Vocals, pads and effects fill whatever gaps are left.</li>
+  <li>Even when you find a clean hit, its tail is cut off by the next one.</li>
+</ul>
+<p>The result is a kit that sounds right in the song but muddy or clicky on its own.</p>
+
+<h2>What the kit maker does differently</h2>
+<p>{{SITE_NAME}} separates the song first (drums away from everything else, then the drums into kick, snare, percussion and hi-hat), then builds the kit from those stems. The key step is <strong>averaging</strong>: a snare that plays 80 times in a song is found all 80 times, lined up to the sample, and averaged. The snare is identical in every hit, so it adds up. Whatever happened to be playing over it (a hat here, a vocal syllable there) is different each time, so it averages away.</p>
+<p>That's why a sound that repeats a lot comes out cleaner than any single hit you could have cut by hand. <a href="/guides/how-the-kit-maker-works">The full process is explained here.</a></p>
+
+<h2>Step by step</h2>
+<ol>
+  <li><strong>Pick the best source you have.</strong> WAV or FLAC beats MP3. Put the tempo in the file name if you know it (for example <code>my song 128bpm.wav</code>) and it'll be used for the MIDI instead of an estimate.</li>
+  <li><strong>Upload</strong> on the <a href="/">home page</a> and wait for the split. A normal-length song usually takes a minute or two once a GPU picks it up.</li>
+  <li><strong>Audition the one-shots</strong> in the browser before downloading. Each is named by what it is (Kick 1, Snare 1, Clap 1, Cowbell 1, Open Hat 1...). When the naming isn't sure, the sound keeps its general label, like Snare-Perc or Hat.</li>
+  <li><strong>Download the one-shots zip.</strong> It contains every sound as a 24-bit WAV peaking at -1 dBFS, plus the groove as MIDI.</li>
+  <li><strong>Load the kit.</strong> One sampler channel per one-shot, or all of them on the pads of a drum rack.</li>
+  <li><strong>Drag the groove MIDI in.</strong> One MIDI track per one-shot, all on the same note, so each track plays its sample at the original pitch. <a href="/guides/use-groove-midi-in-fl-studio">Here's how in FL Studio and Ableton.</a></li>
+</ol>
+
+<h2>What to expect</h2>
+<h3>Sounds that play often come out best</h3>
+<p>The main kick and snare, and the hats, repeat dozens or hundreds of times and average very cleanly. A crash that plays twice, or a fill tom that plays once, has almost nothing to average and may sound rougher, or may not make the kit at all.</p>
+<h3>Two versions of the same sound</h3>
+<p>Producers often play one sample at two velocities, or layer it with something else in one section. The kit maker may give you both versions (Snare 1 and Snare 2). Keep the one that fits; sometimes having both is useful for ghost notes.</p>
+<h3>Low-end leftovers</h3>
+<p>Kicks and 808s share the same range, so a kick can carry a little 808 and vice versa. The kit maker drops sounds that turn out to be mostly sub-bass, and takes the 808 notes that leak into the kick stem out of the kick before averaging. If a kick still has a tone under it, <a href="/guides/kick-vs-808">this guide explains how to tell them apart and clean it up</a>.</p>
+<h3>Cut-off releases</h3>
+<p>In a busy pattern a sound is almost always interrupted by the next hit. For tonal sounds like cowbells, the kit maker measures how the sound was decaying and lets it ring out naturally. Noisy sounds like snares are kept at the length the song allows.</p>
+
+<h2>Making the kit your own</h2>
+<ul>
+  <li><strong>Re-tune.</strong> A kick from a song in F might not sit in your song in A. <a href="/guides/tune-kicks-and-808s-to-the-key">Tune it to your key.</a></li>
+  <li><strong>Layer.</strong> A sampled snare plus a fresh clap or a bit of noise gives you something that sounds related but new. <a href="/guides/layering-drum-samples">Layering basics.</a></li>
+  <li><strong>Trim and shape.</strong> <a href="/guides/trim-and-prepare-one-shots">Fades, tails and levels</a> make a big difference in a sampler.</li>
+  <li><strong>Change the pattern.</strong> The groove MIDI is a starting point. Move a kick, add a roll, swap the snare for a rim.</li>
+</ul>
+
+<h2>A word on rights</h2>
+<p>Sounds taken from someone else's recording belong to whoever owns that recording. Using them to study and practice is one thing; releasing a song built on them usually needs permission. The safest kits to release with are the ones made from your own songs, or from recordings you've licensed.</p>
+</main>
+{{FOOTER}}
+</body></html>

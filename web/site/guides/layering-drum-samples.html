@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en"><head>
+{{HEAD}}
+<title>How to layer drum samples without mud or phasing | {{SITE_NAME}}</title>
+<meta name="description" content="Layer kicks, snares and claps the right way: choosing layers by frequency range, lining up transients, avoiding phase cancellation, and gluing them together.">
+<link rel="canonical" href="https://{{DOMAIN}}/guides/layering-drum-samples">
+</head><body>
+{{HEADER}}
+<main class="wrap content">
+<h1>How to layer drum samples without mud or phasing</h1>
+<p class="lede">Layering is how a sampled snare becomes your snare. Done well, two or three sounds become one bigger hit. Done carelessly, they cancel each other out and turn to mush.</p>
+
+<h2>Give each layer one job</h2>
+<p>The most common mistake is stacking sounds that do the same thing. Think in frequency ranges instead:</p>
+<ul>
+  <li><strong>Kick:</strong> one layer for the click or beater (2–5 kHz), one for the body (60–120 Hz), sometimes a sub or 808 below that.</li>
+  <li><strong>Snare:</strong> a body layer (150–300 Hz), a crack or snap (1–4 kHz), and a noise or clap layer for the top and the width.</li>
+  <li><strong>Clap and snare together:</strong> the classic modern backbeat. The snare gives weight, the clap gives spread.</li>
+</ul>
+<p>Then EQ each layer so it only covers its job: high-pass the click layer, low-pass the body layer. Two layers that both carry full-range low end will fight.</p>
+
+<h2>Line up the transients</h2>
+<p>If one layer starts even 2–3 ms after the other, you'll hear a flam: two attacks instead of one. Zoom in and line up where the waveforms start. Trim any silence at the start of each sample first (<a href="/guides/trim-and-prepare-one-shots">here's how</a>).</p>
+<p>Sometimes a small offset is a feature: starting a clap 5–10 ms after the snare spreads the hit out and makes it feel wider. Do it on purpose, not by accident.</p>
+
+<h2>Check the phase</h2>
+<p>Two low-frequency layers can cancel each other: if one kick's waveform is going up while the other's is going down, together they get quieter, not louder. Signs: the layered kick sounds thinner than either layer alone, or the low end disappears in mono.</p>
+<p>Fixes, in order:</p>
+<ol>
+  <li>Flip the polarity of one layer (most samplers and DAW mixers have a phase/polarity switch) and keep whichever sounds fuller.</li>
+  <li>Nudge one layer by a fraction of a millisecond until the low end is loudest.</li>
+  <li>High-pass the layer that doesn't need low end so only one sound owns the bottom.</li>
+</ol>
+
+<h2>Balance and glue</h2>
+<ul>
+  <li><strong>Set levels with your eyes closed.</strong> Bring the main layer up first, then add the others until they're just noticeable when muted and unmuted.</li>
+  <li><strong>Same envelope.</strong> Layers that decay at very different speeds sound like two sounds. Shorten the longer one or add a matching tail to the shorter.</li>
+  <li><strong>Bus them together.</strong> Send the layers to one mixer channel and add light compression or saturation there. That's what makes them behave like a single drum.</li>
+  <li><strong>Bounce it.</strong> Once you like the result, render it to a new one-shot. Simpler to use, lighter on CPU, and now it's a sound in your library.</li>
+</ul>
+
+<h2>Layering sampled drums</h2>
+<p>Drums taken from a song carry the original mix's character: room, compression, sometimes a little bleed. Layering them with clean sounds is one of the best ways to use them. The sample brings the vibe, the fresh layer brings clarity and makes the sound yours. A one-shot kit from <a href="/guides/make-a-drum-kit-from-a-song">a song you've split</a> is a good starting point.</p>
+</main>
+{{FOOTER}}
+</body></html>

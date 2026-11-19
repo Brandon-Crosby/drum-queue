@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head>
+{{HEAD}}
+<title>Kick vs 808: how to tell them apart and separate them | {{SITE_NAME}}</title>
+<meta name="description" content="Why kicks and 808s get mixed up in drum stems, how to hear and measure the difference, and how to clean an 808 out of a kick sample.">
+<link rel="canonical" href="https://{{DOMAIN}}/guides/kick-vs-808">
+</head><body>
+{{HEADER}}
+<main class="wrap content">
+<h1>Kick vs 808: how to tell them apart and separate them</h1>
+<p class="lede">In trap, reggaeton, drill and most modern pop, the kick and the 808 live in the same few octaves and often hit at the same moment. That makes them the hardest pair for any separation tool, and for your ears too.</p>
+
+<h2>What each one actually is</h2>
+<p>A <strong>kick</strong> is a short drum hit: a fast click or beater attack, a body somewhere around 50–100 Hz, and a quick decay. Most of its energy is gone within a couple of hundred milliseconds.</p>
+<p>An <strong>808</strong> (in modern production) is a bass instrument: a sine-like tone with a pitch, often with a short pitch drop at the start and some saturation. It's played in notes, follows the chords, and can sustain for a beat or more.</p>
+<p>The trouble is the first 50 ms. An 808 note starting on its own has a thump that looks a lot like a kick, and many producers deliberately start 808 notes on the kick, so the two attacks blend into one.</p>
+
+<h2>Three ways to tell them apart</h2>
+<h3>1. Pitch</h3>
+<p>An 808 has a clear note that changes with the chords. A kick usually stays on one pitch the whole song. If a "kick" in your stem plays different notes, some of it is 808.</p>
+<h3>2. How much is sub</h3>
+<p>Put a spectrum analyzer on the first 50–60 ms of the hit. A kick has its energy spread from the sub up through its body and click. An 808 note is concentrated low, under about 60 Hz, with very little above. On real songs, 808 thumps that leaked into a kick stem typically carry several dB more of their low end under 60 Hz than the real kicks do.</p>
+<h3>3. How it decays</h3>
+<p>This one surprises people. On its own, an 808 sustains, but the <em>leaked</em> part in a kick stem usually dies fast, because the separation keeps only the attack-like start of the note in the kick stem and sends the sustain to the bass. Real kicks hold their body for longer by comparison. So in a kick stem, "very sub-heavy and gone almost immediately" is the classic 808 fingerprint.</p>
+
+<h2>How {{SITE_NAME}} handles it</h2>
+<p>When the kit maker builds the kick, it looks at every hit on the kick stem and measures exactly those two things: how much of the first 60 ms sits under 60 Hz, and how much the hit has dropped 80–120 ms later. If the hits fall into two clearly different groups (one sub-heavy and fast-dying, one not), the sub-heavy group is treated as 808 and left out of the kick before averaging. On songs without that problem, nothing is removed.</p>
+<p>On one test beat with a busy 808 line, the kick group went from about two-thirds 808 thumps to about one in seven, checked against the producer's original MIDI. The leftover cases are 808 notes that land exactly on a kick, which can't be pulled apart from the kick itself.</p>
+
+<h2>Cleaning up a kick sample yourself</h2>
+<ul>
+  <li><strong>Pick a different hit.</strong> If you're cutting from the stem, choose a kick where the bass line is on a different note or silent. That's the cleanest fix by far.</li>
+  <li><strong>Shorten it.</strong> If the 808 rings on after the kick, a fade starting around 120–200 ms keeps the kick's body and drops most of the tone.</li>
+  <li><strong>Notch the note.</strong> If the 808 under it is one pitch, a narrow EQ cut on that frequency removes a lot of it. Find it by sweeping a narrow boost until the tone jumps out, then turn the boost into a cut.</li>
+  <li><strong>Rebuild the sub.</strong> Many producers high-pass the sampled kick around 40–60 Hz and add their own clean sub or 808 underneath. Then the low end is fully under your control and in your key.</li>
+</ul>
+
+<h2>Cleaning up an 808 sample</h2>
+<p>The reverse problem: a sampled 808 with a kick click on its front. Trim or fade the first few milliseconds, or start the sample slightly late. Since you'll usually retune the 808 to your song anyway, <a href="/guides/tune-kicks-and-808s-to-the-key">see the tuning guide</a>.</p>
+
+<h2>In the mix</h2>
+<p>When you write your own kick and 808, the same rule that makes them hard to separate makes them hard to mix: they fight. Give one the click and the other the sub, tune the kick to the song's key, and use side-chain ducking on the 808 when they hit together.</p>
+</main>
+{{FOOTER}}
+</body></html>

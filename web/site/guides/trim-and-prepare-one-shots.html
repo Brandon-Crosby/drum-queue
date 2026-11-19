@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en"><head>
+{{HEAD}}
+<title>How to trim and prepare drum one-shots for a sampler | {{SITE_NAME}}</title>
+<meta name="description" content="Clean up drum one-shots: trimming the start, fades, tails, levels, bit depth and naming, so your samples load fast and sound right in any sampler.">
+<link rel="canonical" href="https://{{DOMAIN}}/guides/trim-and-prepare-one-shots">
+</head><body>
+{{HEADER}}
+<main class="wrap content">
+<h1>How to trim and prepare drum one-shots for a sampler</h1>
+<p class="lede">A one-shot that starts a few milliseconds late, clicks at the end or peaks at a random level will cause problems in every beat you use it in. Five minutes of prep fixes that for good.</p>
+
+<h2>1. The start: no silence, no clipped attack</h2>
+<p>The sample should begin right at the start of the hit. Even 5–10 ms of silence before it makes the sound feel late against the grid. But don't cut into the attack: the first millisecond of a kick or snare is where its punch is.</p>
+<p>Zoom in on the waveform, find where it rises out of silence, and cut just before that point. Many editors can snap the cut to a zero crossing, which avoids a click at the start.</p>
+
+<h2>2. The end: let it decay, then fade</h2>
+<p>Cut the tail where the sound has faded into the noise floor, then add a short fade-out (10–30 ms) so it ends in silence. Without the fade you'll hear a click whenever the sample plays to its end.</p>
+<p>If the tail has something in it that isn't the drum (the start of the next hit, a vocal, a hat), fade out before it starts. A slightly shorter clean sample beats a longer dirty one, and you can always add reverb.</p>
+
+<h2>3. Level</h2>
+<p>Normalize every one-shot to the same peak, for example -1 dBFS. That leaves a little headroom and means velocity in the sampler, not the file, decides how loud each hit plays. Don't make samples louder than they are with a limiter; clipped transients sound flat in a mix.</p>
+
+<h2>4. Format</h2>
+<ul>
+  <li><strong>WAV, 24-bit</strong> is the standard. It has plenty of dynamic range for quiet tails, and every sampler reads it.</li>
+  <li><strong>Sample rate:</strong> 44.1 or 48 kHz. Matching your projects avoids resampling.</li>
+  <li><strong>Mono or stereo:</strong> kicks and snares are often mono; hats, percussion and anything with room sound can stay stereo.</li>
+</ul>
+<p>One-shots from {{SITE_NAME}} come as 24-bit WAVs peaking at -1 dBFS, already trimmed at the start with a short fade at the end.</p>
+
+<h2>5. Names</h2>
+<p>Name files so you can find them in a year: what it is, where it came from, and a number. "Snare - song name - 2.wav" sorts and searches far better than "sample 37.wav". Put the key in tonal sounds' names ("808 - F.wav") once you've <a href="/guides/tune-kicks-and-808s-to-the-key">tuned them</a>.</p>
+
+<h2>6. In the sampler</h2>
+<ul>
+  <li><strong>One-shot mode.</strong> Set the sample to play to its end regardless of note length (FL Studio's Sampler and most drum machines do this by default).</li>
+  <li><strong>Choke groups</strong> for closed and open hats, so a closed hat cuts off an open one.</li>
+  <li><strong>Root note</strong> on the key you trigger it from, so it plays at its original pitch.</li>
+  <li><strong>Velocity to volume</strong> on, so ghost notes are quieter.</li>
+</ul>
+
+<h2>Organizing a kit</h2>
+<p>Keep each kit in its own folder with subfolders by type (Kicks, Snares, Percussion, Hats). Most DAW browsers let you favorite a folder, so your best kits stay one click away.</p>
+</main>
+{{FOOTER}}
+</body></html>

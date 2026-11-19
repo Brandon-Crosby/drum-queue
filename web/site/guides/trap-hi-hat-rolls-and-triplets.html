@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head>
+{{HEAD}}
+<title>Trap hi-hat patterns: rolls, triplets and 32nd notes | {{SITE_NAME}}</title>
+<meta name="description" content="How trap hi-hats are programmed: base 8th and 16th patterns, triplet and 32nd-note rolls, velocity and pitch tricks, and how to read rolls in a groove MIDI file.">
+<link rel="canonical" href="https://{{DOMAIN}}/guides/trap-hi-hat-rolls-and-triplets">
+</head><body>
+{{HEADER}}
+<main class="wrap content">
+<h1>Trap hi-hat patterns: rolls, triplets and 32nd notes</h1>
+<p class="lede">The hi-hat is where trap gets its personality. The kick and snare are often simple; the hats carry the bounce. Here's how the patterns are built and why rolls are the part most people get wrong.</p>
+
+<h2>The grid first</h2>
+<p>Trap is usually produced somewhere around 130–160 BPM but felt in half time: the snare lands on beat 3 of each bar instead of 2 and 4. That means a "16th note" hat at 140 BPM is very fast, and a lot of patterns are built from 8ths and 16ths with rolls on top.</p>
+
+<h2>Base patterns</h2>
+<ul>
+  <li><strong>Straight 8ths:</strong> a hat on every 8th note. Sparse and laid back.</li>
+  <li><strong>Straight 16ths:</strong> a hat on every step. The default modern bed, usually with velocity accents so it doesn't sound like a machine gun.</li>
+  <li><strong>Gaps:</strong> taking out one or two 16ths just before the snare or at the end of a bar creates space and makes what follows hit harder.</li>
+</ul>
+
+<h2>Rolls</h2>
+<p>A roll is a burst of faster notes, usually a beat or less long, that leads into the next downbeat or snare. Three kinds cover almost everything:</p>
+<h3>32nd-note rolls</h3>
+<p>Twice as fast as 16ths: eight hits per beat. Straight and tight. Common at the end of a bar.</p>
+<h3>16th-note triplets</h3>
+<p>Six hits per beat instead of four. They sit "between" the grid lines and give the rolling, galloping feel most people associate with trap hats. In your DAW, switch the piano roll or step grid to triplets (1/16T or 1/24) to place them.</p>
+<h3>8th-note triplets</h3>
+<p>Three hits per beat. Slower, swung, often used as a pattern for a whole bar rather than a quick roll.</p>
+<p>Mixing them in one bar (16ths, then a 16th-triplet roll, then a 32nd burst into the snare) is what makes a pattern feel written rather than looped.</p>
+
+<h2>Making rolls sound right</h2>
+<ul>
+  <li><strong>Velocity ramps.</strong> Rolls that fade in (quiet to loud) or out sound natural; flat velocity sounds robotic.</li>
+  <li><strong>Pitch ramps.</strong> Raising the pitch a few semitones across a roll is a signature trap move. Draw it with note pitches or the sampler's pitch control.</li>
+  <li><strong>Short samples.</strong> A long or open hat smears at 32nd-note speed. Use a closed hat with a fast decay, or shorten the sample's release.</li>
+  <li><strong>Panning and a second hat.</strong> A quieter second hat sample on some of the roll notes, panned slightly, adds width.</li>
+</ul>
+
+<h2>Reading rolls from a groove MIDI file</h2>
+<p>When {{SITE_NAME}} writes a groove MIDI file, it quantizes each sound separately. Hats are snapped to 16ths when that fits what they played, and only switched to triplets or 32nds where the song really has rolls. So when you open the hat track, the dense clusters you see are the real rolls, already on the right grid, and the rest is the base pattern. <a href="/guides/use-groove-midi-in-fl-studio">Here's how to load it.</a></p>
+<p>Quantizing removes small timing push and pull. If the original hats felt swung, add a touch of swing back in your DAW.</p>
+
+<h2>Open hats</h2>
+<p>An open hat on the "+" before the snare, or at the end of a phrase, gives the pattern a lift. In a drum machine or sampler, put the closed and open hats in the same choke group, so a closed hat cuts the open one off just as a real drummer's foot would.</p>
+</main>
+{{FOOTER}}
+</body></html>

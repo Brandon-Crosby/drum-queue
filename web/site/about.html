@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head>
+{{HEAD}}
+<title>About {{SITE_NAME}} and the Helyx drum model</title>
+<meta name="description" content="What {{SITE_NAME}} is, how it turns a finished song into a drum kit, stems and groove MIDI, what Helyx is, and how your files are handled.">
+<link rel="canonical" href="https://{{DOMAIN}}/about">
+</head><body>
+{{HEADER}}
+<main class="wrap content">
+<h1>About {{SITE_NAME}}</h1>
+<p class="lede">{{SITE_NAME}} turns a finished song into something a producer can use: the drum kit, the drum stems and the groove as MIDI. It's built by people who make beats, for people who make beats.</p>
+
+<h2>Why it exists</h2>
+<p>Most producers have heard a record and wanted <em>that</em> snare, or wanted to know exactly where the hats sit in a groove. The usual options are to hunt through sample packs for something close, or to chop a hit out of the song and fight the bass and vocals underneath it.</p>
+<p>General stem splitters help a little, but they stop at one "drums" stem with the whole kit summed together. That's not what you load into a sampler. {{SITE_NAME}} goes the rest of the way: kick, snare, percussion and hi-hat as separate pieces, then the individual sounds as one-shots, then the pattern they play as MIDI.</p>
+
+<h2>What you get from one upload</h2>
+<ul>
+  <li><strong>A one-shot kit.</strong> Each distinct sound in the song (kick, snare, clap, cowbell, open and closed hats and so on) as its own 24-bit WAV, named by what it is.</li>
+  <li><strong>Groove MIDI.</strong> The drum pattern, one track per one-shot, quantized and starting on bar 1: an 8-bar loop plus the full song.</li>
+  <li><strong>Drum stems.</strong> Kick, snare, percussion and hi-hat, plus the bass, vocals and the rest of the mix.</li>
+</ul>
+<p>Drop the one-shots into a sampler, drag the MIDI onto them, and you're hearing the song's drums played back by your own project, ready to change.</p>
+
+<h2>How it works</h2>
+<p>A song goes through three stages.</p>
+<h3>1. Drums out of the mix</h3>
+<p>Demucs, an open-source separation model from Meta AI, pulls the full drum track away from the bass, vocals and everything else.</p>
+<h3>2. The kit into pieces with Helyx</h3>
+<p>Helyx is our own drum separation model. It listens to the drum track and splits it into kick, snare, percussion and hi-hat. It's trained on real multitrack sessions, drums from finished beats where every piece was recorded on its own track, with extra weight on the styles general-purpose models handle worst: reggaeton and dembow, Latin and Afro percussion, and house.</p>
+<p>We test every new version of Helyx against the actual, separately recorded drum tracks of songs it has never heard, both on raw mixes and on mastered, limited versions, and only replace the live model when the new one measurably wins.</p>
+<h3>3. Stems into a kit</h3>
+<p>The kit maker finds every hit on each stem, groups hits that are the same sound, and averages all the repeats of each sound together. Averaging cancels out whatever else was playing at the same time (a hat landing on the kick, a vocal under the snare) and keeps the drum. It then names each sound, writes the pattern as MIDI, and packs everything up. <a href="/guides/how-the-kit-maker-works">There's a detailed write-up of the kit maker here.</a></p>
+
+<h2>What it's honest about</h2>
+<p>Separation is a best guess, not a recovery of the original session. Sounds that share frequencies (an 808 and a kick, a shaker and a hi-hat) can leak into each other, very busy or heavily distorted mixes are harder, and a sound that plays only once or twice may not make it into the kit. The one-shot kit is marked beta on the site for that reason. When a result is off, it's usually one of the problems covered in our <a href="/guides/">guides</a>, with a quick fix in your DAW.</p>
+
+<h2>Your files</h2>
+<p>Your upload is deleted as soon as it has been split. The results are kept for 24 hours so you can come back for them, then deleted. Uploaded audio is never used to train Helyx. Details are in the <a href="/privacy">privacy policy</a>.</p>
+<p>Only upload music you have the right to use: your own songs, licensed material, or audio you're studying where that's allowed. See the <a href="/terms">terms</a>.</p>
+
+<h2>Free, with ads</h2>
+<p>Every split runs on a rented GPU. Ads pay for that, which is why the site is free and why each visitor gets a few splits a day.</p>
+
+<h2>Contact</h2>
+<p>Bug reports, feature ideas, or a song that split badly and you want us to look at: <a href="mailto:{{CONTACT_EMAIL}}">{{CONTACT_EMAIL}}</a>.</p>
+</main>
+{{FOOTER}}
+</body></html>

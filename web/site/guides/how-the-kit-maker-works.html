@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head>
+{{HEAD}}
+<title>How the kit maker works: from a full song to clean one-shots | {{SITE_NAME}}</title>
+<meta name="description" content="A detailed look at how {{SITE_NAME}} turns separated drum stems into one-shots: finding hits, grouping them, sample-accurate averaging, removing 808s and bleed, naming, and writing the groove.">
+<link rel="canonical" href="https://{{DOMAIN}}/guides/how-the-kit-maker-works">
+</head><body>
+{{HEADER}}
+<main class="wrap content">
+<h1>How the kit maker works</h1>
+<p class="lede">Separating a song into drum stems is half the job. Turning those stems into a kit of clean one-shots is the other half, and it's where most of the problems hide. Here's what happens to your song after the split, step by step.</p>
+
+<h2>1. Find every hit</h2>
+<p>Each stem (kick, snare, percussion, hi-hat) is scanned for onsets: the moments a new sound starts. The detector compares each hit against what the <em>other</em> stems are doing at the same instant, so a loud kick that leaked into the snare stem is recognized as the kick and not counted as a snare.</p>
+<p>The snare and percussion stems are searched together. Separation models often disagree with producers about what's a "snare" and what's "percussion" (a rim, a clap, a timbale), so reading them as one pool and deciding afterwards avoids losing a sound to the wrong stem.</p>
+
+<h2>2. Group hits that are the same sound</h2>
+<p>Each hit gets a fingerprint of its spectrum and envelope. Hits whose fingerprints match closely are grouped as one sound. A typical four-minute song gives a few hundred hits that collapse into a dozen or two distinct sounds.</p>
+
+<h2>3. Average the repeats</h2>
+<p>This is the step that makes the kit clean. All the hits in a group are lined up to the sample on their attack and averaged. The drum sample is identical every time, so it adds up. Whatever was playing over it (a hat, a vocal syllable, an effect) is different each time, so it averages down. A sound that plays 80 times comes out far cleaner than any single hit.</p>
+<p>Lining up "to the sample" matters. If hits are a millisecond off from each other, the averaging blurs the attack and the result sounds soft. The aligner times each hit on the sharpest part of its attack, not on its smoother body.</p>
+<p>Each hit only counts up to the moment the next hit starts, so the next sound doesn't get averaged into the tail.</p>
+
+<h2>4. Take out what doesn't belong</h2>
+<h3>808 notes in the kick</h3>
+<p>The low end of an 808 often lands in the kick stem. The kick's hits are measured for how much of their energy sits under 60 Hz and how fast they die away. When they split into two clear groups, the sub-heavy, fast-dying group is treated as 808 and left out before the kick is averaged. <a href="/guides/kick-vs-808">More on telling them apart.</a></p>
+<h3>Bass and sub pretending to be drums</h3>
+<p>A sound in the snare or percussion pool that turns out to be almost all sub-bass, or that closely matches what's on the bass stem at the same moments, is dropped instead of being handed to you as a "snare".</p>
+<h3>Stacked hits</h3>
+<p>A snare or clap that always lands together with the kick shows up on the kick stem as a different "kick". The kit maker subtracts the kick from it and, if a real sound is left, adds that to the snare and percussion pool.</p>
+<h3>The same sound twice</h3>
+<p>A cowbell with a hat on top half the time looks like two sounds. Tonal sounds that share the same core frequencies are merged and the cleanest copy is kept. Noisy sounds like snares are never merged this way, because two genuinely different snares can share a range.</p>
+
+<h2>5. Fix the endings</h2>
+<p>The end of each sound is found by following its decay and stopping where the level starts rising again, which means the next hit or bleed is creeping in. A short fade is added there.</p>
+<p>In busy patterns that can cut a sound short. For tonal sounds like cowbells and bells, the kit maker measures the strongest frequencies of the clean part of the tail and how fast they were decaying, then lets those same frequencies ring out naturally to silence. It only does this when those frequencies explain almost all of the tail; noisy sounds are left at the length the song allowed.</p>
+
+<h2>6. Name each sound</h2>
+<p>Each one-shot is compared to a large reference library of labeled drum sounds and named by vote: Kick, Snare, Clap, Rim, Cowbell, Open Hat, Shaker and so on. A name is only given when the vote is clearly in favor. Otherwise the sound keeps its general label (Snare-Perc, Hat). Sounds that the library says are clearly not drums are dropped.</p>
+
+<h2>7. Write the groove</h2>
+<p>Because every hit was found and assigned to a sound, the pattern comes for free. The tempo is taken from the file name if it has one, or estimated from the hits. The grid is aligned so the first kick lands on bar 1, each sound is quantized to the grid that fits it (16ths, or triplets and 32nds for real rolls), and the most typical 8 bars are picked as the loop. <a href="/guides/use-groove-midi-in-fl-studio">How to use it.</a></p>
+
+<h2>8. Export</h2>
+<p>Each sound is written as a 24-bit WAV peaking at -1 dBFS, named with the song and the sound, and zipped with the MIDI.</p>
+
+<h2>How we test changes</h2>
+<p>Every change to the kit maker is run against a set of songs where we have the original, separately recorded drum tracks, and scored against them. A change ships only when it improves the songs it targets <em>and</em> leaves the others unchanged or better. Several ideas that sounded right on one song have been dropped because they made others worse.</p>
+</main>
+{{FOOTER}}
+</body></html>
