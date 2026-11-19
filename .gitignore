@@ -13,3 +13,4 @@ web/dist/
 web/backend/.local_data/
 ab_result.json
 eval_results/
+kitmatch/soundid_ref.npz

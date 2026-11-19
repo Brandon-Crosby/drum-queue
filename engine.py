@@ -324,7 +324,8 @@ def process(job, out_root, models, stage, preview_fmt='wav', max_seconds=None):
             if kd not in sys.path:
                 sys.path.insert(0, kd)
             import clean
-            made = clean.write_kit(out_dir, out_dir / 'one-shots', prefix=f'{song} - ', log=say)
+            made = clean.write_kit(out_dir, out_dir / 'one-shots', prefix=f'{song} - ', log=say,
+                                   ref=Path(kd) / 'soundid_ref.npz')
         else:
             import oneshots
             made = oneshots.make_kit(out_dir, out_dir / 'one-shots', prefix=f'{song} - ', log=say)

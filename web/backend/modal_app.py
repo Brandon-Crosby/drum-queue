@@ -67,6 +67,10 @@ def _copy_helyx():
     print(f'Helyx from {src}: {(dst / "model.ckpt").stat().st_size / 1e6:.0f} MB')
 
 
+# Names one-shots (Snare, Clap, Cowbell...) by the one-shot library they sound like. Built on the Mac
+# with kitmatch/soundid.py build; fingerprints and categories only. Missing = generic names.
+SOUNDID_REF = Path.home() / 'DrumSplits' / 'soundmatch' / 'soundid_ref.npz'
+
 gpu_image = (
     modal.Image.debian_slim(python_version='3.11')
     .apt_install('ffmpeg', 'libsndfile1')
@@ -79,6 +83,7 @@ gpu_image = (
     .add_local_file(REPO / 'kitmatch' / 'clean.py', '/root/kitmatch/clean.py', copy=True)
     .add_local_file(REPO / 'kitmatch' / 'hits.py', '/root/kitmatch/hits.py', copy=True)
     .add_local_file(REPO / 'kitmatch' / 'soundmatch.py', '/root/kitmatch/soundmatch.py', copy=True)
+    .add_local_file(REPO / 'kitmatch' / 'soundid.py', '/root/kitmatch/soundid.py', copy=True)
     .add_local_file(HERE / 'service.py', '/root/service.py', copy=True)
     .run_function(_download_models)
     .apt_install('git')
@@ -88,6 +93,8 @@ gpu_image = (
     .env({'HELYX_RUN': HELYX_RUN})                 # changing the run forces a fresh copy below
     .run_function(_copy_helyx, volumes={'/train': train_vol})
 )
+if SOUNDID_REF.exists():
+    gpu_image = gpu_image.add_local_file(SOUNDID_REF, '/root/kitmatch/soundid_ref.npz', copy=True)
 
 web_image = (
     modal.Image.debian_slim(python_version='3.11')

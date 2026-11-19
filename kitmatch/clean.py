@@ -321,7 +321,29 @@ def _merge_same_core(sounds, log, same=0.85, tonal=0.1):
     return sorted(out, key=lambda s: -s['hits'])
 
 
-def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None):
+def _namer(ref, log):
+    """Name each sound by what the one-shot library says it is - only when the vote is sure (80%);
+    otherwise keep the safe generic name. Drops sounds the library is 90% sure aren't drums."""
+    generic = {'kick': 'Kick', 'sp': 'Snare-Perc', 'hh': 'Hat'}
+    if not ref or not Path(ref).exists():
+        return lambda s, role: (generic[role], False)
+    import soundid
+    V, C = soundid.load(ref)
+
+    def name(s, role):
+        piece, label, drop = soundid.name_sound(s['fp'], V, C)
+        if drop and role == 'sp':
+            log(f'dropped a sound heard {s["hits"]}x: the library says it is not a drum')
+            return '', True
+        if role == 'sp' and piece in ('snare', 'perc'):
+            return label or {'snare': 'Snare', 'perc': 'Perc'}[piece], False
+        if role == 'hh' and label in ('Open Hat', 'Shaker'):
+            return label, False
+        return generic[role], False
+    return name
+
+
+def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, ref=None):
     """split_dir holds kick/snare/perc/hh.wav from Helyx. Writes the strongest few sounds per piece
     (each averaged over all its hits, snare and perc read together, kick-stem stowaways rescued) as
     24-bit WAVs peaking at -1 dBFS. Returns oneshots.make_kit-style records."""
@@ -332,6 +354,7 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None):
     log('Finding every hit and averaging the repeats')
     ks = kit_sounds(split_dir, lambda r: have.get(r))
     ks = _drop_impostors(ks, split_dir, log)
+    namer = _namer(ref, log)
     out = []
     for role in ('kick', 'sp', 'hh'):
         mine = sorted([s for s in ks if GROUP.get(s['role']) == role and s['hits'] >= min_hits],
@@ -341,9 +364,14 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None):
         mine = mine[:MAX_SOUNDS[role]]
         log(f'{LABELS[role].lower()}: {len(mine)} sound{"" if len(mine) == 1 else "s"}'
             + (f' (heard {", ".join(str(s["hits"]) for s in mine)} times)' if mine else ''))
-        for i, s in enumerate(mine, 1):
+        count = {}
+        for s in mine:
+            name, drop = namer(s, role)
+            if drop:
+                continue
+            count[name] = count.get(name, 0) + 1
             seg = s['seg'] * (10 ** (-1 / 20) / (np.abs(s['seg']).max() + 1e-9))
-            lab = f'{LABELS[role]} {i}'
+            lab = f'{name} {count[name]}'
             fname = f'{prefix}{lab}.wav'
             sf.write(str(out_dir / fname), seg, SR, subtype='PCM_24')
             out.append(dict(name=fname, file=str(out_dir / fname), piece={'sp': 'snare'}.get(role, role),
