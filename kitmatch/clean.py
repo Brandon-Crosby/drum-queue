@@ -199,7 +199,7 @@ def kit_sounds(stems, find, dedupe=0.95, min_left_db=-12.0):
                 if i not in stacked_idx:
                     out.append(dict(role='kick', seg=s['seg'], hits=s['hits']))
             for res, h, i, _ in stacked:
-                out.append(dict(role='snare', seg=res, hits=h, source='stacked on kick'))
+                out.append(dict(role='snare', seg=res, hits=h, source='stacked on kick', onsets=ks[i]['onsets']))
     sp = [loaded[r] for r in ('snare', 'perc') if r in loaded]
     if sp:
         mix = sum(sp)
@@ -209,7 +209,8 @@ def kit_sounds(stems, find, dedupe=0.95, min_left_db=-12.0):
             # file it by where most of its first 50 ms of energy sits
             e = {r: float((loaded[r][s['onsets'][0]:s['onsets'][0] + int(0.05 * SR)] ** 2).sum())
                  for r in ('snare', 'perc') if r in loaded}
-            out.append(dict(role=max(e, key=e.get) if e else 'snare', seg=s['seg'], hits=s['hits']))
+            out.append(dict(role=max(e, key=e.get) if e else 'snare', seg=s['seg'], hits=s['hits'],
+                            onsets=s['onsets']))
     if 'hh' in loaded:
         oth = [loaded[r] for r in loaded if r != 'hh']
         _, hs = sounds(loaded['hh'], others=oth)
@@ -234,6 +235,39 @@ MAX_SOUNDS = {'kick': 3, 'sp': 6, 'hh': 3}
 GROUP = {'kick': 'kick', 'snare': 'sp', 'perc': 'sp', 'hh': 'hh'}
 
 
+def _spec(seg, lo=60, hi=3000):
+    m = (seg.mean(1) if seg.ndim == 2 else seg)[:int(0.15 * SR)]
+    X = np.abs(np.fft.rfft(m, 8192))
+    f = np.fft.rfftfreq(8192, 1 / SR)
+    X = X[(f > lo) & (f < hi)]
+    return X / (np.linalg.norm(X) + 1e-9)
+
+
+def _drop_impostors(ks, split_dir, log, bass_like=0.5, kick_like=0.9):
+    """Snare/perc sounds that are really the bass (distorted bass the first stage left in the drums)
+    or really the kick (kick leaking into the perc stem). Bass: the sound's spectrum matches what the
+    bass stem plays at the same moments. Kick: its fingerprint matches the main kick sound."""
+    bass_f = Path(split_dir) / 'bass.wav'
+    bass = H.load(bass_f) if bass_f.exists() else None
+    kicks = [k for k in ks if k['role'] == 'kick']
+    main_kick = max(kicks, key=lambda k: k['hits'])['fp'] if kicks else None
+    keep = []
+    for s in ks:
+        if s['role'] in ('snare', 'perc'):
+            if main_kick is not None and float(s['fp'] @ main_kick) >= kick_like:
+                log(f'dropped a {s["role"]} sound heard {s["hits"]}x: it is the kick leaking in')
+                continue
+            on = s.get('onsets')
+            if bass is not None and on is not None and len(on):
+                L = int(0.15 * SR)
+                b = [bass[i:i + L] for i in on if i + L <= len(bass)]
+                if b and float(_spec(s['seg']) @ _spec(np.mean(b, 0))) >= bass_like:
+                    log(f'dropped a {s["role"]} sound heard {s["hits"]}x: it is the bass leaking in')
+                    continue
+        keep.append(s)
+    return keep
+
+
 def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None):
     """split_dir holds kick/snare/perc/hh.wav from Helyx. Writes the strongest few sounds per piece
     (each averaged over all its hits, snare and perc read together, kick-stem stowaways rescued) as
@@ -244,6 +278,7 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None):
     have = {r: split_dir / f'{r}.wav' for r in ('kick', 'snare', 'perc', 'hh') if (split_dir / f'{r}.wav').exists()}
     log('Finding every hit and averaging the repeats')
     ks = kit_sounds(split_dir, lambda r: have.get(r))
+    ks = _drop_impostors(ks, split_dir, log)
     out = []
     for role in ('kick', 'sp', 'hh'):
         mine = sorted([s for s in ks if GROUP.get(s['role']) == role and s['hits'] >= min_hits],
