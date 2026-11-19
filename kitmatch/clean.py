@@ -33,8 +33,11 @@ def _mono(x):
 
 def align(x, on, ref, n=int(0.04 * SR)):
     """Move each onset by up to SHIFT samples so its first 40 ms lines up best with ref."""
-    m = _mono(x)
-    r = _mono(ref)[:n]
+    # line up on the attack's edges, not its body: the first difference weights the click and
+    # crack, which pin timing to the sample (a kick's low thump is too smooth to time exactly,
+    # and averaging hits that are a few samples apart smears the attack away)
+    m = np.diff(_mono(x), prepend=0.0)
+    r = np.diff(_mono(ref), prepend=0.0)[:n]
     out = []
     for i in on:
         a = max(0, i - SHIFT)
