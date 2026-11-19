@@ -238,6 +238,7 @@ function buildShots(id, j) {
   box.hidden = !shots.length;
   if (!shots.length) return;
   $('#zipshots').href = `/api/jobs/${id}/zip?shots=1`;
+  const gm = $('#groovemid'); gm.hidden = !j.groove; gm.href = `/api/jobs/${id}/groove`;
   for (const s of shots) {
     const url = `/api/jobs/${id}/shots/${encodeURIComponent(s.name)}`;
     const pad = el('div', 'pad');

@@ -333,7 +333,10 @@ def process(job, out_root, models, stage, preview_fmt='wav', max_seconds=None):
                       count=r['count']) for r in made]
     except Exception as e:
         print(f'one-shots failed: {type(e).__name__}: {e}', flush=True)
-    return dict(stems=out, shots=shots, out_dir=out_dir.name, bpm=bpm, duration=round(dur, 1), note=note)
+    groove = next((f.name for f in sorted((out_dir / 'one-shots').glob('*Groove.mid'))), None) \
+        if (out_dir / 'one-shots').exists() else None
+    return dict(stems=out, shots=shots, groove=groove, out_dir=out_dir.name, bpm=bpm, duration=round(dur, 1),
+                note=note)
 
 
 def separator_available():

@@ -200,7 +200,7 @@ def kit_sounds(stems, find, dedupe=0.95, min_left_db=-12.0):
             stacked_idx = {i for _, _, i, _ in stacked}
             for i, s in enumerate(ks):
                 if i not in stacked_idx:
-                    out.append(dict(role='kick', seg=s['seg'], hits=s['hits']))
+                    out.append(dict(role='kick', seg=s['seg'], hits=s['hits'], onsets=s['onsets']))
             for res, h, i, _ in stacked:
                 out.append(dict(role='snare', seg=res, hits=h, source='stacked on kick', onsets=ks[i]['onsets']))
     sp = [loaded[r] for r in ('snare', 'perc') if r in loaded]
@@ -217,7 +217,7 @@ def kit_sounds(stems, find, dedupe=0.95, min_left_db=-12.0):
     if 'hh' in loaded:
         oth = [loaded[r] for r in loaded if r != 'hh']
         _, hs = sounds(loaded['hh'], others=oth)
-        out += [dict(role='hh', seg=s['seg'], hits=s['hits']) for s in hs]
+        out += [dict(role='hh', seg=s['seg'], hits=s['hits'], onsets=s['onsets']) for s in hs]
     # drop near-duplicates across the pools (same sound found twice): keep the one with more hits
     vs = [fp(s['seg']) for s in out]
     keep = []
@@ -317,7 +317,9 @@ def _merge_same_core(sounds, log, same=0.85, tonal=0.1):
         best = min(fam, key=lambda j: _outside_core_db(sounds[j]['seg']))
         if len(fam) > 1:
             log(f'one sound heard {len(fam)} ways (with something on top in some places): kept the cleanest')
-        out.append(dict(sounds[best], hits=sum(sounds[j]['hits'] for j in fam)))
+        ons = [sounds[j].get('onsets') for j in fam if sounds[j].get('onsets') is not None]
+        out.append(dict(sounds[best], hits=sum(sounds[j]['hits'] for j in fam),
+                        onsets=np.unique(np.concatenate(ons)) if ons else None))
     return sorted(out, key=lambda s: -s['hits'])
 
 
@@ -355,7 +357,7 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
     ks = kit_sounds(split_dir, lambda r: have.get(r))
     ks = _drop_impostors(ks, split_dir, log)
     namer = _namer(ref, log)
-    out = []
+    out, parts = [], []
     for role in ('kick', 'sp', 'hh'):
         mine = sorted([s for s in ks if GROUP.get(s['role']) == role and s['hits'] >= min_hits],
                       key=lambda s: -s['hits'])
@@ -374,7 +376,36 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
             lab = f'{name} {count[name]}'
             fname = f'{prefix}{lab}.wav'
             sf.write(str(out_dir / fname), seg, SR, subtype='PCM_24')
+            parts.append(dict(label=lab, role=role, onsets=s.get('onsets')))
             out.append(dict(name=fname, file=str(out_dir / fname), piece={'sp': 'snare'}.get(role, role),
                             label=lab, count=int(s['hits']),
                             seconds=round(len(seg) / SR, 2)))
+    try:
+        write_groove(split_dir, out_dir, parts, prefix, have, log)
+    except Exception as e:                         # a bonus; never lose the kit over it
+        log(f'no groove MIDI: {e}')
     return out
+
+
+def write_groove(split_dir, out_dir, parts, prefix, have, log, title=''):
+    """The kit's drum pattern as '<song> - Groove.mid' next to the one-shots (see groove.py)."""
+    import groove
+    parts = [p for p in parts if p['onsets'] is not None and len(p['onsets'])]
+    if not parts:
+        return None
+    stems = {r: H.load(f) for r, f in have.items()}
+    src = {'kick': [stems.get('kick')], 'sp': [stems.get('snare'), stems.get('perc')], 'hh': [stems.get('hh')]}
+    song = prefix.rstrip(' -') or title
+    times = np.sort(np.concatenate([np.asarray(p['onsets']) / SR for p in parts]))
+    bpm = groove.bpm_from_name(song) or groove.estimate_bpm(times)
+    mid = []
+    for p in parts:
+        xs = [x for x in src[p['role']] if x is not None]
+        n = min(len(x) for x in xs)
+        on = np.sort(np.asarray(p['onsets']))
+        mid.append(dict(label=p['label'], times=on / SR, velocities=groove.velocities(sum(x[:n] for x in xs), on, SR)))
+    mid, start = groove.align(mid, bpm)
+    f = Path(out_dir) / f'{prefix}Groove.mid'
+    groove.write(f, mid, bpm, title=song)
+    log(f'groove MIDI: {sum(len(m["times"]) for m in mid)} notes at {bpm:g} BPM, bar 1 = {start:.2f}s into the song')
+    return f

@@ -84,6 +84,7 @@ gpu_image = (
     .add_local_file(REPO / 'kitmatch' / 'hits.py', '/root/kitmatch/hits.py', copy=True)
     .add_local_file(REPO / 'kitmatch' / 'soundmatch.py', '/root/kitmatch/soundmatch.py', copy=True)
     .add_local_file(REPO / 'kitmatch' / 'soundid.py', '/root/kitmatch/soundid.py', copy=True)
+    .add_local_file(REPO / 'kitmatch' / 'groove.py', '/root/kitmatch/groove.py', copy=True)
     .add_local_file(HERE / 'service.py', '/root/service.py', copy=True)
     .run_function(_download_models)
     .apt_install('git')

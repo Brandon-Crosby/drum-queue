@@ -6,6 +6,7 @@ injected, so the same code runs locally (local_dev.py) and on Modal (modal_app.p
   POST /api/jobs/{id}/cancel           stop a split; it doesn't count toward the daily limit
   GET  /api/jobs/{id}/files/{name}     a stem (?dl=1 to download) or preview/<name>
   GET  /api/jobs/{id}/zip              all stems (?kit=1 for kit pieces only, ?shots=1 for the one-shot kit)
+  GET  /api/jobs/{id}/groove           the kit's drum pattern as MIDI
   GET  /api/jobs/{id}/shots/{name}     a one-shot sample (?dl=1 to download)
   GET  /api/limits                     splits left today for this visitor
 """
@@ -228,6 +229,7 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
                          for s in j.get('stems') or []]
         keep['shots'] = [{k: s.get(k) for k in ('name', 'label', 'piece', 'seconds', 'count')}
                          for s in j.get('shots') or []]
+        keep['groove'] = bool(j.get('groove'))
         keep['expires'] = (j.get('created') or time.time()) + S.keep_hours * 3600
         return keep
 
@@ -355,6 +357,22 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
             raise HTTPException(404, 'File is gone (splits are kept for 24 hours).')
         return p
 
+    def groove_file(jid, j):
+        name = j.get('groove')
+        if not name or '/' in name or '\\' in name or name.startswith('.') or not name.endswith('.mid'):
+            raise HTTPException(404)
+        p = root / 'jobs' / jid / 'out' / j['out_dir'] / 'one-shots' / name
+        if not p.exists():
+            refresh()
+        if not p.exists():
+            raise HTTPException(404, 'File is gone (splits are kept for 24 hours).')
+        return p
+
+    @app.get('/api/jobs/{jid}/groove')
+    def get_groove(jid: str):
+        j = job_or_404(jid)
+        return FileResponse(groove_file(jid, j), media_type='audio/midi', filename=j['groove'])
+
     @app.get('/api/jobs/{jid}/shots/{name}')
     def get_shot(jid: str, name: str, dl: int = 0):
         j = job_or_404(jid)
@@ -381,6 +399,8 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
             if shots:
                 for s in j.get('shots') or []:
                     z.write(shot_file(jid, j, s['name']), f"{song} - one-shots/{s['name']}")
+                if j.get('groove'):
+                    z.write(groove_file(jid, j), f"{song} - one-shots/{j['groove']}")
             for s in ([] if shots else j['stems']):
                 if kit and s['group'] != 'kit':
                     continue
