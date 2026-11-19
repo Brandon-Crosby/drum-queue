@@ -37,7 +37,7 @@ def social_tags(html, cfg):
         f'<meta property="og:image" content="{img}">',
         '<meta property="og:image:width" content="1200">',
         '<meta property="og:image:height" content="630">',
-        f'<meta property="og:image:alt" content="{cfg["SITE_NAME"]}: split any song\'s drums into kick, snare, toms, hi-hat, ride and crash">',
+        f'<meta property="og:image:alt" content="{cfg["SITE_NAME"]}: split any song\'s drums into kick, snare, percussion and hi-hat">',
         '<meta name="twitter:card" content="summary_large_image">',
         f'<meta name="twitter:title" content="{title}">',
         f'<meta name="twitter:description" content="{desc}">',

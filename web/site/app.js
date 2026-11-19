@@ -131,7 +131,7 @@ const LOGS = {
           'Cold start: loading both separation models into GPU memory'],
   mix: ['Decoding audio · 44.1 kHz stereo', 'Demucs ensemble · one fine-tuned model per source',
         'Processing in overlapping 7.8 s windows', 'Separating drums from bass, vocals and melodic parts'],
-  kit: ['6-stem drum network · kick · snare · toms · hi-hat · ride · crash', 'Overlap ×4 to smooth window edges',
+  kit: ['Helyx drum model · kick · snare · percussion · hi-hat', 'Overlap ×4 to smooth window edges',
         'Writing one stem per kit piece'],
   finish: ['Encoding MP3 previews for the mixer'],
 };

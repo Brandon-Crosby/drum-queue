@@ -224,3 +224,39 @@ def kit_sounds(stems, find, dedupe=0.95, min_left_db=-12.0):
             continue
         keep.append(i)
     return [dict(out[i], fp=vs[i]) for i in keep]
+
+
+# ---------- the website's one-shot kit
+# Snare and perc share one label: the model often files a dembow snare as perc (and the other way
+# round), so which stem a sound came out of doesn't say which it is. Ordered by how often it plays.
+LABELS = {'kick': 'Kick', 'sp': 'Snare-Perc', 'hh': 'Hat'}
+MAX_SOUNDS = {'kick': 3, 'sp': 6, 'hh': 3}
+GROUP = {'kick': 'kick', 'snare': 'sp', 'perc': 'sp', 'hh': 'hh'}
+
+
+def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None):
+    """split_dir holds kick/snare/perc/hh.wav from Helyx. Writes the strongest few sounds per piece
+    (each averaged over all its hits, snare and perc read together, kick-stem stowaways rescued) as
+    24-bit WAVs peaking at -1 dBFS. Returns oneshots.make_kit-style records."""
+    import soundfile as sf
+    split_dir, out_dir = Path(split_dir), Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    have = {r: split_dir / f'{r}.wav' for r in ('kick', 'snare', 'perc', 'hh') if (split_dir / f'{r}.wav').exists()}
+    log('Finding every hit and averaging the repeats')
+    ks = kit_sounds(split_dir, lambda r: have.get(r))
+    out = []
+    for role in ('kick', 'sp', 'hh'):
+        mine = sorted([s for s in ks if GROUP.get(s['role']) == role and s['hits'] >= min_hits],
+                      key=lambda s: -s['hits'])
+        mine = mine[:MAX_SOUNDS[role]]
+        log(f'{LABELS[role].lower()}: {len(mine)} sound{"" if len(mine) == 1 else "s"}'
+            + (f' (heard {", ".join(str(s["hits"]) for s in mine)} times)' if mine else ''))
+        for i, s in enumerate(mine, 1):
+            seg = s['seg'] * (10 ** (-1 / 20) / (np.abs(s['seg']).max() + 1e-9))
+            lab = f'{LABELS[role]} {i}'
+            fname = f'{prefix}{lab}.wav'
+            sf.write(str(out_dir / fname), seg, SR, subtype='PCM_24')
+            out.append(dict(name=fname, file=str(out_dir / fname), piece={'sp': 'snare'}.get(role, role),
+                            label=lab, count=int(s['hits']),
+                            seconds=round(len(seg) / SR, 2)))
+    return out

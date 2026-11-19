@@ -4,7 +4,9 @@
 
 Pieces:
   api        CPU web server (FastAPI, from service.py). Takes uploads, reports status, serves files.
-  Splitter   L4 GPU worker. Runs engine.py: Demucs -> MDX23C DrumSep. Models are baked into the image.
+  Splitter   L4 GPU worker. Runs engine.py: Demucs -> Helyx (our fine-tuned MDX23C). Models are baked
+             into the image: Helyx is copied from the training volume at deploy time, so later training
+             runs never change the live model - redeploy to pick up a new one (HELYX_RUN).
   cleanup    Every hour: deletes splits older than KEEP_HOURS.
 
 State: a modal.Volume holds files, a modal.Dict holds job records and daily counters.
@@ -19,6 +21,10 @@ REPO = HERE.parent.parent
 
 # ---- knobs ---------------------------------------------------------------
 MIX_MODEL = 'htdemucs_ft'      # 'htdemucs' is ~4x cheaper per song, slightly bleedier drums
+HELYX_RUN = 'runs/helyx-4'     # kit model: this run's last_mdx23c.ckpt on the drumsplit-train volume;
+                               # '' = back to the public MDX23C DrumSep (kick/snare/toms/hh/ride/crash)
+MSST_COMMIT = '1d4b3c431b37de696b3795ed2018493aacba946f'   # same code that trained and graded Helyx
+HELYX_DIR = '/models/helyx'
 # Tried in order; Modal uses whichever has capacity (a lone 'L4' can sit in a queue for minutes).
 # L4 ~$0.00022/s, A10 ~$0.00031/s (faster), T4 ~$0.00016/s (slower) - similar cost per song.
 # L40S / A100 cost ~3-5x per second but finish faster; they're only used when the cheap ones are
@@ -35,6 +41,7 @@ app = modal.App('drumsplit')
 vol = modal.Volume.from_name('drumsplit-data', create_if_missing=True)
 kv = modal.Dict.from_name('drumsplit-state', create_if_missing=True)
 secrets = [modal.Secret.from_name('drumsplit-secrets')]
+train_vol = modal.Volume.from_name('drumsplit-train')
 
 
 def _download_models():
@@ -47,6 +54,19 @@ def _download_models():
         s.download_model_files(m)
 
 
+def _copy_helyx():
+    """Image build: copy the chosen Helyx checkpoint + its config out of the training volume."""
+    import shutil
+    if not HELYX_RUN:
+        return
+    src = Path('/train') / HELYX_RUN
+    dst = Path(HELYX_DIR)
+    dst.mkdir(parents=True, exist_ok=True)
+    shutil.copy(src / 'last_mdx23c.ckpt', dst / 'model.ckpt')
+    shutil.copy(src / 'config.yaml', dst / 'config.yaml')
+    print(f'Helyx from {src}: {(dst / "model.ckpt").stat().st_size / 1e6:.0f} MB')
+
+
 gpu_image = (
     modal.Image.debian_slim(python_version='3.11')
     .apt_install('ffmpeg', 'libsndfile1')
@@ -56,8 +76,17 @@ gpu_image = (
     .env(PUBLIC_ENV)
     .add_local_file(REPO / 'engine.py', '/root/engine.py', copy=True)
     .add_local_file(REPO / 'oneshots.py', '/root/oneshots.py', copy=True)
+    .add_local_file(REPO / 'kitmatch' / 'clean.py', '/root/kitmatch/clean.py', copy=True)
+    .add_local_file(REPO / 'kitmatch' / 'hits.py', '/root/kitmatch/hits.py', copy=True)
+    .add_local_file(REPO / 'kitmatch' / 'soundmatch.py', '/root/kitmatch/soundmatch.py', copy=True)
     .add_local_file(HERE / 'service.py', '/root/service.py', copy=True)
     .run_function(_download_models)
+    .apt_install('git')
+    .run_commands('git clone -q https://github.com/ZFTurbo/Music-Source-Separation-Training /msst && '
+                  f'cd /msst && git checkout -q {MSST_COMMIT}')
+    .uv_pip_install('ml_collections', 'omegaconf', 'pyyaml', 'tqdm')
+    .env({'HELYX_RUN': HELYX_RUN})                 # changing the run forces a fresh copy below
+    .run_function(_copy_helyx, volumes={'/train': train_vol})
 )
 
 web_image = (
@@ -96,7 +125,8 @@ class Splitter:
     @modal.enter()
     def load(self):
         import engine
-        self.models = engine.Models('/tmp/dq/work')
+        helyx = (f'{HELYX_DIR}/model.ckpt', f'{HELYX_DIR}/config.yaml', '/msst') if HELYX_RUN else None
+        self.models = engine.Models('/tmp/dq/work', helyx=helyx)
         self.models.get_mix(MIX_MODEL)          # warm both models before the first song
         self.models.get_kit(4)
 

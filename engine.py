@@ -1,4 +1,7 @@
-"""engine.py - full mix -> drums (Demucs) -> kick/snare/toms/hh/ride/crash (MDX23C DrumSep).
+"""engine.py - full mix -> drums (Demucs) -> kit pieces.
+
+Stage 2 is either the public MDX23C DrumSep (kick/snare/toms/hh/ride/crash) or our fine-tune Helyx
+(kick/snare/perc/hh: toms, congas, ride and crash all land in perc). Models(helyx=...) picks Helyx.
 
 Same two-stage chain Xport Studio's "drum kit" add-on uses, via python-audio-separator.
 Pure functions plus a small model cache, no web code. app.py calls process() once per job.
@@ -19,7 +22,8 @@ MIX_MODELS = {                       # option value -> audio-separator model fil
 DRUMSEP = 'MDX23C-DrumSep-aufr33-jarredou.ckpt'
 DRUMSEP_YAML = 'config_drumsep_mdx23c.yaml'
 KIT = ['kick', 'snare', 'toms', 'hh', 'ride', 'crash']
-KIT_LABEL = {'hh': 'hi-hat'}
+HELYX_KIT = ['kick', 'snare', 'perc', 'hh']            # Helyx's 5th stem, 'other', is music bleed: dropped
+KIT_LABEL = {'hh': 'hi-hat', 'perc': 'percussion'}
 MIX_ORDER = ['drums', 'bass', 'vocals', 'guitar', 'piano', 'other']
 PREVIEW_SR = 22050
 
@@ -95,11 +99,14 @@ class Models:
     """Keeps the loaded separators between jobs, so only the first song pays the load time.
     Only touched from the single worker thread."""
 
-    def __init__(self, work_dir):
+    def __init__(self, work_dir, helyx=None):
+        """helyx: (checkpoint, config.yaml, MSST repo dir) to use our model for the kit pieces."""
         self.work = Path(work_dir)
         self.work.mkdir(parents=True, exist_ok=True)
         self.mix = self.mix_key = None
         self.kit = self.kit_key = None
+        self.helyx = helyx
+        self.kit_names = HELYX_KIT if helyx else KIT
 
     def _make(self, overlap=4):
         ensure_ffmpeg()
@@ -118,6 +125,10 @@ class Models:
         return self.mix
 
     def get_kit(self, overlap):
+        if self.helyx:
+            if self.kit is None:
+                self.kit, self.kit_key = HelyxKit(*self.helyx), overlap
+            return self.kit
         if self.kit_key != overlap:
             self.kit = None
             link_xport_drumsep()
@@ -130,6 +141,8 @@ class Models:
         for f in self.work.iterdir():              # leftovers from a crashed job
             if f.is_file():
                 f.unlink()
+        if isinstance(sep, HelyxKit):
+            return sep.split(audio, self.work)
         out = {}
         for o in sep.separate(str(audio)):
             p = Path(o)
@@ -138,6 +151,42 @@ class Models:
             lab = _label_of(p.name)
             if lab:
                 out[lab] = p
+        return out
+
+
+class HelyxKit:
+    """Our fine-tuned MDX23C, run with MSST's own loader and demix (the same code as eval/batch_eval.py)."""
+
+    def __init__(self, ckpt, config, msst_dir):
+        import torch
+        if str(msst_dir) not in sys.path:
+            sys.path.insert(0, str(msst_dir))
+        from utils.settings import get_model_from_config
+        model, cfg = get_model_from_config('mdx23c', str(config))
+        sd = torch.load(str(ckpt), map_location='cpu', weights_only=False)
+        for k in ('state_dict', 'model_state_dict', 'state'):
+            if isinstance(sd, dict) and k in sd:
+                sd = sd[k]
+        model.load_state_dict({k.replace('_orig_mod.', ''): v for k, v in sd.items()})
+        self.dev = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model, self.cfg = model.to(self.dev).eval(), cfg
+
+    def split(self, audio, work):
+        import numpy as np
+        import soundfile as sf
+        import torch
+        from utils.model_utils import demix
+        x, sr = sf.read(str(audio), dtype='float32', always_2d=True)
+        if x.shape[1] == 1:
+            x = np.repeat(x, 2, 1)
+        with torch.inference_mode():
+            res = demix(self.cfg, self.model, torch.tensor(x[:, :2].T), self.dev, 'mdx23c')
+        out = {}
+        for k in HELYX_KIT:
+            if k in res:
+                p = Path(work) / f'{k}.wav'
+                sf.write(str(p), np.asarray(res[k]).T, sr, subtype='PCM_24')
+                out[k] = p
         return out
 
 
@@ -251,7 +300,8 @@ def process(job, out_root, models, stage, preview_fmt='wav', max_seconds=None):
 
     stage('Making previews')
     out = []
-    for name in KIT + MIX_ORDER:
+    kit_names = getattr(models, 'kit_names', KIT)
+    for name in kit_names + MIX_ORDER:
         f = out_dir / f'{name}.wav'
         if not f.exists():
             continue
@@ -259,20 +309,27 @@ def process(job, out_root, models, stage, preview_fmt='wav', max_seconds=None):
         save_preview(f, out_dir / 'preview' / pv)
         level = rms_db(f)
         out.append(dict(name=f.name, preview=pv, stem=name, label=KIT_LABEL.get(name, name),
-                        group='kit' if name in KIT else 'mix',
+                        group='kit' if name in kit_names else 'mix',
                         quiet=bool(level is not None and level < -60), db=level))
-    missing = [k for k in KIT if not (out_dir / f'{k}.wav').exists()]
+    missing = [k for k in kit_names if not (out_dir / f'{k}.wav').exists()]
     note = f'Missing kit pieces: {", ".join(missing)}' if missing else ''
 
     stage('Making one-shots')
     shots = []
     try:                                       # a nice extra; never fail the split over it
-        import oneshots
         song = safe_name(Path(job['name']).stem)[:60]
+        say = lambda line: stage(f'Making one-shots — {line}')   # noqa: E731
+        if getattr(models, 'helyx', None):     # Helyx stems: average every hit, snare+perc read together
+            kd = str(Path(__file__).resolve().parent / 'kitmatch')
+            if kd not in sys.path:
+                sys.path.insert(0, kd)
+            import clean
+            made = clean.write_kit(out_dir, out_dir / 'one-shots', prefix=f'{song} - ', log=say)
+        else:
+            import oneshots
+            made = oneshots.make_kit(out_dir, out_dir / 'one-shots', prefix=f'{song} - ', log=say)
         shots = [dict(name=r['name'], label=r['label'], piece=r['piece'], seconds=r['seconds'],
-                      count=r['count'])
-                 for r in oneshots.make_kit(out_dir, out_dir / 'one-shots', prefix=f'{song} - ',
-                                            log=lambda line: stage(f'Making one-shots — {line}'))]
+                      count=r['count']) for r in made]
     except Exception as e:
         print(f'one-shots failed: {type(e).__name__}: {e}', flush=True)
     return dict(stems=out, shots=shots, out_dir=out_dir.name, bpm=bpm, duration=round(dur, 1), note=note)

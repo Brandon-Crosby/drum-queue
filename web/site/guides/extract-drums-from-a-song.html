@@ -2,7 +2,7 @@
 <html lang="en"><head>
 {{HEAD}}
 <title>How to extract drums from a song (kick, snare, hats) | {{SITE_NAME}}</title>
-<meta name="description" content="Step-by-step: pull the drums out of a finished song and split them into kick, snare, toms, hi-hat, ride and crash stems.">
+<meta name="description" content="Step-by-step: pull the drums out of a finished song and split them into kick, snare, percussion and hi-hat stems.">
 <link rel="canonical" href="https://{{DOMAIN}}/guides/extract-drums-from-a-song">
 </head><body>
 {{HEADER}}
@@ -12,8 +12,8 @@
 
 <h2>Why it takes two steps</h2>
 <p>General stem splitters are trained to separate four or six broad instruments: vocals, bass, drums, and "other" (some models add guitar and piano). They give you <em>one</em> drum stem with the whole kit summed together.</p>
-<p>To get individual pieces, a second model that was trained only on drum kits listens to that drum stem and pulls it apart into kick, snare, toms, hi-hat, ride and crash. Running the drum-only model on the full mix works worse, because it was never trained to ignore bass, vocals and synths.</p>
-<p>{{SITE_NAME}} runs both steps for you: <strong>Demucs</strong> first, then <strong>MDX23C DrumSep</strong> on the drum stem it produces.</p>
+<p>To get individual pieces, a second model that was trained only on drum kits listens to that drum stem and pulls it apart into kick, snare, percussion and hi-hat. Running the drum-only model on the full mix works worse, because it was never trained to ignore bass, vocals and synths.</p>
+<p>{{SITE_NAME}} runs both steps for you: <strong>Demucs</strong> first, then <strong>Helyx</strong>, our drum model, on the drum stem it produces.</p>
 
 <h2>Step by step</h2>
 <ol>

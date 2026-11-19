@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en"><head>
 {{HEAD}}
-<title>{{SITE_NAME}}: split drums into kick, snare, hi-hat &amp; cymbals (free)</title>
-<meta name="description" content="Free online drum splitter. Upload a song and get separate kick, snare, toms, hi-hat, ride and crash stems, plus bass, vocals and the rest of the mix.">
+<title>{{SITE_NAME}}: split drums into kick, snare, hi-hat &amp; percussion (free)</title>
+<meta name="description" content="Free online drum splitter. Upload a song and get separate kick, snare, percussion and hi-hat stems, plus bass, vocals and the rest of the mix.">
 <link rel="canonical" href="https://{{DOMAIN}}/">
 {{TURNSTILE_TAG}}
 <script>window.SITE={turnstile:"{{TURNSTILE_SITEKEY}}",client:"{{ADSENSE_CLIENT}}",waitSlot:"{{ADSENSE_WAIT_SLOT}}"};</script>
@@ -14,7 +14,7 @@
       "@type": "WebApplication",
       "name": "{{SITE_NAME}}",
       "url": "https://{{DOMAIN}}/",
-      "description": "Free online drum splitter. Upload a song and get separate kick, snare, toms, hi-hat, ride and crash stems, plus bass, vocals and the rest of the mix.",
+      "description": "Free online drum splitter. Upload a song and get separate kick, snare, percussion and hi-hat stems, plus bass, vocals and the rest of the mix.",
       "applicationCategory": "MultimediaApplication",
       "operatingSystem": "Any (runs in a web browser)",
       "browserRequirements": "Requires a modern web browser with JavaScript",
@@ -30,7 +30,7 @@
         {"@type": "Question", "name": "What happens to my files?", "acceptedAnswer": {"@type": "Answer", "text": "Your upload is deleted as soon as it has been split. The stems are kept for 24 hours so you can come back and download them, then deleted."}},
         {"@type": "Question", "name": "Why is there some bleed between pieces?", "acceptedAnswer": {"@type": "Answer", "text": "Separation is never perfect. Hats and cymbals share a lot of the same frequencies, and reverb gets split between pieces. Lossless files (wav or flac) give cleaner results than low-bitrate mp3s."}},
         {"@type": "Question", "name": "Can I upload any song?", "acceptedAnswer": {"@type": "Answer", "text": "Only upload audio you have the right to use: your own music, licensed material, or audio you're studying for personal practice where that's allowed."}},
-        {"@type": "Question", "name": "A piece came out silent. Why?", "acceptedAnswer": {"@type": "Answer", "text": "If a song has no ride cymbal (or no toms), that stem will be close to silent. It's marked \"silent\" in the mixer."}}
+        {"@type": "Question", "name": "A piece came out silent. Why?", "acceptedAnswer": {"@type": "Answer", "text": "If a song has no percussion, that stem will be close to silent. It's marked \"silent\" in the mixer."}}
       ]
     }
   ]
@@ -41,8 +41,8 @@
 <main class="wrap">
 <section class="hero">
   <h1>Split any song's drums into the kit pieces</h1>
-  <p>Upload a song. Get the kick, snare, toms, hi-hat, ride and crash as separate stems, plus bass, vocals and the rest of the mix. Free, in your browser.</p>
-  <div class="pieces"><span>kick</span><span>snare</span><span>toms</span><span>hi-hat</span><span>ride</span><span>crash</span></div>
+  <p>Upload a song. Get the kick, snare, percussion and hi-hat as separate stems, plus bass, vocals and the rest of the mix. Free, in your browser.</p>
+  <div class="pieces"><span>kick</span><span>snare</span><span>percussion</span><span>hi-hat</span></div>
 </section>
 
 <div id="drop" class="card" tabindex="0" role="button" aria-label="Choose a song to split">
@@ -92,7 +92,7 @@
   <h2>How it works</h2>
   <div class="how">
     <div class="card"><h3>1. Drums out of the mix</h3><p>Demucs, a source-separation model from Meta AI, pulls the full drum track away from the bass, vocals and everything else.</p></div>
-    <div class="card"><h3>2. Kit into pieces</h3><p>A second model trained only on drums (MDX23C DrumSep) splits that track into kick, snare, toms, hi-hat, ride and crash.</p></div>
+    <div class="card"><h3>2. Kit into pieces</h3><p>A second model, Helyx, splits that track into kick, snare, percussion (toms, congas, bongos, cymbals) and hi-hat. It's our own drum model, trained further on Latin, Afro and house grooves.</p></div>
     <div class="card"><h3>3. Listen, then download</h3><p>Mute and solo each piece right here, then download WAVs of the pieces you want, or all of them as a zip.</p></div>
   </div>
 </section>
@@ -104,7 +104,7 @@
   <details><summary>What happens to my files?</summary><p>Your upload is deleted as soon as it has been split. The stems are kept for 24 hours so you can come back and download them, then deleted. See the <a href="/privacy">privacy policy</a>.</p></details>
   <details><summary>Why is there some bleed between pieces?</summary><p>Separation is never perfect. Hats and cymbals share a lot of the same frequencies, and reverb gets split between pieces. Lossless files (wav or flac) give cleaner results than low-bitrate mp3s. <a href="/guides/why-drum-stems-bleed">More on bleed and how to clean it up</a>.</p></details>
   <details><summary>Can I upload any song?</summary><p>Only upload audio you have the right to use: your own music, licensed material, or audio you're studying for personal practice where that's allowed. See the <a href="/terms">terms</a>.</p></details>
-  <details><summary>A piece came out silent. Why?</summary><p>If a song has no ride cymbal (or no toms), that stem will be close to silent. It's marked "silent" in the mixer.</p></details>
+  <details><summary>A piece came out silent. Why?</summary><p>If a song has no percussion, that stem will be close to silent. It's marked "silent" in the mixer.</p></details>
 </section>
 
 <section class="section">
