@@ -1,7 +1,7 @@
 """Download the beta team's kept splits from Modal to your Mac.
 
-    python web/backend/pull_team.py                # into ~/DrumSplits/team
-    python web/backend/pull_team.py --to SOME/DIR
+    bash -c '$(head -1 "$(which modal)" | cut -c3-) web/backend/pull_team.py'    # into ~/DrumSplits/team
+(runs it with the Python the modal command uses; add --to SOME/DIR inside the quotes to change the folder)
 
 Only new files are downloaded, so run it as often as you like. Each split arrives as
 '<date> <id> <song>/' with input/ (the upload), out/<song>/ (stems, one-shots, groove MIDI) and job.json.
@@ -20,7 +20,12 @@ def main():
     dest = Path(a.to).expanduser()
     vol = modal.Volume.from_name('drumsplit-data')
     n = skipped = 0
-    for e in vol.iterdir('/team', recursive=True):
+    try:
+        entries = list(vol.iterdir('/team', recursive=True))
+    except modal.exception.NotFoundError:
+        print('Nothing kept yet: no split has come through the team link so far.')
+        return
+    for e in entries:
         if e.type != modal.volume.FileEntryType.FILE:
             continue
         rel = e.path.lstrip('/')
