@@ -145,8 +145,9 @@ def unstack(kick_sounds, min_left_db=-20.0):
     left is loud enough, it's a stacked sound. Returns [(residual_seg, hits, from_index)]."""
     if len(kick_sounds) < 2:
         return []
+    marked = [s for s in kick_sounds if s.get('is_kick')]
     big = [s for s in kick_sounds if s['hits'] >= max(3, 0.1 * kick_sounds[0]['hits'])] or kick_sounds
-    lone = min(big, key=lambda s: brightness(s['seg']))
+    lone = marked[0] if marked else min(big, key=lambda s: brightness(s['seg']))
     K = lone['seg']
     out = []
     for n, s in enumerate(kick_sounds):
@@ -180,7 +181,7 @@ def unstack(kick_sounds, min_left_db=-20.0):
 
 
 # ---------- a whole kit from a split song
-def kit_sounds(stems, find, dedupe=0.95, min_left_db=-12.0):
+def kit_sounds(stems, find, dedupe=0.95, min_left_db=-12.0, log=lambda line: None):
     """stems: folder; find(role) -> stem path or None, roles kick/snare/perc/hh/other.
     Kicks from the kick stem. Snares, claps and percussion from the snare and perc stems added
     together (the model often files a snare as percussion and vice versa, so neither stem alone is
@@ -195,6 +196,7 @@ def kit_sounds(stems, find, dedupe=0.95, min_left_db=-12.0):
     if 'kick' in loaded:
         oth = [loaded[r] for r in loaded if r != 'kick']
         _, ks = sounds(loaded['kick'], others=oth)
+        ks, _ = clean_kicks(loaded['kick'], ks, log=log)
         if ks:
             stacked = unstack(ks, min_left_db=min_left_db)
             stacked_idx = {i for _, _, i, _ in stacked}
@@ -354,7 +356,7 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
     out_dir.mkdir(parents=True, exist_ok=True)
     have = {r: split_dir / f'{r}.wav' for r in ('kick', 'snare', 'perc', 'hh') if (split_dir / f'{r}.wav').exists()}
     log('Finding every hit and averaging the repeats')
-    ks = kit_sounds(split_dir, lambda r: have.get(r))
+    ks = kit_sounds(split_dir, lambda r: have.get(r), log=log)
     ks = _drop_impostors(ks, split_dir, log)
     namer = _namer(ref, log)
     out, parts = [], []
@@ -413,3 +415,70 @@ def write_groove(split_dir, out_dir, parts, prefix, have, log, title=''):
     log(f'groove MIDI: a {bars}-bar loop from bar {first} ({sum(len(m["times"]) for m in lp)} notes) '
         f'and the full song, at {bpm:g} BPM')
     return f
+
+
+# ---------- the kick: 808 thumps out, the kick's own groups back together
+def _kick_feats(x, on):
+    """Per hit: sub share (<60 Hz vs <300 Hz, first 60 ms) and decay (80-120 ms vs first 30 ms), dB."""
+    out = []
+    for i in on:
+        k = (x[i:i + int(0.2 * SR)].mean(1) if x.ndim == 2 else x[i:i + int(0.2 * SR)])
+        if len(k) < int(0.12 * SR):
+            out.append((0.0, 0.0))
+            continue
+        X = np.abs(np.fft.rfft(k[:int(0.06 * SR)], 8192)) ** 2
+        f = np.fft.rfftfreq(8192, 1 / SR)
+        sub = 10 * np.log10(X[f < 60].sum() / (X[f < 300].sum() + 1e-12) + 1e-12)
+        dec = 20 * np.log10((np.abs(k[int(0.08 * SR):int(0.12 * SR)]).max() + 1e-9)
+                            / (np.abs(k[:int(0.03 * SR)]).max() + 1e-9))
+        out.append((sub, dec))
+    return np.array(out)
+
+
+def split_808(x, on, min_gap_sub=3.0, min_gap_dec=5.0):
+    """Hits of one kick 'sound' that are really two things: the kick, and 808 notes thumping through the
+    kick stem. 2-means on sub share and decay; if the groups are clearly apart (the sub-heavy one more sub
+    by min_gap_sub dB AND dying faster by min_gap_dec dB) that group is the 808. Else all are kick.
+    -> mask of the hits that are the kick. (breakdown136 vs its FL MIDI: 93% of 808 thumps out; on test
+    beats with no 808 problem, no real kick removed.)"""
+    if len(on) < 8:
+        return np.ones(len(on), bool)
+    F = _kick_feats(x, on)
+    Z = (F - F.mean(0)) / (F.std(0) + 1e-9)
+    c = np.array([Z[np.argmin(Z[:, 0])], Z[np.argmax(Z[:, 0])]])
+    lab = np.zeros(len(on), int)
+    for _ in range(20):
+        lab = np.argmin(((Z[:, None, :] - c[None]) ** 2).sum(2), 1)
+        if lab.min() == lab.max():
+            return np.ones(len(on), bool)
+        c = np.array([Z[lab == j].mean(0) for j in (0, 1)])
+    m0, m1 = F[lab == 0].mean(0), F[lab == 1].mean(0)
+    heavy = 1 if m1[0] > m0[0] else 0
+    mh, ml = (m1, m0) if heavy == 1 else (m0, m1)
+    nh, nl = (lab == heavy).sum(), (lab != heavy).sum()
+    if (mh[0] - ml[0] >= min_gap_sub and ml[1] - mh[1] >= min_gap_dec and nh >= 4
+            and nl >= max(4, 0.15 * len(on))):
+        return lab != heavy
+    return np.ones(len(on), bool)
+
+
+def clean_kicks(kx, ks, log=lambda line: None):
+    """The kick stem's biggest group, minus the 808 notes thumping through it (split_808), averaged again
+    from the real kicks and marked as THE kick, so unstack() doesn't pick the darkest sound (an 808 wins
+    that). Untouched when there's no clear 808 split. (Tried: merging other groups whose attack matches
+    the kick. On the 17 test beats their attacks matched fakes as well as real kicks, so no.)
+    -> (groups, biggest first; number of 808 thumps removed)"""
+    if not ks:
+        return ks, 0
+    ks = sorted(ks, key=lambda k: -k['hits'])
+    k0 = ks[0]
+    keep = split_808(kx, k0['onsets'])
+    dropped = int((~keep).sum())
+    if not dropped:
+        return ks, 0
+    allon = np.sort(np.concatenate([k['onsets'] for k in ks]))
+    on = k0['onsets'][keep]
+    nxt = np.array([allon[allon > i][0] if (allon > i).any() else len(kx) for i in on])
+    kick = dict(k0, seg=average(kx, on, nxt)[0], onsets=on, hits=len(on), is_kick=True)
+    log(f'kick: {dropped} 808 notes taken out of the kick ({len(on)} real kick hits left)')
+    return [kick] + ks[1:], dropped
