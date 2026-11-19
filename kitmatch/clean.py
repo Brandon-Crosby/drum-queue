@@ -168,8 +168,11 @@ def unstack(kick_sounds, min_left_db=-20.0):
         kk = np.roll(K[:L], d, axis=0)
         res = S[:L] - a * kk
         left_db = 10 * np.log10(e / (float(_mono(S[:L]) @ _mono(S[:L])) + 1e-12) + 1e-12)
-        if left_db >= min_left_db and a > 0.2:
-            out.append((res.astype(np.float32), s['hits'], n, round(left_db, 1)))
+        if left_db >= min_left_db:
+            # a > 0.2: a kick with something on top -> keep what's left after taking the kick out.
+            # otherwise there's hardly any kick in it at all: a dark snare or perc the model filed as
+            # kick (it plays where no kick is) -> keep it whole.
+            out.append(((res if a > 0.2 else S[:L]).astype(np.float32), s['hits'], n, round(left_db, 1)))
     return out
 
 
