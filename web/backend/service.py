@@ -385,11 +385,12 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
                 if kit and s['group'] != 'kit':
                     continue
                 z.write(stem_file(jid, j, s['name']), f"{song}/{s['name']}")
-        f = open(tmp.name, 'rb')
-        os.unlink(tmp.name)                         # stays readable until the response closes
-        from fastapi.responses import StreamingResponse
-        return StreamingResponse(f, media_type='application/zip', headers={
-            'Content-Disposition': f'attachment; filename="{_ascii(song)}{" - one-shots" if shots else " - kit" if kit else ""}.zip"'})
+        # FileResponse sends the file in large chunks with its size up front. (StreamingResponse over a
+        # file object iterated it line by line - random tiny pieces of binary audio - so big zips
+        # crawled until the server's time limit cut them off mid-file.)
+        from starlette.background import BackgroundTask
+        return FileResponse(tmp.name, media_type='application/zip', background=BackgroundTask(os.unlink, tmp.name),
+                            filename=f'{song}{" - one-shots" if shots else " - kit" if kit else ""}.zip')
 
     @app.exception_handler(HTTPException)
     async def http_err(_, e):

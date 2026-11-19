@@ -140,7 +140,8 @@ class Splitter:
             vol.commit()
 
 
-@app.function(image=web_image, volumes={'/data': vol}, secrets=secrets, scaledown_window=300)
+@app.function(image=web_image, volumes={'/data': vol}, secrets=secrets, scaledown_window=300,
+              timeout=1800)                     # a full split's zip is a few hundred MB on a slow connection
 @modal.concurrent(max_inputs=40)
 @modal.asgi_app()
 def api():
