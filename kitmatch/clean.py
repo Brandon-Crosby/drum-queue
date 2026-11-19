@@ -246,6 +246,13 @@ def _spec(seg, lo=60, hi=3000):
     return X / (np.linalg.norm(X) + 1e-9)
 
 
+def _sub_share(seg, cut=150):
+    m = seg.mean(1) if seg.ndim == 2 else seg
+    X = np.abs(np.fft.rfft(m[:int(0.15 * SR)], 16384)) ** 2
+    f = np.fft.rfftfreq(16384, 1 / SR)
+    return float(X[f < cut].sum() / (X.sum() + 1e-12))
+
+
 def _drop_impostors(ks, split_dir, log, bass_like=0.5, kick_like=0.9):
     """Snare/perc sounds that are really the bass (distorted bass the first stage left in the drums)
     or really the kick (kick leaking into the perc stem). Bass: the sound's spectrum matches what the
@@ -257,6 +264,9 @@ def _drop_impostors(ks, split_dir, log, bass_like=0.5, kick_like=0.9):
     keep = []
     for s in ks:
         if s['role'] in ('snare', 'perc'):
+            if _sub_share(s['seg']) > 0.85:          # nearly all sub: a piece of 808/bass, not a drum
+                log(f'dropped a {s["role"]} sound heard {s["hits"]}x: it is almost all sub-bass (808)')
+                continue
             if main_kick is not None and float(s['fp'] @ main_kick) >= kick_like:
                 log(f'dropped a {s["role"]} sound heard {s["hits"]}x: it is the kick leaking in')
                 continue
