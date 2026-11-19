@@ -405,7 +405,10 @@ def write_groove(split_dir, out_dir, parts, prefix, have, log, title=''):
         on = np.sort(np.asarray(p['onsets']))
         mid.append(dict(label=p['label'], times=on / SR, velocities=groove.velocities(sum(x[:n] for x in xs), on, SR)))
     mid, start = groove.align(mid, bpm)
+    groove.write(Path(out_dir) / f'{prefix}Groove (full song).mid', mid, bpm, title=song)
+    lp, first, bars = groove.loop(mid, bpm)
     f = Path(out_dir) / f'{prefix}Groove.mid'
-    groove.write(f, mid, bpm, title=song)
-    log(f'groove MIDI: {sum(len(m["times"]) for m in mid)} notes at {bpm:g} BPM, bar 1 = {start:.2f}s into the song')
+    groove.write(f, lp, bpm, title=f'{song} - {bars} bars')
+    log(f'groove MIDI: a {bars}-bar loop from bar {first} ({sum(len(m["times"]) for m in lp)} notes) '
+        f'and the full song, at {bpm:g} BPM')
     return f

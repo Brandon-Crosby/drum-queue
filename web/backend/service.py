@@ -401,6 +401,9 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
                     z.write(shot_file(jid, j, s['name']), f"{song} - one-shots/{s['name']}")
                 if j.get('groove'):
                     z.write(groove_file(jid, j), f"{song} - one-shots/{j['groove']}")
+                    full = groove_file(jid, j).with_name(j['groove'].replace('Groove.mid', 'Groove (full song).mid'))
+                    if full.exists():
+                        z.write(full, f"{song} - one-shots/{full.name}")
             for s in ([] if shots else j['stems']):
                 if kit and s['group'] != 'kit':
                     continue

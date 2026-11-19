@@ -92,6 +92,46 @@ def align(parts, bpm):
     return [dict(p, times=p['times'] - start) for p in parts], start
 
 
+def loop(parts, bpm, max_bars=8):
+    """The beat's main groove, max_bars long (4 if the pattern truly repeats every 4 bars). Bars are
+    scored by how much of the kit plays in them plus how typical they are of the song (so the main
+    groove wins over an intro, a breakdown or a one-off fill); the best-scoring window starting on a
+    4-bar boundary is kept. parts must already be aligned (bar 1 at t=0).
+    -> (parts cut to the loop and shifted to start at 0, first bar number, bars)"""
+    step = 60 / bpm / 4
+    bar = 16 * step
+    nb = int(max(p['times'].max() for p in parts if len(p['times'])) / bar) + 1
+    if nb <= max_bars:
+        return parts, 1, nb
+    G = np.zeros((nb, len(parts), 16))
+    for k, p in enumerate(parts):
+        st = np.round(np.asarray(p['times']) / step).astype(int)
+        st = st[(st >= 0) & (st < nb * 16)]
+        G[st // 16, k, st % 16] = 1
+    V = G.reshape(nb, -1)
+    U = V / (np.linalg.norm(V, axis=1, keepdims=True) + 1e-9)
+    typical = (U @ U.T).mean(1)                                  # how much each bar looks like the rest
+    coverage = (G.sum(2) > 0).mean(1)                            # share of the kit's sounds playing
+    score = typical + coverage
+    best, best_s = 0, -1
+    for b in range(0, nb - max_bars + 1, 4):
+        sc = score[b:b + max_bars].mean()
+        if sc > best_s:
+            best, best_s = b, sc
+    bars = max_bars
+    if max_bars == 8 and best + 8 <= nb:                         # 4 bars that repeat exactly: just 4
+        a, b2 = V[best:best + 4], V[best + 4:best + 8]
+        if a.sum() > 0 and np.array_equal(a > 0, b2 > 0):
+            bars = 4
+    t0, t1 = best * bar, (best + bars) * bar
+    out = []
+    for p in parts:
+        t = np.asarray(p['times'])
+        m = (t >= t0 - step / 2) & (t < t1 - step / 2)
+        out.append(dict(p, times=np.maximum(t[m] - t0, 0), velocities=np.asarray(p['velocities'])[m]))
+    return [p for p in out if len(p['times'])], best + 1, bars
+
+
 def write(path, parts, bpm, title=''):
     """parts: [dict(label, times (s), velocities 1-127)]. Writes a type-1 MIDI file."""
     tick = lambda s: int(round(s * bpm / 60 * PPQ))            # noqa: E731
