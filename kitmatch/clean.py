@@ -202,7 +202,8 @@ def kit_sounds(stems, find, dedupe=0.95, min_left_db=-12.0, log=lambda line: Non
             stacked_idx = {i for _, _, i, _ in stacked}
             for i, s in enumerate(ks):
                 if i not in stacked_idx:
-                    out.append(dict(role='kick', seg=s['seg'], hits=s['hits'], onsets=s['onsets']))
+                    out.append(dict(role='kick', seg=s['seg'], hits=s['hits'], onsets=s['onsets'],
+                                    shot=s.get('shot')))
             for res, h, i, _ in stacked:
                 out.append(dict(role='snare', seg=res, hits=h, source='stacked on kick', onsets=ks[i]['onsets']))
     sp = [loaded[r] for r in ('snare', 'perc') if r in loaded]
@@ -434,7 +435,7 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
             if drop:
                 continue
             count[name] = count.get(name, 0) + 1
-            seg = s['seg']
+            seg = s['shot'] if s.get('shot') is not None else s['seg']
             if role == 'sp' and _noisiness(seg) < 0.1:
                 fd = int(0.02 * SR)
                 longer, added, why = extend_tonal(seg[:-fd] if len(seg) > 3 * fd else seg)
@@ -530,10 +531,9 @@ def split_808(x, on, min_gap_sub=3.0, min_gap_dec=5.0):
 
 
 def clean_kicks(kx, ks, log=lambda line: None):
-    """The kick stem's biggest group, minus the 808 notes thumping through it (split_808), averaged again
-    from the real kicks and marked as THE kick, so unstack() doesn't pick the darkest sound (an 808 wins
-    that). Untouched when there's no clear 808 split. (Tried: merging other groups whose attack matches
-    the kick. On the 17 test beats their attacks matched fakes as well as real kicks, so no.)
+    """The kick stem's biggest group is THE kick (so unstack() doesn't pick the darkest sound, an 808).
+    808 notes thumping through it are taken out (split_808); then the one-shot is one real, typical hit
+    (typical_hit) rather than an average, which dulls the top end. Its length is what the average allowed.
     -> (groups, biggest first; number of 808 thumps removed)"""
     if not ks:
         return ks, 0
@@ -541,11 +541,60 @@ def clean_kicks(kx, ks, log=lambda line: None):
     k0 = ks[0]
     keep = split_808(kx, k0['onsets'])
     dropped = int((~keep).sum())
-    if not dropped:
-        return ks, 0
-    allon = np.sort(np.concatenate([k['onsets'] for k in ks]))
     on = k0['onsets'][keep]
+    allon = np.sort(np.concatenate([k['onsets'] for k in ks]))
     nxt = np.array([allon[allon > i][0] if (allon > i).any() else len(kx) for i in on])
-    kick = dict(k0, seg=average(kx, on, nxt)[0], onsets=on, hits=len(on), is_kick=True)
-    log(f'kick: {dropped} 808 notes taken out of the kick ({len(on)} real kick hits left)')
+    avg = average(kx, on, nxt)[0] if dropped else k0['seg']
+    ref = kx[on[int(np.argmax([np.abs(kx[i:i + int(0.03 * SR)]).max() for i in on]))]:][:int(0.04 * SR)]
+    seg, _ = typical_hit(kx, align(kx, on, ref), nxt, len(avg))
+    # decisions downstream (unstacking, look-alikes) keep using the average; only the file is the real hit
+    kick = dict(k0, seg=avg, shot=seg, onsets=on, hits=len(on), is_kick=bool(dropped))
+    if dropped:
+        log(f'kick: {dropped} 808 notes taken out of the kick ({len(on)} real kick hits left)')
     return [kick] + ks[1:], dropped
+
+
+# ---------- the kick: one real hit, not an average
+def _sustain_db(x, on, nxt):
+    """Low end (<100 Hz) left 150-250 ms after each hit vs its first 40 ms, dB (nan if the next hit comes first).
+    A clean kick has died away by then; an 808 under it keeps ringing (breakdown136 vs its 808 stem:
+    median -38 dB without, -3 dB with)."""
+    from scipy.signal import butter, sosfiltfilt
+    L = sosfiltfilt(butter(4, 100, 'low', fs=SR, output='sos'), _mono(x))
+    out = []
+    for i, j in zip(on, nxt):
+        e = min(j, i + int(0.25 * SR))
+        if e - i < int(0.17 * SR):
+            out.append(np.nan)
+            continue
+        a0 = np.sqrt(np.mean(L[i:i + int(0.04 * SR)] ** 2)) + 1e-9
+        out.append(20 * np.log10(np.sqrt(np.mean(L[i + int(0.15 * SR):e] ** 2)) / a0 + 1e-9))
+    return np.array(out)
+
+
+def typical_hit(x, on, nxt, length, gap=15.0):
+    """The single hit that best represents the sound: among hits with no 808 still ringing under them, the
+    one whose first 80 ms spectrum is closest to the median of all of them (so not one with a stray snare on
+    top). Averaging dulls a kick's top end; the producer's ear preferred a real hit (breakdown136, Nov 2026).
+    -> (segment of `length` samples with a short fade, index into on) or (None, None)."""
+    if len(on) < 3:
+        return None, None
+    s = _sustain_db(x, on, nxt)
+    ok = ~np.isnan(s)
+    lower = s[ok][s[ok] <= np.median(s[ok])] if ok.sum() else s[ok]
+    cand = np.arange(len(on))
+    if ok.sum() >= 8 and len(lower):
+        clean_ = ~(ok & (s > np.median(lower) + gap))
+        if clean_.sum() >= max(3, 0.3 * len(on)):
+            cand = np.flatnonzero(clean_)
+    cand = [c for c in cand if on[c] + length <= len(x)]
+    if len(cand) < 3:
+        return None, None
+    w = min(length, int(0.08 * SR))
+    win = np.hanning(w)
+    sp = np.array([np.log10(np.abs(np.fft.rfft(_mono(x[on[c]:on[c] + w]) * win)) + 1e-9) for c in cand])
+    pick = cand[int(np.argmin(((sp - np.median(sp, 0)) ** 2).sum(1)))]
+    seg = x[on[pick]:on[pick] + length].astype(np.float32).copy()
+    fd = min(length, int(0.02 * SR))
+    seg[length - fd:] *= (np.linspace(1, 0, fd) ** 2)[:, None] if seg.ndim == 2 else np.linspace(1, 0, fd) ** 2
+    return seg, pick
