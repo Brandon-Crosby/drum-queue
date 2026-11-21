@@ -53,7 +53,7 @@ augmentations:
   # helyx-4 (train/mixaug.py, patched into MSST by msst_patch.py):
   aligned_prob: 0.5      # half the mixes are one song's stems as the producer placed them (real grooves,
                          # real stacking) instead of stems from different songs
-  restack_prob: 0.3      # lay the snare's main hit on some kicks, half the time darkened
+  restack_prob: 0.5      # lay the snare's main hit on some kicks, half the time darkened (helyx-5: 0.3 -> 0.5)
   master_prob: 0.5       # master chain on the whole mix: EQ, bus comp, 4-14 dB into a limiter, clipper
   loudness: true
   loudness_min: 0.5
