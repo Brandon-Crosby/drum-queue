@@ -546,7 +546,7 @@ def clean_kicks(kx, ks, log=lambda line: None):
     nxt = np.array([allon[allon > i][0] if (allon > i).any() else len(kx) for i in on])
     avg = average(kx, on, nxt)[0] if dropped else k0['seg']
     ref = kx[on[int(np.argmax([np.abs(kx[i:i + int(0.03 * SR)]).max() for i in on]))]:][:int(0.04 * SR)]
-    seg, _ = typical_hit(kx, align(kx, on, ref), nxt, len(avg), avg=avg)
+    seg, _ = typical_hit(kx, align(kx, on, ref), nxt, len(avg))
     # decisions downstream (unstacking, look-alikes) keep using the average; only the file is the real hit
     kick = dict(k0, seg=avg, shot=seg, onsets=on, hits=len(on), is_kick=bool(dropped))
     if dropped:
@@ -572,9 +572,10 @@ def _sustain_db(x, on, nxt):
     return np.array(out)
 
 
-def typical_hit(x, on, nxt, length, avg=None, gap=15.0):
+def typical_hit(x, on, nxt, length, gap=15.0):
     """The single hit that best represents the sound: among hits with no 808 still ringing under them, the
-    one that best matches the averaged sound (so not one with a stray snare or 808 on top). Averaging dulls a kick's top end; the producer's ear preferred a real hit (breakdown136, Nov 2026).
+    one whose first 80 ms spectrum is closest to the median of all of them (so not one with a stray snare on
+    top). Averaging dulls a kick's top end; the producer's ear preferred a real hit (breakdown136, Nov 2026).
     -> (segment of `length` samples with a short fade, index into on) or (None, None)."""
     if len(on) < 3:
         return None, None
@@ -590,27 +591,10 @@ def typical_hit(x, on, nxt, length, avg=None, gap=15.0):
     if len(cand) < 3:
         return None, None
     w = min(length, int(0.08 * SR))
-    if avg is not None:
-        # the hit that looks most like the average: the average is mostly real kick with the hats, snares and
-        # 808 thumps on top averaged away, so the best match is a real kick with the least on top of it
-        # (breakdown136 vs its MIDI: real clean kicks match ~0.88, 808 thumps ~0.42, kicks over an 808 ~-0.1).
-        # Among near-equal matches, the one with the most room before the next hit, so a long kick isn't
-        # chopped mid-sound (hyperbole: every hit cut at ~110 ms while still at full level).
-        # (Tried preferring a near-equal match with more room before the next hit: it swapped hyperbole's kick
-        # for a worse-sounding hit. The best match always wins; a short one gets a longer fade instead.)
-        a = _mono(avg)[:w]
-        r = np.array([np.corrcoef(_mono(x[on[c]:on[c] + w]), a)[0, 1] for c in cand])
-        pick = cand[int(np.argmax(r))]
-        # length stays what the average allowed (tried ending it by its own decay: cut several kicks too short)
-    else:
-        win = np.hanning(w)
-        sp = np.array([np.log10(np.abs(np.fft.rfft(_mono(x[on[c]:on[c] + w]) * win)) + 1e-9) for c in cand])
-        pick = cand[int(np.argmin(((sp - np.median(sp, 0)) ** 2).sum(1)))]
+    win = np.hanning(w)
+    sp = np.array([np.log10(np.abs(np.fft.rfft(_mono(x[on[c]:on[c] + w]) * win)) + 1e-9) for c in cand])
+    pick = cand[int(np.argmin(((sp - np.median(sp, 0)) ** 2).sum(1)))]
     seg = x[on[pick]:on[pick] + length].astype(np.float32).copy()
-    m = _mono(seg)
-    pk = np.abs(m[:int(0.05 * SR)]).max() + 1e-9
-    end_db = 20 * np.log10(np.sqrt(np.mean(m[-int(0.01 * SR):] ** 2)) / pk + 1e-9)
-    # still loud where it has to stop (the next hit comes early): fade over up to 40% of it, not 20 ms
-    fd = min(length, int(0.02 * SR) if end_db < -30 else max(int(0.02 * SR), int(0.4 * length)))
+    fd = min(length, int(0.02 * SR))
     seg[length - fd:] *= (np.linspace(1, 0, fd) ** 2)[:, None] if seg.ndim == 2 else np.linspace(1, 0, fd) ** 2
     return seg, pick
