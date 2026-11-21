@@ -420,6 +420,7 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
     ks = kit_sounds(split_dir, lambda r: have.get(r), log=log)
     ks = _drop_impostors(ks, split_dir, log)
     namer = _namer(ref, log)
+    pool = None                                    # snare + perc stems, loaded when a snare needs a real hit
     out, parts = [], []
     for role in ('kick', 'sp', 'hh'):
         mine = sorted([s for s in ks if GROUP.get(s['role']) == role and s['hits'] >= min_hits],
@@ -436,6 +437,21 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
                 continue
             count[name] = count.get(name, 0) + 1
             seg = s['shot'] if s.get('shot') is not None else s['seg']
+            if role == 'sp' and name == 'Snare' and s.get('onsets') is not None and len(s['onsets']) >= 4:
+                # a sound the namer is sure is a snare: one real, typical hit, like the kick (the producer
+                # picked the single hit on all three snares A/B'd, Nov 2026; Snare-Perc and hats stay averaged)
+                if pool is None:
+                    xs = [H.load(have[r]) for r in ('snare', 'perc') if r in have]
+                    m = min(len(v) for v in xs)
+                    pool = sum(v[:m] for v in xs)
+                on = np.sort(np.asarray(s['onsets']))
+                on = on[on + len(seg) <= len(pool)]
+                if len(on) >= 4:
+                    nxt = np.append(on[1:], len(pool))
+                    ref = pool[on[int(np.argmax([np.abs(pool[i:i + int(0.03 * SR)]).max() for i in on]))]:][:int(0.04 * SR)]
+                    hit, _ = typical_hit(pool, align(pool, on, ref), nxt, len(seg))
+                    if hit is not None:
+                        seg = hit
             if role == 'sp' and _noisiness(seg) < 0.1:
                 fd = int(0.02 * SR)
                 longer, added, why = extend_tonal(seg[:-fd] if len(seg) > 3 * fd else seg)
