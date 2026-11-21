@@ -546,7 +546,7 @@ def clean_kicks(kx, ks, log=lambda line: None):
     nxt = np.array([allon[allon > i][0] if (allon > i).any() else len(kx) for i in on])
     avg = average(kx, on, nxt)[0] if dropped else k0['seg']
     ref = kx[on[int(np.argmax([np.abs(kx[i:i + int(0.03 * SR)]).max() for i in on]))]:][:int(0.04 * SR)]
-    seg, _ = typical_hit(kx, align(kx, on, ref), nxt, len(avg))
+    seg, _ = typical_hit(kx, align(kx, on, ref), nxt, len(avg), avg=avg)
     # decisions downstream (unstacking, look-alikes) keep using the average; only the file is the real hit
     kick = dict(k0, seg=avg, shot=seg, onsets=on, hits=len(on), is_kick=bool(dropped))
     if dropped:
@@ -572,10 +572,31 @@ def _sustain_db(x, on, nxt):
     return np.array(out)
 
 
-def typical_hit(x, on, nxt, length, gap=15.0):
+def _natural_end(seg, blk=int(0.01 * SR), floor_db=-36.0, rise_db=6.0):
+    """Where a single hit ends: when it has fallen floor_db under its peak, or when something starts rising
+    again (the next sound, bleed) after the first 50 ms."""
+    m = _mono(seg)
+    k = len(m) // blk
+    if k < 3:
+        return len(m)
+    e = 20 * np.log10(np.sqrt((m[:k * blk] ** 2).reshape(k, blk).mean(1)) + 1e-9)
+    p = int(np.argmax(e[:max(1, int(0.05 * SR) // blk)]))      # the hit's own peak, not a later sound's
+    end = k
+    low = e[p]
+    for i in range(p + 1, k):
+        if e[i] < e[p] + floor_db:
+            end = i
+            break
+        low = min(low, e[i])
+        if i * blk > 0.05 * SR and e[i] > low + rise_db:
+            end = i - 1
+            break
+    return max(blk * 3, end * blk)
+
+
+def typical_hit(x, on, nxt, length, avg=None, gap=15.0):
     """The single hit that best represents the sound: among hits with no 808 still ringing under them, the
-    one whose first 80 ms spectrum is closest to the median of all of them (so not one with a stray snare on
-    top). Averaging dulls a kick's top end; the producer's ear preferred a real hit (breakdown136, Nov 2026).
+    one that best matches the averaged sound (so not one with a stray snare or 808 on top). Averaging dulls a kick's top end; the producer's ear preferred a real hit (breakdown136, Nov 2026).
     -> (segment of `length` samples with a short fade, index into on) or (None, None)."""
     if len(on) < 3:
         return None, None
@@ -591,9 +612,25 @@ def typical_hit(x, on, nxt, length, gap=15.0):
     if len(cand) < 3:
         return None, None
     w = min(length, int(0.08 * SR))
-    win = np.hanning(w)
-    sp = np.array([np.log10(np.abs(np.fft.rfft(_mono(x[on[c]:on[c] + w]) * win)) + 1e-9) for c in cand])
-    pick = cand[int(np.argmin(((sp - np.median(sp, 0)) ** 2).sum(1)))]
+    if avg is not None:
+        # the hit that looks most like the average: the average is mostly real kick with the hats, snares and
+        # 808 thumps on top averaged away, so the best match is a real kick with the least on top of it
+        # (breakdown136 vs its MIDI: real clean kicks match ~0.88, 808 thumps ~0.42, kicks over an 808 ~-0.1).
+        # Among near-equal matches, the one with the most room before the next hit, so a long kick isn't
+        # chopped mid-sound (hyperbole: every hit cut at ~110 ms while still at full level).
+        a = _mono(avg)[:w]
+        r = np.array([np.corrcoef(_mono(x[on[c]:on[c] + w]), a)[0, 1] for c in cand])
+        good = [c for c, v in zip(cand, r) if v >= r.max() - 0.03]
+        pick = max(good, key=lambda c: nxt[c] - on[c])
+        room = int(min(nxt[pick] - on[pick] - 0.015 * SR, MAX_LEN * SR, len(x) - on[pick]))
+        if room > length:
+            length = max(length, _natural_end(x[on[pick]:on[pick] + room]))
+        else:
+            length = max(int(0.03 * SR), min(length, room))
+    else:
+        win = np.hanning(w)
+        sp = np.array([np.log10(np.abs(np.fft.rfft(_mono(x[on[c]:on[c] + w]) * win)) + 1e-9) for c in cand])
+        pick = cand[int(np.argmin(((sp - np.median(sp, 0)) ** 2).sum(1)))]
     seg = x[on[pick]:on[pick] + length].astype(np.float32).copy()
     fd = min(length, int(0.02 * SR))
     seg[length - fd:] *= (np.linspace(1, 0, fd) ** 2)[:, None] if seg.ndim == 2 else np.linspace(1, 0, fd) ** 2
