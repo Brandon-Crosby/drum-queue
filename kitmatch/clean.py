@@ -408,6 +408,27 @@ def _namer(ref, log):
     return name
 
 
+def _drop_echo_hats(hats, ks, log, share=0.98, win=0.012):
+    """A 'hat' whose every hit lands on a kick, snare or perc hit is that drum's sizzle bleeding into the
+    hat stem, not a hat (17 test beats vs the real tracks: 9 of 25 fake kit hats did this 98-100% of the time;
+    no real hat over 97%). The main hat always stays; the slot isn't refilled."""
+    other = [np.asarray(s['onsets']) for s in ks if GROUP.get(s['role']) != 'hh' and s.get('onsets') is not None]
+    if not hats or not other:
+        return hats
+    other = np.sort(np.concatenate(other))
+    keep = [hats[0]]
+    for h in hats[1:]:
+        on = np.asarray(h.get('onsets') if h.get('onsets') is not None else [])
+        if len(on) >= 4:
+            j = np.clip(np.searchsorted(other, on), 1, len(other) - 1)
+            near = np.minimum(np.abs(other[j] - on), np.abs(other[j - 1] - on)) < int(win * SR)
+            if near.mean() >= share:
+                log(f'hats: left out a {h["hits"]}-hit sound that only ever plays with another drum (its bleed)')
+                continue
+        keep.append(h)
+    return keep
+
+
 def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, ref=None):
     """split_dir holds kick/snare/perc/hh.wav from Helyx. Writes the strongest few sounds per piece
     (each averaged over all its hits, snare and perc read together, kick-stem stowaways rescued) as
@@ -428,6 +449,8 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
         if role == 'sp':
             mine = _merge_same_core(mine, log)
         mine = mine[:MAX_SOUNDS[role]]
+        if role == 'hh':
+            mine = _drop_echo_hats(mine, ks, log)
         log(f'{LABELS[role].lower()}: {len(mine)} sound{"" if len(mine) == 1 else "s"}'
             + (f' (heard {", ".join(str(s["hits"]) for s in mine)} times)' if mine else ''))
         count = {}
