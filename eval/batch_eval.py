@@ -44,6 +44,7 @@ image = (
                   f'cd /msst && git checkout -q {MSST_COMMIT}')
     .uv_pip_install('ml_collections', 'omegaconf', 'pyyaml', 'tqdm')
     .add_local_file(HERE / 'score.py', '/root/score.py')
+    .add_local_file(HERE / 'junk.py', '/root/junk.py')
 )
 
 
@@ -147,8 +148,21 @@ class Bench:
         if p.returncode:
             return {'beat': beat, 'error': (p.stdout + p.stderr)[-800:]}
         s = json.loads((W / 's.json').read_text())
+        import sys
+        sys.path.insert(0, '/root')
+        from junk import hit_junk                     # how clean each hit is, the way it sounds (see junk.py)
+        junk = {}
+        for piece, parts in (('kick', ['kick']), ('snare', ['snare', 'toms']), ('hh', ['hh'])):
+            tf = W / 'truth' / f'{piece}.wav'
+            ps = [est / f'{q}.wav' for q in parts if (est / f'{q}.wav').exists()]
+            if not tf.exists() or not ps:
+                continue
+            t_, srt = sf.read(str(tf), dtype='float32')
+            ys = [sf.read(str(q), dtype='float32') for q in ps]
+            m = min(len(y) for y, _ in ys)
+            junk[piece] = hit_junk(t_, sum(y[:m] for y, _ in ys), srt, sr_ours=ys[0][1])
         return {'beat': beat, 'split': want, 'gpu_s': round(gpu_s), 'sdr': s.get('sdr', {}), 'leakage': s.get('leakage', {}),
-                'hits': s.get('hits', {})}
+                'hits': s.get('hits', {}), 'junk': junk}
 
 
 def board(results):
@@ -168,6 +182,22 @@ def board(results):
         lines.append('-' * 90)
         lines.append(f"{'MEDIAN (' + str(len(ok)) + ' beats)':34}" + ''.join(f"{med('sdr', p):8.1f}" for p in PIECES) + '   '
                      + f"{med('leakage', 'kick'):9.0f}%{med('leakage', 'snare'):10.0f}%{med('leakage', 'hh'):7.0f}%")
+    jk = [r for r in ok if r.get('junk')]
+    if jk:
+        import statistics as st
+        lines.append('\nHit cleanliness: leftover junk under each real hit, dB (more negative = cleaner; body = 200 Hz-2 kHz)')
+        lines.append(f"{'':34}{'kick':>8}{'body':>7}{'snare':>9}{'body':>7}{'hh':>8}{'top':>7}")
+        def cell(r, p, k):
+            v = (r['junk'].get(p) or {}).get(k)
+            return v if v is not None else float('nan')
+        for r in sorted(jk, key=lambda r: r['beat'].lower()):
+            lines.append(f"{r['beat'][:33]:34}{cell(r, 'kick', 'all'):8.1f}{cell(r, 'kick', 'body'):7.1f}"
+                         f"{cell(r, 'snare', 'all'):9.1f}{cell(r, 'snare', 'body'):7.1f}{cell(r, 'hh', 'all'):8.1f}{cell(r, 'hh', 'top'):7.1f}")
+        def jm(p, k):
+            v = [cell(r, p, k) for r in jk if cell(r, p, k) == cell(r, p, k)]
+            return st.median(v) if v else float('nan')
+        lines.append(f"{'MEDIAN':34}{jm('kick', 'all'):8.1f}{jm('kick', 'body'):7.1f}{jm('snare', 'all'):9.1f}"
+                     f"{jm('snare', 'body'):7.1f}{jm('hh', 'all'):8.1f}{jm('hh', 'top'):7.1f}")
     for r in results:
         if 'error' in r:
             lines.append(f"! {r['beat']}: {r['error'][-300:]}")
