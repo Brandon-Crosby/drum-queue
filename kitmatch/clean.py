@@ -572,28 +572,6 @@ def _sustain_db(x, on, nxt):
     return np.array(out)
 
 
-def _natural_end(seg, blk=int(0.01 * SR), floor_db=-36.0, rise_db=6.0):
-    """Where a single hit ends: when it has fallen floor_db under its peak, or when something starts rising
-    again (the next sound, bleed) after the first 50 ms."""
-    m = _mono(seg)
-    k = len(m) // blk
-    if k < 3:
-        return len(m)
-    e = 20 * np.log10(np.sqrt((m[:k * blk] ** 2).reshape(k, blk).mean(1)) + 1e-9)
-    p = int(np.argmax(e[:max(1, int(0.05 * SR) // blk)]))      # the hit's own peak, not a later sound's
-    end = k
-    low = e[p]
-    for i in range(p + 1, k):
-        if e[i] < e[p] + floor_db:
-            end = i
-            break
-        low = min(low, e[i])
-        if i * blk > 0.05 * SR and e[i] > low + rise_db:
-            end = i - 1
-            break
-    return max(blk * 3, end * blk)
-
-
 def typical_hit(x, on, nxt, length, avg=None, gap=15.0):
     """The single hit that best represents the sound: among hits with no 808 still ringing under them, the
     one that best matches the averaged sound (so not one with a stray snare or 808 on top). Averaging dulls a kick's top end; the producer's ear preferred a real hit (breakdown136, Nov 2026).
@@ -618,20 +596,21 @@ def typical_hit(x, on, nxt, length, avg=None, gap=15.0):
         # (breakdown136 vs its MIDI: real clean kicks match ~0.88, 808 thumps ~0.42, kicks over an 808 ~-0.1).
         # Among near-equal matches, the one with the most room before the next hit, so a long kick isn't
         # chopped mid-sound (hyperbole: every hit cut at ~110 ms while still at full level).
+        # (Tried preferring a near-equal match with more room before the next hit: it swapped hyperbole's kick
+        # for a worse-sounding hit. The best match always wins; a short one gets a longer fade instead.)
         a = _mono(avg)[:w]
         r = np.array([np.corrcoef(_mono(x[on[c]:on[c] + w]), a)[0, 1] for c in cand])
-        good = [c for c, v in zip(cand, r) if v >= r.max() - 0.03]
-        pick = max(good, key=lambda c: nxt[c] - on[c])
-        room = int(min(nxt[pick] - on[pick] - 0.015 * SR, MAX_LEN * SR, len(x) - on[pick]))
-        if room > length:
-            length = max(length, _natural_end(x[on[pick]:on[pick] + room]))
-        else:
-            length = max(int(0.03 * SR), min(length, room))
+        pick = cand[int(np.argmax(r))]
+        # length stays what the average allowed (tried ending it by its own decay: cut several kicks too short)
     else:
         win = np.hanning(w)
         sp = np.array([np.log10(np.abs(np.fft.rfft(_mono(x[on[c]:on[c] + w]) * win)) + 1e-9) for c in cand])
         pick = cand[int(np.argmin(((sp - np.median(sp, 0)) ** 2).sum(1)))]
     seg = x[on[pick]:on[pick] + length].astype(np.float32).copy()
-    fd = min(length, int(0.02 * SR))
+    m = _mono(seg)
+    pk = np.abs(m[:int(0.05 * SR)]).max() + 1e-9
+    end_db = 20 * np.log10(np.sqrt(np.mean(m[-int(0.01 * SR):] ** 2)) / pk + 1e-9)
+    # still loud where it has to stop (the next hit comes early): fade over up to 40% of it, not 20 ms
+    fd = min(length, int(0.02 * SR) if end_db < -30 else max(int(0.02 * SR), int(0.4 * length)))
     seg[length - fd:] *= (np.linspace(1, 0, fd) ** 2)[:, None] if seg.ndim == 2 else np.linspace(1, 0, fd) ** 2
     return seg, pick
