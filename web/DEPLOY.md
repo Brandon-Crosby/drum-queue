@@ -95,3 +95,37 @@ Same site and API, using your Mac instead of a cloud GPU.
 | Modal storage (24 h of stems) | small |
 
 `DAILY_CAP` × cost per song is the most a day can cost you. At the default 300 that's a few dollars.
+
+## Staging (test a change before it reaches drumsplitter.com)
+
+A full test copy: its own Modal app (`drumsplit-staging`), its own storage and job list, at most 15
+splits a day and one GPU, so testing can't eat into the live site's budget. Same Modal account,
+same secrets, same trained models.
+
+**One-time setup**
+
+1. Deploy the staging backend (works in bash and fish):
+   ```
+   env DRUMSPLIT_STAGE=staging modal deploy web/backend/modal_app.py
+   ```
+   It prints its URL, `https://<you>--drumsplit-staging-api.modal.run`.
+2. Cloudflare dashboard > Workers & Pages > the site > **Settings > Variables and secrets**, switch to
+   the **Preview** environment and add:
+   - `MODAL_API_URL` = the staging URL from step 1
+   - `PROXY_SECRET` = the same value as Production
+   Preview builds then talk to staging; Production keeps talking to the live backend.
+3. Settings > Builds > **Branch control**: preview deployments for all non-production branches (the default).
+
+**Testing a change**
+
+1. Push it to the `staging` branch (`git push origin HEAD:staging`). Cloudflare builds the site at
+   `https://staging.<project>.pages.dev` (the exact address is under Deployments).
+2. If the change touches the backend or the kit maker, redeploy staging:
+   `env DRUMSPLIT_STAGE=staging modal deploy web/backend/modal_app.py`
+3. Split a song or two there. To try a new model on staging only, add `DRUMSPLIT_HELYX=runs/helyx-N`
+   to the deploy command.
+4. Happy: merge into `main` (the site redeploys itself) and run `modal deploy web/backend/modal_app.py`
+   for the live backend.
+
+Staging's splits are deleted after 24 hours like the live site's. Preview addresses are public to anyone
+who has them; don't post them. (Cloudflare Access can put a login in front if needed.)

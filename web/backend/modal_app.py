@@ -13,6 +13,7 @@ State: a modal.Volume holds files, a modal.Dict holds job records and daily coun
 Secrets (modal secret create drumsplit-secrets ...): PROXY_SECRET, IP_SALT, TURNSTILE_SECRET.
                  drumsplit-team: TEAM_CODE (the beta team link; kept splits land in /team on the volume).
 """
+import os
 from pathlib import Path
 
 import modal
@@ -24,6 +25,14 @@ REPO = HERE.parent.parent
 MIX_MODEL = 'htdemucs_ft'      # 'htdemucs' is ~4x cheaper per song, slightly bleedier drums
 HELYX_RUN = 'runs/helyx-4'     # kit model: this run's last_mdx23c.ckpt on the drumsplit-train volume;
                                # '' = back to the public MDX23C DrumSep (kick/snare/toms/hh/ride/crash)
+# Staging (a full test copy: own app, storage and job list; see web/DEPLOY.md "Staging"):
+#   DRUMSPLIT_STAGE=staging modal deploy web/backend/modal_app.py
+# and to try a new model there first:  DRUMSPLIT_HELYX=runs/helyx-6 (same command).
+# Both are baked into the containers' environment, so code running in the cloud resolves the same names.
+STAGE = os.environ.get('DRUMSPLIT_STAGE', '').strip()
+if STAGE not in ('', 'staging'):
+    raise SystemExit(f"DRUMSPLIT_STAGE must be empty (live site) or 'staging', not {STAGE!r}")
+HELYX_RUN = os.environ.get('DRUMSPLIT_HELYX') or os.environ.get('HELYX_RUN') or HELYX_RUN
 MSST_COMMIT = '1d4b3c431b37de696b3795ed2018493aacba946f'   # same code that trained and graded Helyx
 HELYX_DIR = '/models/helyx'
 # Tried in order; Modal uses whichever has capacity (a lone 'L4' can sit in a queue for minutes).
@@ -36,11 +45,16 @@ MAX_MINUTES = 8
 KEEP_HOURS = 24
 PUBLIC_ENV = dict(MAX_MINUTES=str(MAX_MINUTES), KEEP_HOURS=str(KEEP_HOURS),
                   LIMIT_PER_IP='3', DAILY_CAP='300', MAX_UPLOAD_MB='30')
+if STAGE:                      # testing shares the Modal budget with the live site: keep it small
+    MAX_GPUS = 1
+    PUBLIC_ENV.update(LIMIT_PER_IP='15', DAILY_CAP='15')
+PUBLIC_ENV['DRUMSPLIT_STAGE'] = STAGE
+SUFFIX = f'-{STAGE}' if STAGE else ''
 # --------------------------------------------------------------------------
 
-app = modal.App('drumsplit')
-vol = modal.Volume.from_name('drumsplit-data', create_if_missing=True)
-kv = modal.Dict.from_name('drumsplit-state', create_if_missing=True)
+app = modal.App('drumsplit' + SUFFIX)
+vol = modal.Volume.from_name('drumsplit-data' + SUFFIX, create_if_missing=True)
+kv = modal.Dict.from_name('drumsplit-state' + SUFFIX, create_if_missing=True)
 secrets = [modal.Secret.from_name('drumsplit-secrets')]
 # TEAM_CODE for the beta team link (service.Settings.team_code). Create once:
 #   modal secret create drumsplit-team TEAM_CODE=<a long random code>
