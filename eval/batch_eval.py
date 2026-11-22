@@ -212,14 +212,20 @@ def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'cu
     beat to the eval volume, so you can download and listen to it: modal volume get drumsplit-eval
     /listen/<beat> ~/Desktop/listen. --listen all saves every beat, under /listen/<label>/."""
     root = Path(os.path.expanduser(testset))
-    beats = sorted(p.name for p in root.iterdir() if (p / 'mix.flac').exists() and (not only or only.lower() in p.name.lower()))
-    if not beats:
-        raise SystemExit(f'No test beats in {root} (run eval/make_testset.py first)')
     have = set()
     try:
         have = {Path(e.path).name for e in vol.listdir('/testset')}
     except Exception:
         pass
+    pick = lambda name: not only or only.lower() in name.lower()  # noqa: E731
+    if root.is_dir():
+        beats = sorted(p.name for p in root.iterdir() if (p / 'mix.flac').exists() and pick(p.name))
+    else:                                         # no local copy: score the beats already on the eval volume
+        beats = sorted(b for b in have if pick(b))
+        if beats:
+            print(f'{root} not found; using the {len(beats)} beat(s) already uploaded to the eval volume')
+    if not beats:
+        raise SystemExit(f'No test beats in {root} or on the eval volume (run eval/make_testset.py first)')
     new = [b for b in beats if b not in have]
     if new:
         print(f'Uploading {len(new)} beat(s) to the private eval volume ...')
