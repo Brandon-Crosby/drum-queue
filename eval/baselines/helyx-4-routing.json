@@ -1,0 +1,648 @@
+{
+ "ONEAAZZ": {
+  "snare": {
+   "alone": {
+    "kick": 0.142,
+    "snare": 0.845,
+    "toms": 0.013,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 0.243,
+    "snare": 0.746,
+    "toms": 0.01,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 124,
+    "stacked": 20
+   }
+  },
+  "kick": {
+   "alone": {
+    "kick": 0.995,
+    "snare": 0.004,
+    "toms": 0.001,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 1.0,
+    "snare": 0.0,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 234,
+    "stacked": 20
+   }
+  }
+ },
+ "T VEO SOLA 176 STEMS": {
+  "snare": {
+   "alone": {
+    "kick": 0.05,
+    "snare": 0.739,
+    "toms": 0.211,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": null,
+    "snare": null,
+    "toms": null,
+    "hh": null
+   },
+   "hits": {
+    "alone": 52,
+    "stacked": 0
+   }
+  },
+  "kick": {
+   "alone": {
+    "kick": 0.829,
+    "snare": 0.171,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": null,
+    "snare": null,
+    "toms": null,
+    "hh": null
+   },
+   "hits": {
+    "alone": 122,
+    "stacked": 0
+   }
+  }
+ },
+ "TABLAaLAS2am 124": {
+  "snare": {
+   "alone": {
+    "kick": null,
+    "snare": null,
+    "toms": null,
+    "hh": null
+   },
+   "stacked": {
+    "kick": 0.969,
+    "snare": 0.031,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 0,
+    "stacked": 12
+   }
+  },
+  "kick": {
+   "alone": {
+    "kick": 0.999,
+    "snare": 0.0,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 1.0,
+    "snare": 0.0,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 253,
+    "stacked": 12
+   }
+  }
+ },
+ "TumbaLaCasa 130": {
+  "snare": {
+   "alone": {
+    "kick": 0.001,
+    "snare": 0.763,
+    "toms": 0.23,
+    "hh": 0.006
+   },
+   "stacked": {
+    "kick": 0.118,
+    "snare": 0.825,
+    "toms": 0.056,
+    "hh": 0.001
+   },
+   "hits": {
+    "alone": 45,
+    "stacked": 19
+   }
+  },
+  "kick": {
+   "alone": {
+    "kick": 1.0,
+    "snare": 0.0,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 1.0,
+    "snare": 0.0,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 78,
+    "stacked": 19
+   }
+  }
+ },
+ "balbikiu 121": {
+  "snare": {
+   "alone": {
+    "kick": 0.0,
+    "snare": 1.0,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 0.195,
+    "snare": 0.805,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 13,
+    "stacked": 42
+   }
+  },
+  "kick": {
+   "alone": {
+    "kick": 0.797,
+    "snare": 0.158,
+    "toms": 0.045,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 1.0,
+    "snare": 0.0,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 67,
+    "stacked": 42
+   }
+  }
+ },
+ "church's chicken 122bpm": {
+  "snare": {
+   "alone": {
+    "kick": 0.026,
+    "snare": 0.003,
+    "toms": 0.971,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 0.956,
+    "snare": 0.039,
+    "toms": 0.005,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 30,
+    "stacked": 4
+   }
+  },
+  "kick": {
+   "alone": {
+    "kick": 1.0,
+    "snare": 0.0,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 1.0,
+    "snare": 0.0,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 68,
+    "stacked": 4
+   }
+  }
+ },
+ "demobow 117bpm stems": {
+  "snare": {
+   "alone": {
+    "kick": 0.009,
+    "snare": 0.042,
+    "toms": 0.949,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 0.119,
+    "snare": 0.003,
+    "toms": 0.878,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 137,
+    "stacked": 2
+   }
+  },
+  "kick": {
+   "alone": {
+    "kick": 1.0,
+    "snare": 0.0,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 0.995,
+    "snare": 0.0,
+    "toms": 0.005,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 108,
+    "stacked": 2
+   }
+  }
+ },
+ "desbloquear 123": {
+  "snare": {
+   "alone": {
+    "kick": 0.091,
+    "snare": 0.818,
+    "toms": 0.09,
+    "hh": 0.001
+   },
+   "stacked": {
+    "kick": 0.892,
+    "snare": 0.108,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 5,
+    "stacked": 33
+   }
+  },
+  "kick": {
+   "alone": {
+    "kick": 0.994,
+    "snare": 0.0,
+    "toms": 0.006,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 1.0,
+    "snare": 0.0,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 168,
+    "stacked": 33
+   }
+  }
+ },
+ "hasta luego 130": {
+  "snare": {
+   "alone": {
+    "kick": 0.992,
+    "snare": 0.0,
+    "toms": 0.008,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 0.996,
+    "snare": 0.001,
+    "toms": 0.003,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 23,
+    "stacked": 27
+   }
+  },
+  "kick": {
+   "alone": {
+    "kick": 0.97,
+    "snare": 0.0,
+    "toms": 0.027,
+    "hh": 0.003
+   },
+   "stacked": {
+    "kick": 0.999,
+    "snare": 0.0,
+    "toms": 0.001,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 226,
+    "stacked": 27
+   }
+  }
+ },
+ "hyperbole 121 bpm": {
+  "snare": {
+   "alone": {
+    "kick": 0.975,
+    "snare": 0.025,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 0.249,
+    "snare": 0.591,
+    "toms": 0.041,
+    "hh": 0.119
+   },
+   "hits": {
+    "alone": 117,
+    "stacked": 24
+   }
+  },
+  "kick": {
+   "alone": {
+    "kick": 1.0,
+    "snare": 0.0,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 1.0,
+    "snare": 0.0,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 68,
+    "stacked": 24
+   }
+  }
+ },
+ "la intencion 116bpm stems": {
+  "snare": {
+   "alone": {
+    "kick": 0.07,
+    "snare": 0.001,
+    "toms": 0.93,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 0.061,
+    "snare": 0.023,
+    "toms": 0.915,
+    "hh": 0.001
+   },
+   "hits": {
+    "alone": 57,
+    "stacked": 48
+   }
+  },
+  "kick": {
+   "alone": {
+    "kick": 0.931,
+    "snare": 0.002,
+    "toms": 0.02,
+    "hh": 0.047
+   },
+   "stacked": {
+    "kick": 0.107,
+    "snare": 0.013,
+    "toms": 0.88,
+    "hh": 0.001
+   },
+   "hits": {
+    "alone": 183,
+    "stacked": 48
+   }
+  }
+ },
+ "la rumbaaaa 125bpm": {
+  "snare": {
+   "alone": {
+    "kick": 0.0,
+    "snare": 0.507,
+    "toms": 0.493,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 0.044,
+    "snare": 0.877,
+    "toms": 0.079,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 32,
+    "stacked": 95
+   }
+  },
+  "kick": {
+   "alone": {
+    "kick": 0.93,
+    "snare": 0.004,
+    "toms": 0.063,
+    "hh": 0.004
+   },
+   "stacked": {
+    "kick": 0.913,
+    "snare": 0.029,
+    "toms": 0.058,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 155,
+    "stacked": 95
+   }
+  }
+ },
+ "llego al nite club 127 stems": {
+  "snare": {
+   "alone": {
+    "kick": 0.129,
+    "snare": 0.57,
+    "toms": 0.301,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 0.392,
+    "snare": 0.426,
+    "toms": 0.183,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 84,
+    "stacked": 46
+   }
+  },
+  "kick": {
+   "alone": {
+    "kick": 0.909,
+    "snare": 0.032,
+    "toms": 0.014,
+    "hh": 0.046
+   },
+   "stacked": {
+    "kick": 0.64,
+    "snare": 0.249,
+    "toms": 0.108,
+    "hh": 0.003
+   },
+   "hits": {
+    "alone": 105,
+    "stacked": 43
+   }
+  }
+ },
+ "parqueao 120 bpm": {
+  "snare": {
+   "alone": {
+    "kick": 0.288,
+    "snare": 0.136,
+    "toms": 0.576,
+    "hh": 0.001
+   },
+   "stacked": {
+    "kick": 0.899,
+    "snare": 0.018,
+    "toms": 0.084,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 108,
+    "stacked": 68
+   }
+  },
+  "kick": {
+   "alone": {
+    "kick": null,
+    "snare": null,
+    "toms": null,
+    "hh": null
+   },
+   "stacked": {
+    "kick": 0.999,
+    "snare": 0.0,
+    "toms": 0.001,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 0,
+    "stacked": 68
+   }
+  }
+ },
+ "peach white claw 126": {
+  "snare": {
+   "alone": {
+    "kick": 0.765,
+    "snare": 0.224,
+    "toms": 0.011,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 0.01,
+    "snare": 0.552,
+    "toms": 0.438,
+    "hh": 0.001
+   },
+   "hits": {
+    "alone": 114,
+    "stacked": 4
+   }
+  },
+  "kick": {
+   "alone": {
+    "kick": 1.0,
+    "snare": 0.0,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 1.0,
+    "snare": 0.0,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 120,
+    "stacked": 4
+   }
+  }
+ },
+ "providence 123": {
+  "snare": {
+   "alone": {
+    "kick": 0.001,
+    "snare": 0.262,
+    "toms": 0.737,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 0.749,
+    "snare": 0.04,
+    "toms": 0.212,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 146,
+    "stacked": 19
+   }
+  },
+  "kick": {
+   "alone": {
+    "kick": 1.0,
+    "snare": 0.0,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "stacked": {
+    "kick": 0.997,
+    "snare": 0.0,
+    "toms": 0.003,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 75,
+    "stacked": 19
+   }
+  }
+ },
+ "we in the house 124 stems": {
+  "snare": {
+   "alone": {
+    "kick": 0.0,
+    "snare": 0.239,
+    "toms": 0.76,
+    "hh": 0.001
+   },
+   "stacked": {
+    "kick": 0.001,
+    "snare": 0.999,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 124,
+    "stacked": 62
+   }
+  },
+  "kick": {
+   "alone": {
+    "kick": 0.782,
+    "snare": 0.005,
+    "toms": 0.153,
+    "hh": 0.06
+   },
+   "stacked": {
+    "kick": 1.0,
+    "snare": 0.0,
+    "toms": 0.0,
+    "hh": 0.0
+   },
+   "hits": {
+    "alone": 239,
+    "stacked": 61
+   }
+  }
+ }
+}

@@ -82,3 +82,44 @@ if __name__ == '__main__':
     tr, sr = sf.read(sys.argv[1], dtype='float32')
     ou, sr2 = sf.read(sys.argv[2], dtype='float32')
     print(hit_junk(tr, ou, sr, sr_ours=sr2))
+
+
+def routing(truth, sr, stems, partner=None, win_s=0.06, stack_s=0.015, max_hits=300):
+    """Where each real hit of one piece ends up among our output stems.
+
+    truth: the real track of the piece (e.g. snare). stems: {name: (audio, sr)} of our outputs. partner: the
+    real track of the piece it gets confused with (the kick for a snare): a hit within stack_s of a partner hit
+    counts as 'stacked', otherwise 'alone'. For each hit, each stem's share is the energy of its part that
+    matches the real hit (projection onto it), so a stem that only has other sounds there gets ~0.
+    -> {'alone': {stem: share}, 'stacked': {...}, 'hits': {'alone': n, 'stacked': n}}"""
+    from math import gcd
+    from scipy.signal import resample_poly
+    t = _mono(truth).astype(np.float64)
+    ys = {}
+    for k, (y, s) in stems.items():
+        m = _mono(y).astype(np.float64)
+        if s != sr:
+            g_ = gcd(int(sr), int(s))
+            m = resample_poly(m, int(sr) // g_, int(s) // g_)
+        ys[k] = m
+    on = onsets(t, sr)
+    if len(on) > max_hits:
+        on = on[np.linspace(0, len(on) - 1, max_hits).astype(int)]
+    pon = onsets(_mono(partner).astype(np.float64), sr) if partner is not None else np.array([], int)
+    w, st = int(win_s * sr), int(stack_s * sr)
+    acc = {'alone': {k: 0.0 for k in ys}, 'stacked': {k: 0.0 for k in ys}}
+    n = {'alone': 0, 'stacked': 0}
+    for a in on:
+        r = t[a:a + w]
+        rr = float(np.dot(r, r))
+        if len(r) < w or rr < 1e-10:
+            continue
+        kind = 'stacked' if len(pon) and np.abs(pon - a).min() <= st else 'alone'
+        e = {k: max(0.0, float(np.dot(r, y[a:a + w]))) ** 2 / rr if len(y) >= a + w else 0.0 for k, y in ys.items()}
+        tot = sum(e.values())
+        if tot <= 0:
+            continue
+        n[kind] += 1
+        for k in ys:
+            acc[kind][k] += e[k] / tot
+    return {kind: {k: (round(v / n[kind], 3) if n[kind] else None) for k, v in acc[kind].items()} for kind in acc} | {'hits': n}

@@ -161,8 +161,18 @@ class Bench:
             ys = [sf.read(str(q), dtype='float32') for q in ps]
             m = min(len(y) for y, _ in ys)
             junk[piece] = hit_junk(t_, sum(y[:m] for y, _ in ys), srt, sr_ours=ys[0][1])
+        # where the real snare/kick hits land among our stems, alone vs stacked on the other (see junk.routing)
+        from junk import routing
+        route = {}
+        outs_ = {o.stem: sf.read(str(o), dtype='float32') for o in est.glob('*.wav')}
+        for piece, partner in (('snare', 'kick'), ('kick', 'snare')):
+            tf, pf = W / 'truth' / f'{piece}.wav', W / 'truth' / f'{partner}.wav'
+            if tf.exists() and outs_:
+                t_, srt = sf.read(str(tf), dtype='float32')
+                p_ = sf.read(str(pf), dtype='float32')[0] if pf.exists() else None
+                route[piece] = routing(t_, srt, outs_, partner=p_)
         return {'beat': beat, 'split': want, 'gpu_s': round(gpu_s), 'sdr': s.get('sdr', {}), 'leakage': s.get('leakage', {}),
-                'hits': s.get('hits', {}), 'junk': junk}
+                'hits': s.get('hits', {}), 'junk': junk, 'routing': route}
 
 
 def board(results):
@@ -198,6 +208,27 @@ def board(results):
             return st.median(v) if v else float('nan')
         lines.append(f"{'MEDIAN':34}{jm('kick', 'all'):8.1f}{jm('kick', 'body'):7.1f}{jm('snare', 'all'):9.1f}"
                      f"{jm('snare', 'body'):7.1f}{jm('hh', 'all'):8.1f}{jm('hh', 'top'):7.1f}")
+    rt = [r for r in ok if r.get('routing')]
+    if rt:
+        import statistics as st
+        lines.append('\nWhere the real hits land: share of each real snare hit found in our snare+perc stems, and of each')
+        lines.append('real kick in our kick stem; "stacked" = the snare and kick hit together (higher is better)')
+        lines.append(f"{'':34}{'snare alone':>12}{'stacked':>9}{'kick alone':>12}{'stacked':>9}")
+        def share(r, piece, kind):
+            d = (r['routing'].get(piece) or {}).get(kind) or {}
+            ks_ = ['snare', 'toms'] if piece == 'snare' else ['kick']
+            v = [d.get(k) for k in ks_ if d.get(k) is not None]
+            return sum(v) if v else float('nan')
+        cols = (('snare', 'alone'), ('snare', 'stacked'), ('kick', 'alone'), ('kick', 'stacked'))
+        for r in sorted(rt, key=lambda r: r['beat'].lower()):
+            vals = [share(r, p, k) for p, k in cols]
+            lines.append(f"{r['beat'][:33]:34}" + ''.join(f"{v:>{w}.0%}" if v == v else f"{'-':>{w}}" for v, w in zip(vals, (12, 9, 12, 9))))
+        meds = []
+        for p, k in cols:
+            v = [share(r, p, k) for r in rt]
+            v = [x for x in v if x == x]
+            meds.append(st.median(v) if v else float('nan'))
+        lines.append(f"{'MEDIAN':34}" + ''.join(f"{v:>{w}.0%}" for v, w in zip(meds, (12, 9, 12, 9))))
     for r in results:
         if 'error' in r:
             lines.append(f"! {r['beat']}: {r['error'][-300:]}")
