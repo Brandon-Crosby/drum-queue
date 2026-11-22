@@ -429,6 +429,47 @@ def _drop_echo_hats(hats, ks, log, share=0.98, win=0.012):
     return keep
 
 
+def _closed_hat_out(hats, log, min_corr=0.6, win=0.03, search=60):
+    """An open/long hat triggered together with the main closed hat carries that closed hat in its first
+    milliseconds (the producer heard it as 'a closed hat inside'). When the closed hat's top end (>2 kHz)
+    matches this hat's first 30 ms closely (corr >= min_corr), subtract it there (best offset, fitted gain).
+    17 test beats: only breakdown136's two long hats match (0.82, 0.87); everything else <= 0.36.
+    Producer A/B on breakdown136: the subtracted open hat sounded closer to his real one."""
+    if len(hats) < 2:
+        return hats
+    from scipy.signal import butter, sosfiltfilt
+    sos = butter(4, 2000, 'high', fs=SR, output='sos')
+    main = hats[0]['seg']
+    A = sosfiltfilt(sos, _mono(main))
+    w = int(win * SR)
+    out = [hats[0]]
+    for h in hats[1:]:
+        seg = h['seg']
+        if len(seg) <= len(main):
+            out.append(h)
+            continue
+        O = sosfiltfilt(sos, _mono(seg))
+        best = (0.0, 0, 0.0)
+        for sh in range(-search, search + 1):
+            a = A[max(0, -sh):][:w]
+            o = O[max(0, sh):][:len(a)]
+            if len(a) < w or len(o) < w:
+                continue
+            c = float(np.dot(a, o) / (np.sqrt(np.dot(a, a) * np.dot(o, o)) + 1e-12))
+            if c > best[0]:
+                best = (c, sh, float(np.dot(a, o) / (np.dot(a, a) + 1e-12)))
+        c, sh, g = best
+        if c >= min_corr and g > 0:
+            new = seg.astype(np.float32).copy()
+            a = main[max(0, -sh):]
+            n = min(len(a), len(new) - max(0, sh))
+            new[max(0, sh):max(0, sh) + n] -= g * a[:n]
+            log(f'hats: took the closed hat out of the start of a {h["hits"]}-hit longer hat (match {c:.2f})')
+            h = dict(h, seg=new)
+        out.append(h)
+    return out
+
+
 def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, ref=None):
     """split_dir holds kick/snare/perc/hh.wav from Helyx. Writes the strongest few sounds per piece
     (each averaged over all its hits, snare and perc read together, kick-stem stowaways rescued) as
@@ -451,6 +492,7 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
         mine = mine[:MAX_SOUNDS[role]]
         if role == 'hh':
             mine = _drop_echo_hats(mine, ks, log)
+            mine = _closed_hat_out(mine, log)
         log(f'{LABELS[role].lower()}: {len(mine)} sound{"" if len(mine) == 1 else "s"}'
             + (f' (heard {", ".join(str(s["hits"]) for s in mine)} times)' if mine else ''))
         count = {}
