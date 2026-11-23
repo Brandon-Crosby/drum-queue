@@ -6,3 +6,15 @@ https://:version.:project.pages.dev/*
 
 /og.png
   Cache-Control: public, max-age=86400
+
+# CSS/JS are linked as ?v=<hash> by build_site.py, so a new deploy always gets new URLs: safe to keep long.
+/styles.css
+  Cache-Control: public, max-age=31536000, immutable
+/app.js
+  Cache-Control: public, max-age=31536000, immutable
+/motion.js
+  Cache-Control: public, max-age=31536000, immutable
+/img/*
+  Cache-Control: public, max-age=2592000
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable

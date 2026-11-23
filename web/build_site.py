@@ -87,6 +87,17 @@ def main():
     if left:
         raise SystemExit(f'Unfilled placeholders: {sorted(set(left))}')
 
+    # Fingerprint the stylesheet and scripts (styles.css?v=<hash>) so a deploy can never pair
+    # new pages with a browser's cached copy of the old CSS/JS.
+    import hashlib
+    ver = {n: hashlib.md5((OUT / n).read_bytes()).hexdigest()[:10] for n in ('styles.css', 'app.js', 'motion.js')
+           if (OUT / n).exists()}
+    for page in OUT.rglob('*.html'):
+        t = page.read_text()
+        for n, h in ver.items():
+            t = t.replace(f'"/{n}"', f'"/{n}?v={h}"')
+        page.write_text(t)
+
     base = f"https://{cfg['DOMAIN']}"
     (OUT / 'robots.txt').write_text(f'User-agent: *\nAllow: /\nDisallow: /api/\nSitemap: {base}/sitemap.xml\n')
     (OUT / 'sitemap.xml').write_text(
