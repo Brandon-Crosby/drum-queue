@@ -10,13 +10,19 @@ restack(res, instruments, aug)   cut the snare stem's main hit and lay copies on
 darken(res, instruments, aug)    low-pass the whole snare stem (and sometimes warm it up), so the
                                  model hears dark snares on their own, not only stacked on kicks.
                                  Only the snare stem changes, so the target stays exactly right.
+onbeat(res, instruments, aug)    cut short chops out of the music (synth stabs, vox chops, 808 attacks)
+                                 and lay them right on the snare/perc hits, louder than the usual
+                                 background bleed. They stay in the 'other' target: on-beat music is
+                                 still music (stunyun137 put synths and a vox chop in the snare stem).
+nokick(res, instruments, aug)    sometimes leave the kick out: 808-led beats with no kick exist, and
+                                 the 808's attack must not become a kick or a snare there.
 master(res, aug)                 a master chain on the whole mix: tilt EQ + low shelf, bus
                                  compressor, push into a lookahead limiter, sometimes a clipper.
                                  EQ/compressor/limiter are gains applied to every stem alike (so a
                                  ducked snare in the mix is a ducked snare in the target); clipping
                                  only touches the mix. Returns (res, mix).
 
-Config (augmentations:): aligned_prob, restack_prob, darken_prob, master_prob. All off when missing.
+Config (augmentations:): aligned_prob, restack_prob, darken_prob, onbeat_prob, nokick_prob, master_prob. All off when missing.
 """
 import numpy as np
 
@@ -155,6 +161,51 @@ def darken(res, instruments, aug, rng=np.random):
     y *= np.abs(x).max() / (np.abs(y).max() + 1e-9)                # same peak level as before
     r = r.copy()
     r[s] = y.astype(r.dtype)
+    return _back(r, was)
+
+
+def onbeat(res, instruments, aug, rng=np.random):
+    p = _get(aug, 'onbeat_prob')
+    if p <= 0 or rng.uniform() >= p or 'other' not in instruments:
+        return res
+    r, was = _np(res)
+    o = instruments.index('other')
+    hits_at = [instruments.index(k) for k in ('snare', 'perc') if k in instruments]
+    if not hits_at or np.abs(r[o]).max() < 1e-4:
+        return res
+    tgt = np.concatenate([onsets(r[i]) for i in hits_at])
+    src = onsets(r[o], rel=0.2)
+    if len(tgt) == 0 or len(src) == 0:
+        return res
+    r = r.copy()
+    T = r.shape[-1]
+    drums_pk = max(np.abs(r[i]).max() for i in hits_at) + 1e-9
+    for _ in range(rng.randint(1, 4)):                         # a few different chops per clip
+        a = int(src[rng.randint(len(src))])
+        L = int(rng.uniform(0.08, 0.3) * SR)
+        chop = r[o][:, a:a + L].copy()
+        if chop.shape[1] < int(0.04 * SR) or np.abs(chop).max() < 1e-5:
+            continue
+        fd = min(chop.shape[1], int(0.01 * SR))
+        chop[:, -fd:] *= np.linspace(1, 0, fd)
+        chop *= drums_pk * 10 ** (rng.uniform(-14, -3) / 20) / np.abs(chop).max()
+        for t in tgt:
+            if rng.uniform() > rng.uniform(0.3, 0.8):
+                continue
+            t = int(t + rng.uniform(-0.003, 0.003) * SR)
+            if 0 <= t < T:
+                n = min(chop.shape[1], T - t)
+                r[o][:, t:t + n] += chop[:, :n]
+    return _back(r, was)
+
+
+def nokick(res, instruments, aug, rng=np.random):
+    p = _get(aug, 'nokick_prob')
+    if p <= 0 or rng.uniform() >= p or 'kick' not in instruments:
+        return res
+    r, was = _np(res)
+    r = r.copy()
+    r[instruments.index('kick')] = 0
     return _back(r, was)
 
 

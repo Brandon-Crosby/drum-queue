@@ -93,7 +93,9 @@ def patch_dataset(root: Path):
                 res = self.load_random_mix()
             if self.aug:
                 res = mixaug.restack(res, list(self.instruments), _aug)
-                res = mixaug.darken(res, list(self.instruments), _aug)""", 1)
+                res = mixaug.darken(res, list(self.instruments), _aug)
+                res = mixaug.onbeat(res, list(self.instruments), _aug)
+                res = mixaug.nokick(res, list(self.instruments), _aug)""", 1)
     a = """        if self.dataset_type != 6 and self.dataset_type!=7:
             mix = res.sum(0)
 """
