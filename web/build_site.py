@@ -27,7 +27,7 @@ def social_tags(html, cfg):
     title = get(r'<title>(.*?)</title>') or cfg['SITE_NAME']
     desc = get(r'<meta name="description" content="([^"]*)"') or ''
     url = get(r'<link rel="canonical" href="([^"]*)"') or f"https://{cfg['DOMAIN']}/"
-    img = f"https://{cfg['DOMAIN']}/og.png"
+    img = f"https://{cfg['DOMAIN']}/og.jpg"
     tags = '\n'.join([
         '<meta property="og:type" content="website">',
         f'<meta property="og:site_name" content="{cfg["SITE_NAME"]}">',

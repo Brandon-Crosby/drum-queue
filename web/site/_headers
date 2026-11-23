@@ -4,7 +4,7 @@ https://:project.pages.dev/*
 https://:version.:project.pages.dev/*
   X-Robots-Tag: noindex
 
-/og.png
+/og.jpg
   Cache-Control: public, max-age=86400
 
 # CSS/JS are linked as ?v=<hash> by build_site.py, so a new deploy always gets new URLs: safe to keep long.
