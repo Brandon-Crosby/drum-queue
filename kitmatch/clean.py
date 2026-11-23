@@ -507,6 +507,13 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
                 continue
             count[name] = count.get(name, 0) + 1
             seg = s['shot'] if s.get('shot') is not None else s['seg']
+            if role == 'kick':                     # one kick per file: stop before the next hit in it
+                later = [i for i in H.onsets(seg) if i > int(0.08 * SR)]     # (peach helyx-4 held two kicks)
+                if later:
+                    k = int(later[0]) - int(0.003 * SR)
+                    seg = seg[:k].copy()
+                    fd = int(0.02 * SR)
+                    seg[k - fd:] *= (np.linspace(1, 0, fd) ** 2)[:, None] if seg.ndim == 2 else np.linspace(1, 0, fd) ** 2
             if role == 'sp' and name == 'Snare' and s.get('onsets') is not None and len(s['onsets']) >= 4:
                 # a sound the namer is sure is a snare: one real, typical hit, like the kick (the producer
                 # picked the single hit on all three snares A/B'd, Nov 2026; Snare-Perc and hats stay averaged)
@@ -654,8 +661,8 @@ def clean_kicks(kx, ks, log=lambda line: None):
     length = int(max(len(avg), min(MAX_LEN * SR, np.median(nf - onf))))
     ref = kx[onf[int(np.argmax([np.abs(kx[i:i + int(0.03 * SR)]).max() for i in onf]))]:][:int(0.04 * SR)]
     seg, _ = typical_hit(kx, align(kx, onf, ref), nf, length)
-    if seg is not None and len(seg) > len(avg):
-        k = max(len(avg), tail_end(seg))
+    if seg is not None:
+        k = max(len(avg), tail_end(seg)) if len(seg) > len(avg) else len(seg)
         seg = seg[:k].copy()
         fd = min(k, int(0.02 * SR))
         seg[k - fd:] *= (np.linspace(1, 0, fd) ** 2)[:, None] if seg.ndim == 2 else np.linspace(1, 0, fd) ** 2
