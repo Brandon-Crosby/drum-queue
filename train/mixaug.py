@@ -7,13 +7,16 @@ clipping, which is distortion no stem owns).
 restack(res, instruments, aug)   cut the snare stem's main hit and lay copies on some of the kicks,
                                  sometimes darkened - the stacked dark snare Helyx keeps filing as
                                  kick. The copies go into the snare target, so the answer stays known.
+darken(res, instruments, aug)    low-pass the whole snare stem (and sometimes warm it up), so the
+                                 model hears dark snares on their own, not only stacked on kicks.
+                                 Only the snare stem changes, so the target stays exactly right.
 master(res, aug)                 a master chain on the whole mix: tilt EQ + low shelf, bus
                                  compressor, push into a lookahead limiter, sometimes a clipper.
                                  EQ/compressor/limiter are gains applied to every stem alike (so a
                                  ducked snare in the mix is a ducked snare in the target); clipping
                                  only touches the mix. Returns (res, mix).
 
-Config (augmentations:): aligned_prob, restack_prob, master_prob. All off when missing.
+Config (augmentations:): aligned_prob, restack_prob, darken_prob, master_prob. All off when missing.
 """
 import numpy as np
 
@@ -133,6 +136,26 @@ def _apply_gain(r, gain_blocks, n):
     t_blk = (np.arange(n) + 0.5) * BLK
     g = np.interp(np.arange(T), t_blk, gain_blocks)
     return r * g[None, None, :]
+
+
+def darken(res, instruments, aug, rng=np.random):
+    p = _get(aug, 'darken_prob')
+    if p <= 0 or rng.uniform() >= p or 'snare' not in instruments:
+        return res
+    r, was = _np(res)
+    s = instruments.index('snare')
+    x = r[s].astype(np.float64)
+    if np.abs(x).max() < 1e-4:
+        return res
+    T = x.shape[-1]
+    f = np.fft.rfftfreq(T, 1 / SR)
+    g = 1 / np.sqrt(1 + (f / rng.uniform(800, 3000)) ** 4)         # high end mostly gone
+    g *= 10 ** ((rng.uniform(0, 6) / (1 + (f / 250) ** 2)) / 20)    # sometimes a warm low-mid bump
+    y = np.fft.irfft(np.fft.rfft(x, axis=-1) * g, n=T, axis=-1)
+    y *= np.abs(x).max() / (np.abs(y).max() + 1e-9)                # same peak level as before
+    r = r.copy()
+    r[s] = y.astype(r.dtype)
+    return _back(r, was)
 
 
 def master(res, aug, rng=np.random):

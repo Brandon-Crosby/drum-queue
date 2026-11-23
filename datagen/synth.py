@@ -77,6 +77,18 @@ def snare(rng):
     return _norm(tone * rng.uniform(0.3, 1) + nz * rng.uniform(0.6, 1.2))
 
 
+def dark_snare(rng):
+    """Low, thuddy snare (dembow/lo-fi): a 150-260 Hz body and noise that stops by 1-3 kHz.
+    Real training songs almost never have one (1% of snare hits under 450 Hz), so without these
+    the model learns 'dark = kick'."""
+    sec = rng.uniform(0.15, 0.4)
+    f = rng.uniform(150, 260)
+    tone = _sweep(f * 1.3, f, 0.015, sec) * _env(sec, rng.uniform(0.04, 0.1))
+    nz = _bp(_noise(len(tone), rng), rng.uniform(250, 600), rng.uniform(1000, 3000)) * _env(sec, rng.uniform(0.05, 0.15))
+    x = tone * rng.uniform(0.6, 1.2) + nz * rng.uniform(0.4, 1.0)
+    return _norm(_lp(x, rng.uniform(900, 2500)))
+
+
 def clap(rng):
     sec = rng.uniform(0.2, 0.5)
     x = np.zeros(int(sec * SR))
@@ -243,7 +255,7 @@ def tambora(rng):
 # class -> list of (sound name, generator)
 CLASSES = {
     'kick': [('kick', kick)],
-    'snare': [('snare', snare), ('clap', clap), ('rim', rim)],
+    'snare': [('snare', snare), ('dark snare', dark_snare), ('clap', clap), ('rim', rim)],
     'toms': [('tom', tom)],
     'hh': [('hat closed', hat_closed), ('hat open', hat_open), ('shaker', shaker)],
     'perc': [('conga', conga), ('bongo', bongo), ('campana', campana), ('guiro', guiro),
