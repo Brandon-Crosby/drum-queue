@@ -1,0 +1,228 @@
+diff --git a/engine.py b/engine.py
+index ed50213..e386db0 100644
+--- a/engine.py
++++ b/engine.py
+@@ -95,26 +95,51 @@ def friendly_error(e):
+
+
+ # ------------------------------------------------------------- model cache
++def torch_device(torch, preference='auto'):
++    """Select a local compute backend; an explicit unavailable backend is an error.
++
++    No remote inference fallback. The deployed CUDA path remains the first auto choice.
++    """
++    if preference not in ('auto', 'cuda', 'mps', 'cpu'):
++        raise ValueError('Device must be auto, cuda, mps or cpu')
++    cuda = torch.cuda.is_available()
++    mps = bool(getattr(torch.backends, 'mps', None) and torch.backends.mps.is_available())
++    if preference == 'auto':
++        preference = 'cuda' if cuda else 'mps' if mps else 'cpu'
++    if preference == 'cuda' and not cuda:
++        raise RuntimeError('CUDA is unavailable on this computer. Choose another local device.')
++    if preference == 'mps' and not mps:
++        raise RuntimeError('Apple GPU processing is unavailable. Choose CPU explicitly or use a supported Mac.')
++    return torch.device(preference)
++
++
+ class Models:
+     """Keeps the loaded separators between jobs, so only the first song pays the load time.
+     Only touched from the single worker thread."""
+
+-    def __init__(self, work_dir, helyx=None):
++    def __init__(self, work_dir, helyx=None, device='auto', soundid_ref=None):
+         """helyx: (checkpoint, config.yaml, MSST repo dir) to use our model for the kit pieces."""
+         self.work = Path(work_dir)
+         self.work.mkdir(parents=True, exist_ok=True)
+         self.mix = self.mix_key = None
+         self.kit = self.kit_key = None
+         self.helyx = helyx
++        self.device = device
++        self.soundid_ref = Path(soundid_ref) if soundid_ref else None
+         self.kit_names = HELYX_KIT if helyx else KIT
+
+     def _make(self, overlap=4):
+         ensure_ffmpeg()
+         from audio_separator.separator import Separator
+-        return Separator(output_dir=str(self.work), model_file_dir=str(MODEL_DIR), output_format='WAV',
++        separator = Separator(output_dir=str(self.work), model_file_dir=str(MODEL_DIR), output_format='WAV',
+                          log_level=logging.WARNING,
+                          mdxc_params={'segment_size': 256, 'override_model_segment_size': False,
+                                       'batch_size': 1, 'overlap': overlap, 'pitch_shift': 0})
++        if self.device != 'auto':
++            import torch
++            separator.torch_device = torch_device(torch, self.device)
++            separator.torch_device_mps = separator.torch_device if self.device == 'mps' else None
++        return separator
+
+     def get_mix(self, key):
+         if self.mix_key != key:
+@@ -127,7 +152,7 @@ class Models:
+     def get_kit(self, overlap):
+         if self.helyx:
+             if self.kit is None:
+-                self.kit, self.kit_key = HelyxKit(*self.helyx), overlap
++                self.kit, self.kit_key = HelyxKit(*self.helyx, device=self.device), overlap
+             return self.kit
+         if self.kit_key != overlap:
+             self.kit = None
+@@ -157,18 +182,18 @@ class Models:
+ class HelyxKit:
+     """Our fine-tuned MDX23C, run with MSST's own loader and demix (the same code as eval/batch_eval.py)."""
+
+-    def __init__(self, ckpt, config, msst_dir):
++    def __init__(self, ckpt, config, msst_dir, device='auto'):
+         import torch
+         if str(msst_dir) not in sys.path:
+             sys.path.insert(0, str(msst_dir))
+         from utils.settings import get_model_from_config
+         model, cfg = get_model_from_config('mdx23c', str(config))
+-        sd = torch.load(str(ckpt), map_location='cpu', weights_only=False)
++        sd = torch.load(str(ckpt), map_location='cpu', weights_only=True, mmap=True)
+         for k in ('state_dict', 'model_state_dict', 'state'):
+             if isinstance(sd, dict) and k in sd:
+                 sd = sd[k]
+         model.load_state_dict({k.replace('_orig_mod.', ''): v for k, v in sd.items()})
+-        self.dev = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
++        self.dev = torch_device(torch, device)
+         self.model, self.cfg = model.to(self.dev).eval(), cfg
+
+     def split(self, audio, work):
+@@ -325,7 +350,7 @@ def process(job, out_root, models, stage, preview_fmt='wav', max_seconds=None):
+                 sys.path.insert(0, kd)
+             import clean
+             made = clean.write_kit(out_dir, out_dir / 'one-shots', prefix=f'{song} - ', log=say,
+-                                   ref=Path(kd) / 'soundid_ref.npz')
++                                   ref=getattr(models, 'soundid_ref', None) or Path(kd) / 'soundid_ref.npz')
+         else:
+             import oneshots
+             made = oneshots.make_kit(out_dir, out_dir / 'one-shots', prefix=f'{song} - ', log=say)
+diff --git a/kitmatch/soundid.py b/kitmatch/soundid.py
+index 028e825..fc8aed1 100644
+--- a/kitmatch/soundid.py
++++ b/kitmatch/soundid.py
+@@ -89,8 +89,8 @@ def build(index_dir, out, per=2500, seed=0):
+
+
+ def load(ref):
+-    z = np.load(ref, allow_pickle=True)
+-    return z['vecs'].astype(np.float32), z['cats']
++    with np.load(ref, allow_pickle=False) as z:
++        return z['vecs'].astype(np.float32), z['cats'].copy()
+
+
+ def stats(ref):
+diff --git a/web/backend/local_dev.py b/web/backend/local_dev.py
+index 644bffa..23d8ae3 100644
+--- a/web/backend/local_dev.py
++++ b/web/backend/local_dev.py
+@@ -27,12 +27,30 @@ def main():
+     ap.add_argument('--port', type=int, default=8780)
+     ap.add_argument('--data', default=str(HERE / '.local_data'))
+     ap.add_argument('--model', default='htdemucs', choices=list(engine.MIX_MODELS))
++    ap.add_argument('--device', choices=['auto', 'mps', 'cpu', 'cuda'], default='auto')
++    ap.add_argument('--helyx-checkpoint')
++    ap.add_argument('--helyx-config')
++    ap.add_argument('--msst-root')
++    ap.add_argument('--soundid-ref')
+     a = ap.parse_args()
+
+     root = Path(a.data)
+     (root / 'jobs').mkdir(parents=True, exist_ok=True)
+     store = service.MemoryStore()
+-    models = engine.Models(root / 'work')
++    helyx = (a.helyx_checkpoint, a.helyx_config, a.msst_root)
++    if any(helyx) and not all(helyx):
++        ap.error('Helyx needs its checkpoint, config and MSST source directory together.')
++    if all(helyx) and not all(Path(p).exists() for p in helyx):
++        ap.error('A Helyx model/config/source path does not exist.')
++    if a.device != 'auto' and not all(helyx):
++        ap.error('--device currently controls Helyx; provide the Helyx files to use it.')
++    if all(helyx):
++        import torch
++        print(f'Local Helyx device: {engine.torch_device(torch, a.device)}; no cloud fallback')
++    if a.soundid_ref and not Path(a.soundid_ref).is_file():
++        ap.error('The sound naming reference does not exist.')
++    models = engine.Models(root / 'work', helyx=helyx if all(helyx) else None, device=a.device,
++                           soundid_ref=a.soundid_ref)
+     pool = ThreadPoolExecutor(max_workers=1)                  # one "GPU"
+     S = service.Settings()
+
+diff --git a/web/site.json b/web/site.json
+index 8018bce..3751297 100644
+--- a/web/site.json
++++ b/web/site.json
+@@ -6,5 +6,6 @@
+   "ADSENSE_WAIT_SLOT": "",
+   "TURNSTILE_SITEKEY": "0x4AAAAAAF9Gmz8OXczRAFgt",
+   "LIMIT_PER_IP": "3",
+-  "MAX_MINUTES": "8"
++  "MAX_MINUTES": "8",
++  "LOCAL_MODE": "false"
+ }
+diff --git a/web/site/app.js b/web/site/app.js
+index 34e620e..bef2e56 100644
+--- a/web/site/app.js
++++ b/web/site/app.js
+@@ -43,7 +43,7 @@ function renderRecent() {
+ async function loadLimits() {
+   try {
+     LIM = await (await fetch('/api/limits')).json();
+-    const parts = TEAM ? [`Up to ${LIM.max_minutes} minutes per song`, 'team mode: no daily limit, splits kept for testing']
++    const parts = SITE.local ? [`On this Mac · audio stays local`, `Up to ${LIM.max_minutes} minutes per song`, 'save downloads before quitting'] : TEAM ? [`Up to ${LIM.max_minutes} minutes per song`, 'team mode: no daily limit, splits kept for testing']
+       : [`Up to ${LIM.max_minutes} minutes per song`, `${LIM.left} of ${LIM.per_day} free splits left today`, 'files deleted after 24 hours'];
+     $('#limits').textContent = parts.join(' · ');
+     if (TEAM) {} else if (LIM.site_full) showMsg("We've hit today's limit for free splits. Please come back tomorrow.");
+@@ -157,6 +157,7 @@ const LOGS = {
+         'Writing one stem per kit piece'],
+   finish: ['Encoding MP3 previews for the mixer'],
+ };
++if (SITE.local) LOGS.queue = ['Starting on this Mac', 'Preparing local models'];
+ const LOG = { lines: [], step: '', i: 0, t: 0, last: '' };
+ function logPush(line) {
+   if (!line || line === LOG.lines[LOG.lines.length - 1]) return;
+@@ -204,6 +205,7 @@ async function poll(id) {
+ }
+ // Rough time left, from the song's length and how fast recent splits ran (the server sends both).
+ function etaText(j) {
++  if (SITE.local) return ' · processing on this Mac';
+   if (!j.eta_run) return '';
+   const now = Date.now() / 1000;
+   let left = j.status === 'running'
+@@ -248,7 +250,7 @@ function showResult(id, j) {
+   $('#jmeta').textContent = [j.bpm ? Math.round(j.bpm) + ' BPM' : null, j.duration ? mmss(j.duration) : null].filter(Boolean).join(' · ');
+   $('#zipkit').href = `/api/jobs/${id}/zip?kit=1`; $('#zipall').href = `/api/jobs/${id}/zip`;
+   const left = Math.max(0, j.expires - Date.now() / 1000);
+-  $('#expire').textContent = `These files are deleted in about ${Math.max(1, Math.round(left / 3600))} hours. Bookmark this page to come back.` + (j.note ? ' ' + j.note : '');
++  $('#expire').textContent = SITE.local ? 'Save the files you want before quitting Zone Six. Results are available in this session only.' : `These files are deleted in about ${Math.max(1, Math.round(left / 3600))} hours. Bookmark this page to come back.` + (j.note ? ' ' + j.note : '');
+   buildMixer(id, j);
+   buildShots(id, j);
+ }
+@@ -343,5 +345,15 @@ $('#again').onclick = () => { stopMixer(false); current = null; history.replaceS
+ document.addEventListener('keydown', e => { if (e.code === 'Space' && MX && MX.ready && !/INPUT|SELECT|TEXTAREA|BUTTON|A/.test(document.activeElement.tagName)) { e.preventDefault(); $('#play').click(); } });
+ window.addEventListener('resize', () => { if (MX && MX.ready) { MX.tracks.forEach(peaks); draw(); } });
+
++if (SITE.local) {
++  document.title = 'Drum Splitter · On this Mac';
++  $('#faq').hidden = true;
++  document.querySelector('.hero p').textContent = 'Choose a song. Separate its drums, bass, vocals and other parts on this Mac, then save stems, one-shots and groove MIDI.';
++  document.querySelector('.foot p').textContent = 'Drum Splitter · Local processing in Zone Six Studio Hub.';
++  document.querySelector('.foot .fine').textContent = 'Audio stays on this Mac. Save downloads before quitting. Only choose audio you have the right to use.';
++  document.querySelector('.top a[href="/#faq"]').hidden = true;
++  document.querySelector('[data-k=upload]').lastChild.textContent = 'Reading audio';
++  document.querySelector('[data-k=queue]').lastChild.textContent = 'Starting on this Mac';
++}
+ loadLimits(); initTurnstile(); renderRecent(); route();
+ })();
+diff --git a/web/site/index.html b/web/site/index.html
+index a0a13db..aec72db 100644
+--- a/web/site/index.html
++++ b/web/site/index.html
+@@ -5,7 +5,7 @@
+ <meta name="description" content="Free online drum splitter. Upload a song and get separate kick, snare, percussion and hi-hat stems, plus bass, vocals and the rest of the mix.">
+ <link rel="canonical" href="https://{{DOMAIN}}/">
+ {{TURNSTILE_TAG}}
+-<script>window.SITE={turnstile:"{{TURNSTILE_SITEKEY}}",client:"{{ADSENSE_CLIENT}}",waitSlot:"{{ADSENSE_WAIT_SLOT}}"};</script>
++<script>window.SITE={local:{{LOCAL_MODE}},turnstile:"{{TURNSTILE_SITEKEY}}",client:"{{ADSENSE_CLIENT}}",waitSlot:"{{ADSENSE_WAIT_SLOT}}"};</script>
+ <script type="application/ld+json">
+ {
+   "@context": "https://schema.org",
