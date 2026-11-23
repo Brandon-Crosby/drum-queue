@@ -348,3 +348,5 @@ window.addEventListener('resize', () => { if (MX && MX.ready) { MX.tracks.forEac
 
 loadLimits(); initTurnstile(); renderRecent(); route();
 })();
+// Light/dark switch: repaint the waveforms in the new colors
+window.addEventListener('themechange', () => { if (!MX) return; MX.tracks.forEach(t => { t.img = null; }); draw(); });

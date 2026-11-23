@@ -276,3 +276,59 @@ body:not(.home) .foot{margin-top:clamp(80px,10vw,140px)}
 .curtain .cn{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);font-size:14px;letter-spacing:.14em;font-variant-numeric:tabular-nums}
 @keyframes cIn{from{transform:translateY(110%)}}
 .intro body::after{content:"";position:fixed;inset:0;z-index:99;background:var(--green)}
+
+/* ---------- light / dark toggle button */
+.theme{display:inline-grid;place-items:center;width:34px;height:34px;margin:-6px -6px -6px 0;padding:0;border:0;border-radius:50%;background:transparent;color:inherit;cursor:pointer;transition:background .3s}
+.theme:hover{background:rgba(127,127,127,.18)}
+.theme svg{width:21px;height:21px;grid-area:1/1;transition:transform .6s var(--ease),opacity .4s}
+.theme .sun{opacity:0;transform:rotate(-90deg) scale(.6)}
+[data-theme="dark"] .theme .moon{opacity:0;transform:rotate(90deg) scale(.6)}
+[data-theme="dark"] .theme .sun{opacity:1;transform:none}
+.top nav{align-items:center}
+@media (max-width:600px){.theme{width:30px;height:30px}.theme svg{width:19px;height:19px}}
+/* colors glide when switching, not on page load */
+.theming,.theming *{transition:background-color .45s ease,color .45s ease,border-color .45s ease!important}
+
+/* ---------- dark mode: near-black + charcoal, warm off-white text */
+[data-theme="dark"]{
+  --bg:#161513;--paper:#1e1f1b;--stone:#23241f;--soft:#2a2b26;
+  --ink:#efece5;--mute:#a5a39b;--line:rgba(239,236,229,.15);
+  --kick:#ece9e1;--snare:#b6be90;--perc:#cf9f78;--hat:#a3b4bc;
+  --wave:#9fb59f;--ok:#7fb48c;--err:#ff8a74;--run:#e0b264;
+  color-scheme:dark
+}
+[data-theme="dark"] body{background:#161513;color:var(--ink)}
+[data-theme="dark"] ::selection{background:#c7cab4;color:#161513}
+[data-theme="dark"] .band.cream{background:#161513}
+[data-theme="dark"] .band.stone{background:#23241f}
+[data-theme="dark"] .band.sage{background:#1c1d19}
+[data-theme="dark"] .band.green{background:#0f1311;color:#efece5}
+[data-theme="dark"] .green .dot{color:#b9bfa9}
+[data-theme="dark"] .steps2 li{border-color:rgba(239,236,229,.12)}
+[data-theme="dark"] .steps2 p{color:#b3b5ab}
+[data-theme="dark"] .rings i{border-color:rgba(239,236,229,.22)}
+[data-theme="dark"] .oneshots{background:#23241f}
+[data-theme="dark"] .gcard:hover{background:#2b2c26}
+[data-theme="dark"] .allg{border-color:var(--ink)}
+[data-theme="dark"] .dropbar.dark{background:#f3f1ec;color:#1b1c18}
+[data-theme="dark"] .dropbar.dark:hover{background:#fff}
+[data-theme="dark"] .foot{background:#0e0e0c}
+[data-theme="dark"] .frow.fine{border-color:rgba(239,236,229,.1)}
+/* the painting, a little dimmer at night */
+[data-theme="dark"] .art img{filter:brightness(.68) saturate(.88)}
+[data-theme="dark"] .hero::after{background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.05) 25%,rgba(0,0,0,.05) 70%,rgba(0,0,0,.4))}
+[data-theme="dark"] .frame{background:rgba(14,15,13,.34);border-color:rgba(255,255,255,.55)}
+/* results + content pages */
+[data-theme="dark"] #job{background:#1e1f1b}
+[data-theme="dark"] .pad{background:#161513}
+[data-theme="dark"] .padhit:hover,[data-theme="dark"] .paddl:hover{background:#2a2b26}
+[data-theme="dark"] .padhit.hit{background:#3a3d33}
+[data-theme="dark"] .btn.pri{background:#efece5;border-color:#efece5;color:#161513}
+[data-theme="dark"] .btn.pri:hover{background:#fff}
+[data-theme="dark"] .btn:hover{border-color:var(--ink)}
+[data-theme="dark"] .trk button.on.m{color:#161513}
+[data-theme="dark"] .content a{color:#c3cb9b}
+[data-theme="dark"] .content .guides a.card:hover{background:#23241f}
+[data-theme="dark"] .content th{background:#23241f}
+[data-theme="dark"] .msg.err{background:rgba(255,138,116,.08)}
+[data-theme="dark"] .curtain,[data-theme="dark"].intro body::after{background:#0f1311}

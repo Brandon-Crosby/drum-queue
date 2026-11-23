@@ -3,8 +3,8 @@
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/fonts/dm-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/styles.css">
-<script>(function(d){var r=d.documentElement;if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;r.classList.add('js');
+<script>(function(d){var r=d.documentElement;try{if(localStorage.getItem('ds-theme')==='dark')r.dataset.theme='dark'}catch(e){}if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;r.classList.add('js');
 try{if(location.pathname==='/'&&!location.search&&sessionStorage.getItem('ds-intro')!=='1')r.classList.add('intro')}catch(e){}
 setTimeout(function(){if(!window.dsMotion)r.classList.remove('js','intro')},3500)})(document)</script>
-<meta name="theme-color" content="#f0ede6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#f0ede6">
 {{ADSENSE_TAG}}
