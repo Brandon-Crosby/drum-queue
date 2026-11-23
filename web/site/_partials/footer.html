@@ -18,4 +18,22 @@ document.getElementById('privacy-choices').addEventListener('click', function (e
   }
 });
 </script>
+<script>
+// Light / dark toggle (sun-moon button in the header). Remembered in this browser.
+(function () {
+  var r = document.documentElement, b = document.querySelector('.theme'), m = document.querySelector('meta[name="theme-color"]');
+  function set(dark) {
+    if (dark) r.dataset.theme = 'dark'; else delete r.dataset.theme;
+    if (b) { b.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode'); b.title = dark ? 'Light mode' : 'Dark mode'; }
+    if (m) m.content = dark ? '#161513' : '#f0ede6';
+    window.dispatchEvent(new Event('themechange'));
+  }
+  set(r.dataset.theme === 'dark');
+  if (b) b.addEventListener('click', function () {
+    var dark = r.dataset.theme !== 'dark';
+    r.classList.add('theming'); set(dark); setTimeout(function () { r.classList.remove('theming'); }, 500);
+    try { localStorage.setItem('ds-theme', dark ? 'dark' : 'light'); } catch (e) {}
+  });
+})();
+</script>
 <script src="/motion.js" defer></script>
