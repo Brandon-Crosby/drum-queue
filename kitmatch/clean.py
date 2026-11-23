@@ -647,8 +647,18 @@ def clean_kicks(kx, ks, log=lambda line: None):
     nxt = np.array([allon[allon > i][0] if (allon > i).any() else len(kx) for i in on])
     avg = average(kx, on, nxt)[0] if dropped else k0['seg']
     full = _full_low(kx, on)                       # the hit is picked among hits with the kick's full low end
-    ref = kx[on[full][int(np.argmax([np.abs(kx[i:i + int(0.03 * SR)]).max() for i in on[full]]))]:][:int(0.04 * SR)]
-    seg, _ = typical_hit(kx, align(kx, on[full], ref), nxt[full], len(avg))
+    onf = np.sort(on[full])
+    nf = np.append(onf[1:], len(kx))
+    # its length is how long a real kick has before the next real kick, not before the next anything in the
+    # stem: snares filed in the kick stem cut the average short (hyperbole helyx-6: a 25 ms click, 'no low end')
+    length = int(max(len(avg), min(MAX_LEN * SR, np.median(nf - onf))))
+    ref = kx[onf[int(np.argmax([np.abs(kx[i:i + int(0.03 * SR)]).max() for i in onf]))]:][:int(0.04 * SR)]
+    seg, _ = typical_hit(kx, align(kx, onf, ref), nf, length)
+    if seg is not None and len(seg) > len(avg):
+        k = max(len(avg), tail_end(seg))
+        seg = seg[:k].copy()
+        fd = min(k, int(0.02 * SR))
+        seg[k - fd:] *= (np.linspace(1, 0, fd) ** 2)[:, None] if seg.ndim == 2 else np.linspace(1, 0, fd) ** 2
     # decisions downstream (unstacking, look-alikes) keep using the average; only the file is the real hit
     kick = dict(k0, seg=avg, shot=seg, onsets=on, hits=len(on), is_kick=bool(dropped))
     if dropped:
