@@ -36,24 +36,34 @@
   ]
 }
 </script>
-</head><body>
+</head><body class="home">
 {{HEADER}}
-<main class="wrap">
 <section class="hero">
-  <h1>Split any song's drums into the kit pieces</h1>
-  <p>Upload a song. Get the kick, snare, percussion and hi-hat as separate stems, plus bass, vocals and the rest of the mix. Free, in your browser.</p>
-  <div class="pieces"><span>kick</span><span>snare</span><span>percussion</span><span>hi-hat</span></div>
+  <div class="wrap">
+    <p class="label" data-reveal>Free online drum splitter</p>
+    <h1 data-lines>Split any song's drums into the <em>kit pieces</em></h1>
+    <div class="herorow">
+      <p class="sub" data-lines style="--d:250ms">Upload a song. Get the kick, snare, percussion and hi-hat as separate stems, plus bass, vocals and the rest of the mix. Free, in your browser.</p>
+      <div id="drop" tabindex="0" role="button" aria-label="Choose a song to split" data-reveal style="--d:450ms">
+        <svg viewBox="0 0 400 216" preserveAspectRatio="none" aria-hidden="true"><ellipse class="base" cx="200" cy="108" rx="199" ry="107" vector-effect="non-scaling-stroke"/><ellipse class="draw" cx="200" cy="108" rx="199" ry="107" pathLength="1" vector-effect="non-scaling-stroke"/></svg>
+        <b>Drop a song here</b>
+        <small>or click to choose · mp3, wav, flac, m4a, aiff, ogg</small>
+        <input id="file" type="file" accept="audio/*,.mp3,.wav,.flac,.m4a,.aiff,.aif,.ogg,.opus" hidden>
+      </div>
+    </div>
+    <div class="tail">
+      <div id="ts"></div>
+      <div class="limits" id="limits">Up to {{MAX_MINUTES}} minutes per song · {{LIMIT_PER_IP}} free splits a day · files deleted after 24 hours</div>
+      <div id="msg"></div>
+      <div id="recent"></div>
+    </div>
+  </div>
 </section>
-
-<div id="drop" class="card" tabindex="0" role="button" aria-label="Choose a song to split">
-  <b>Drop a song here</b>
-  <small>or click to choose · mp3, wav, flac, m4a, aiff, ogg</small>
-  <input id="file" type="file" accept="audio/*,.mp3,.wav,.flac,.m4a,.aiff,.aif,.ogg,.opus" hidden>
-</div>
-<div id="ts"></div>
-<div class="limits" id="limits">Up to {{MAX_MINUTES}} minutes per song · {{LIMIT_PER_IP}} free splits a day · files deleted after 24 hours</div>
-<div id="msg"></div>
-<div id="recent"></div>
+<div class="marquee" aria-hidden="true"><div class="track">
+  <span>Kick</span><b>/</b><span>Snare</span><b>/</b><span>Percussion</span><b>/</b><span>Hi-hat</span><b>/</b><span>One-shots</span><b>/</b><span>Groove MIDI</span><b>/</b>
+  <span>Kick</span><b>/</b><span>Snare</span><b>/</b><span>Percussion</span><b>/</b><span>Hi-hat</span><b>/</b><span>One-shots</span><b>/</b><span>Groove MIDI</span><b>/</b>
+</div></div>
+<main class="wrap">
 
 <section id="job" class="card" aria-live="polite">
   <div class="jobtop"><h2 id="jname"></h2><span class="meta" id="jmeta"></span></div>
@@ -69,8 +79,8 @@
   <div class="adslot" id="waitad"></div>
   <div id="result" hidden>
     <div class="mixbar">
-      <button class="btn pri" id="play">▶ Play</button><button class="btn" id="stop">Stop</button>
-      <button class="btn" id="reset">Kit only</button><span class="time" id="time"></span>
+      <button class="btn pri" id="play">▶ Play</button><button class="btn" id="stop" data-flip>Stop</button>
+      <button class="btn" id="reset" data-flip>Kit only</button><span class="time" id="time"></span>
     </div>
     <div id="tracks"></div>
     <div id="shots" hidden>
@@ -79,27 +89,27 @@
       <div class="pads" id="pads"></div>
     </div>
     <div class="dl">
-      <a class="btn pri" id="zipshots" href="#">Download one-shots (.zip)</a>
-      <a class="btn" id="groovemid" href="#" hidden title="The beat's drum pattern, one track per one-shot. Drag it into your DAW with the kit.">Groove MIDI (.mid)</a>
-      <a class="btn" id="zipkit" href="#">Kit stems (.zip)</a>
-      <a class="btn" id="zipall" href="#">All stems (.zip)</a>
-      <button class="btn" id="again">Split another song</button>
+      <a class="btn pri" id="zipshots" data-flip href="#">Download one-shots (.zip)</a>
+      <a class="btn" id="groovemid" data-flip href="#" hidden title="The beat's drum pattern, one track per one-shot. Drag it into your DAW with the kit.">Groove MIDI (.mid)</a>
+      <a class="btn" id="zipkit" data-flip href="#">Kit stems (.zip)</a>
+      <a class="btn" id="zipall" data-flip href="#">All stems (.zip)</a>
+      <button class="btn" id="again" data-flip>Split another song</button>
     </div>
     <p class="expire" id="expire"></p>
   </div>
 </section>
 
 <section class="section">
-  <h2>How it works</h2>
-  <div class="how">
-    <div class="card"><h3>1. Drums out of the mix</h3><p>Demucs, a source-separation model from Meta AI, pulls the full drum track away from the bass, vocals and everything else.</p></div>
-    <div class="card"><h3>2. Kit into pieces</h3><p>A second model, Helyx, splits that track into kick, snare, percussion (toms, congas, bongos, cymbals) and hi-hat. It's our own drum model, trained further on Latin, Afro and house grooves.</p></div>
-    <div class="card"><h3>3. Listen, then download</h3><p>Mute and solo each piece right here, then download WAVs of the pieces you want, or all of them as a zip.</p></div>
-  </div>
+  <div class="shead"><p class="label">(01) Process</p><h2 data-lines>How it works</h2></div>
+  <ol class="how">
+    <li data-reveal><span class="num">01</span><h3>Drums out of the mix</h3><p>Demucs, a source-separation model from Meta AI, pulls the full drum track away from the bass, vocals and everything else.</p></li>
+    <li data-reveal style="--d:120ms"><span class="num">02</span><h3>Kit into pieces</h3><p>A second model, Helyx, splits that track into kick, snare, percussion (toms, congas, bongos, cymbals) and hi-hat. It's our own drum model, trained further on Latin, Afro and house grooves.</p></li>
+    <li data-reveal style="--d:240ms"><span class="num">03</span><h3>Listen, then download</h3><p>Mute and solo each piece right here, then download the one-shot kit, the groove as MIDI, or WAV stems of every piece.</p></li>
+  </ol>
 </section>
 
 <section class="section" id="faq">
-  <h2>Questions</h2>
+  <div class="shead"><p class="label">(02) Help</p><h2 data-lines>Questions</h2></div>
   <details><summary>Is it free?</summary><p>Yes. The site is paid for by ads. To keep it free for everyone, each visitor gets {{LIMIT_PER_IP}} splits a day, up to {{MAX_MINUTES}} minutes per song.</p></details>
   <details><summary>How long does a split take?</summary><p>Usually under a minute or two for a normal-length song once a GPU picks it up. If the site is busy you may wait in line for a bit first.</p></details>
   <details><summary>What happens to my files?</summary><p>Your upload is deleted as soon as it has been split. The stems are kept for 24 hours so you can come back and download them, then deleted. See the <a href="/privacy">privacy policy</a>.</p></details>
@@ -109,7 +119,7 @@
 </section>
 
 <section class="section">
-  <h2>Guides</h2>
+  <div class="shead"><p class="label">(03) Read</p><h2 data-lines>Guides</h2></div>
   <div class="guides">
     <a class="card" href="/guides/make-a-drum-kit-from-a-song"><b>How to make a drum kit from any song</b><span>One-shots of every sound in a song, plus the groove as MIDI.</span></a>
     <a class="card" href="/guides/use-groove-midi-in-fl-studio"><b>Use drum groove MIDI in FL Studio and Ableton</b><span>Load the pattern onto your one-shots in a couple of minutes.</span></a>
@@ -118,7 +128,7 @@
     <a class="card" href="/guides/get-a-cleaner-drum-split"><b>How to get a cleaner drum split</b><span>Source files, mastering and what makes a song harder to split.</span></a>
     <a class="card" href="/guides/kick-vs-808"><b>Kick vs 808: how to tell them apart</b><span>Why they get mixed up, and how to clean one out of the other.</span></a>
   </div>
-  <p><a href="/guides/">All guides →</a></p>
+  <p class="more"><a class="ul on" href="/guides/">All guides</a></p>
 </section>
 </main>
 {{FOOTER}}

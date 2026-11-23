@@ -1,7 +1,12 @@
 <footer class="foot"><div class="wrap">
-  <p><strong>{{SITE_NAME}}</strong> splits the drums out of any song into kick, snare, percussion and hi-hat. Free, with ads.</p>
-  <nav><a href="/about">About</a><a href="/guides/">Guides</a><a href="/privacy">Privacy</a><a href="/terms">Terms &amp; copyright</a><a href="/privacy#cookies" id="privacy-choices">Privacy choices</a><a href="mailto:{{CONTACT_EMAIL}}">Contact</a></nav>
-  <p class="fine">Uploads are deleted right after splitting; results are deleted after 24 hours. Only upload audio you have the right to use.</p>
+  <div class="cols">
+    <div>
+      <p><strong>{{SITE_NAME}}</strong> splits the drums out of any song into kick, snare, percussion and hi-hat, then turns them into a one-shot kit and groove MIDI. Free, with ads.</p>
+      <p class="fine">Uploads are deleted right after splitting; results are deleted after 24 hours. Only upload audio you have the right to use.</p>
+    </div>
+    <nav><a class="ul" href="/about">About</a><a class="ul" href="/guides/">Guides</a><a class="ul" href="/privacy">Privacy</a><a class="ul" href="/terms">Terms &amp; copyright</a><a class="ul" href="/privacy#cookies" id="privacy-choices">Privacy choices</a><a class="ul" href="mailto:{{CONTACT_EMAIL}}">Contact</a></nav>
+  </div>
+  <div class="word" aria-hidden="true">Drum<em>Splitter</em></div>
 </div></footer>
 <script>
 // "Privacy choices": reopens Google's consent message (Privacy & messaging). Falls back to the policy page.
@@ -12,3 +17,4 @@ document.getElementById('privacy-choices').addEventListener('click', function (e
   }
 });
 </script>
+<script src="/motion.js" defer></script>
