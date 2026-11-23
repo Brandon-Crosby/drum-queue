@@ -129,7 +129,8 @@ def real_song(src: Path, out: Path, valid: bool):
     return f"{'valid' if valid else 'train'} {src.name}"
 
 
-SKIP = ('Ocean Eyes',)                           # whole kit on one track: wrong labels
+SKIP = ('Ocean Eyes',                            # whole kit on one track: wrong labels
+        'MOONBOY - KAOS')                         # its 'kick' track is mostly not kicks (scan, Nov 2026)
 
 
 def plan(trainsets, out: Path):

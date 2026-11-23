@@ -24,8 +24,19 @@ The test beats (17 + breakdown136 + stunyun 137). Test folders carry `test_only`
 `make_testset.build(full=True)` refuses them.
 
 ## Start point
-Stock DrumSep handles dark snares far better than helyx-4, so start this run from stock DrumSep (the
-default), not from helyx-4.
+helyx-4 (helyx-1 -> 4 were each trained on top of the last, so starting over from stock DrumSep would
+throw away hours of learning the kick/snare/perc/hh/other split). Same MSE loss as helyx-4, so the new
+data and mixes are the only change. If the dark-snare habit survives, try stock DrumSep next.
+
+## Ready (Nov 22, 2026)
+18 candidate beats (41 min) prepped as training copies in ~/DrumSplits/trainset-candidates
+(roles reviewed: doubtful tracks, drum loops/buses and mislabeled-sounding tracks left out; roles in
+~/DrumSplits/roles-candidates). Upload, then launch:
+    modal volume put drumsplit-train ~/DrumSplits/trainset-candidates /trainset-candidates
+    modal deploy train/modal_train.py
+    modal run train/modal_train.py::go --run helyx-6 --hours 2 --synth 80 --init runs/helyx-4/last_mdx23c.ckpt
+Note: tools/zone-six/build.py checks that the site still uses helyx-4; switching the site to a new
+model needs that guard updated too.
 
 ## How to judge it
 `modal run eval/batch_eval.py --ckpt <run>/last_mdx23c.ckpt --label <run>` and compare with:
