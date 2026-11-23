@@ -53,6 +53,7 @@ image = (
 class Bench:
     source: str = modal.parameter(default='mix')     # 'mix' = stems summed, 'master' = the session's Master bounce
     ckpt: str = modal.parameter(default='')          # a checkpoint on the drumsplit-train volume, e.g. /runs/trial/x.ckpt
+    chunk_s: float = modal.parameter(default=0.0)   # >0: run our model on windows of ~this many seconds
 
     @modal.enter()
     def load(self):
@@ -81,6 +82,14 @@ class Bench:
                 if isinstance(sd, dict) and k in sd:
                     sd = sd[k]
             model.load_state_dict({k.replace('_orig_mod.', ''): v for k, v in sd.items()})
+            if self.chunk_s and self.chunk_s > 0:      # longer context per window, same model (convolutional in time)
+                hop = cfg.audio.hop_length
+                dim_t = max(32, int(round(self.chunk_s * cfg.audio.sample_rate / hop / 32)) * 32)   # 5 halvings: multiple of 32
+                cfg.audio.dim_t = dim_t
+                cfg.audio.chunk_size = hop * (dim_t - 1)
+                if 'inference' in cfg:
+                    cfg.inference.dim_t = dim_t
+                print(f'chunk: {cfg.audio.chunk_size} samples ({cfg.audio.chunk_size / cfg.audio.sample_rate:.2f} s), dim_t {dim_t}')
             self.ours = (model.to('cuda').eval(), cfg)
 
     @modal.method()
@@ -238,7 +247,7 @@ def board(results):
 
 @app.local_entrypoint()
 def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'current', ckpt: str = '', mix: str = 'mix',
-         listen: str = ''):
+         listen: str = '', chunk: float = 0.0):
     """--listen "beat name" also saves the model's actual separated audio (not just scores) for that one
     beat to the eval volume, so you can download and listen to it: modal volume get drumsplit-eval
     /listen/<beat> ~/Desktop/listen. --listen all saves every beat, under /listen/<label>/."""
@@ -280,7 +289,7 @@ def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'cu
             for b in beats:
                 if (root / b / 'mix_master.flac').exists():
                     up.put_file(str(root / b / 'mix_master.flac'), f'/testset/{b}/mix_master.flac')
-    results = list(Bench(ckpt=ckpt, source=mix).run.starmap(args, return_exceptions=True))
+    results = list(Bench(ckpt=ckpt, source=mix, chunk_s=chunk).run.starmap(args, return_exceptions=True))
     results = [r if isinstance(r, dict) else {'beat': b, 'error': repr(r)} for b, r in zip(beats, results)]
     print('\n' + board(results))
     out = Path('eval_results')
