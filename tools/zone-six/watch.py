@@ -4,10 +4,15 @@ import json, os, re, subprocess, tempfile, urllib.request
 from pathlib import Path
 BASE='https://api.github.com/repos/Brandon-Crosby/drum-queue'
 def get(url):
-    with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'ZoneSix-desktop-sync','Cache-Control':'no-cache'}),timeout=20) as r:
-        data=r.read(1024*1024+1)
-        if len(data)>1024*1024:raise ValueError('Response exceeds limit')
-        return json.loads(data)
+    if url.startswith(BASE+'/'):
+        # gh uses only this job's short-lived GITHUB_TOKEN for GitHub API requests.
+        # Never send it to the website or a download host.
+        data=subprocess.check_output(['gh','api',url],timeout=30)
+    else:
+        with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'ZoneSix-desktop-sync','Cache-Control':'no-cache'}),timeout=20) as r:
+            data=r.read(1024*1024+1)
+    if len(data)>1024*1024:raise ValueError('Response exceeds limit')
+    return json.loads(data)
 def deployed_revision():
     # A protected site may return a Cloudflare Access page. Use the trusted
     # Pages integration's successful check for current main, never scraped HTML.
