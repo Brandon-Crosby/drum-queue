@@ -618,6 +618,19 @@ def split_808(x, on, min_gap_sub=3.0, min_gap_dec=5.0):
     return np.ones(len(on), bool)
 
 
+def _full_low(x, on, within=4.0):
+    """Mask of the hits whose low end (<120 Hz, first 60 ms) is within `within` dB of the kick's strongest
+    (90th percentile). The kick stem also carries snares the model filed there and bleed; those hits
+    have 6-8 dB less low end (hyperbole: real kicks 57-60 dB, the rest 50-52), and the one-shot must not
+    be one of them (the producer: 'kick has no low end'). Never empties the mask."""
+    m = _mono(x)
+    f = np.fft.rfftfreq(8192, 1 / SR)
+    low = np.array([10 * np.log10((np.abs(np.fft.rfft(m[i:i + int(0.06 * SR)], 8192)) ** 2)[f < 120].sum() + 1e-12)
+                    for i in on])
+    mask = low >= np.percentile(low, 90) - within
+    return mask if mask.sum() >= 2 else np.ones(len(on), bool)
+
+
 def clean_kicks(kx, ks, log=lambda line: None):
     """The kick stem's biggest group is THE kick (so unstack() doesn't pick the darkest sound, an 808).
     808 notes thumping through it are taken out (split_808); then the one-shot is one real, typical hit
@@ -633,8 +646,9 @@ def clean_kicks(kx, ks, log=lambda line: None):
     allon = np.sort(np.concatenate([k['onsets'] for k in ks]))
     nxt = np.array([allon[allon > i][0] if (allon > i).any() else len(kx) for i in on])
     avg = average(kx, on, nxt)[0] if dropped else k0['seg']
-    ref = kx[on[int(np.argmax([np.abs(kx[i:i + int(0.03 * SR)]).max() for i in on]))]:][:int(0.04 * SR)]
-    seg, _ = typical_hit(kx, align(kx, on, ref), nxt, len(avg))
+    full = _full_low(kx, on)                       # the hit is picked among hits with the kick's full low end
+    ref = kx[on[full][int(np.argmax([np.abs(kx[i:i + int(0.03 * SR)]).max() for i in on[full]]))]:][:int(0.04 * SR)]
+    seg, _ = typical_hit(kx, align(kx, on[full], ref), nxt[full], len(avg))
     # decisions downstream (unstacking, look-alikes) keep using the average; only the file is the real hit
     kick = dict(k0, seg=avg, shot=seg, onsets=on, hits=len(on), is_kick=bool(dropped))
     if dropped:
