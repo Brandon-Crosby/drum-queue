@@ -772,12 +772,12 @@
     "label": "Kick 1",
     "role": "kick",
     "real": true,
-    "claim": 0.855,
+    "claim": 0.859,
     "top": "kick",
     "share": {
-     "kick": 0.855,
+     "kick": 0.859,
      "snare": 0.0,
-     "other_drums": 0.145,
+     "other_drums": 0.141,
      "hh": 0.0,
      "music": 0.0
     },
@@ -813,7 +813,7 @@
      "hh": 0.0,
      "music": 0.0
     },
-    "fit": 0.6,
+    "fit": 0.62,
     "hits": 52
    },
    {
@@ -872,8 +872,8 @@
     "top": "other_drums",
     "share": {
      "kick": 0.0,
-     "snare": 0.0,
-     "other_drums": 1.0,
+     "snare": 0.01,
+     "other_drums": 0.99,
      "hh": 0.0,
      "music": 0.0
     },
@@ -901,11 +901,11 @@
     "role": "hh",
     "real": false,
     "claim": 0.0,
-    "top": "other_drums",
+    "top": "snare",
     "share": {
      "kick": 0.0,
-     "snare": 0.0,
-     "other_drums": 1.0,
+     "snare": 1.0,
+     "other_drums": 0.0,
      "hh": 0.0,
      "music": 0.0
     },
@@ -916,14 +916,14 @@
     "label": "Hat 3",
     "role": "hh",
     "real": true,
-    "claim": 0.526,
+    "claim": 0.529,
     "top": "hh",
     "share": {
      "kick": 0.0,
-     "snare": 0.408,
+     "snare": 0.41,
      "other_drums": 0.0,
-     "hh": 0.526,
-     "music": 0.066
+     "hh": 0.529,
+     "music": 0.062
     },
     "fit": 0.29,
     "hits": 19
