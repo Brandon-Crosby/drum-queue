@@ -45,6 +45,21 @@ model needs that guard updated too.
 - hasta luego snare: helyx-4 1% / stock DrumSep 96%
 Only ship if it beats helyx-4 overall *and* by ear on A/B one-shots.
 
+## helyx-6 results and the run after it (Nov 23, 2026)
+helyx-6 (4 h from helyx-4, darken/onbeat/nokick, +18 beats): kit score 67% -> 73% real one-shots
+(snare/perc 64 -> 75%, hats 69 -> 63%); snare SDR 1.3 -> 3.0. Producer's ears on church's chicken:
+helyx-4 kick deeper, helyx-6 hats are noise, helyx-6 found a perc helyx-4 missed.
+
+Found on church's chicken: its shaker (vbo sandpaper) and open hat sit ~30 dB under loud percs; helyx-6
+put 60% of them in the perc stem, 17% in snare and only 4% in hats, so the hat one-shots were kick bleed.
+Its snare-tom (93% stacked on percs) goes about half to the kick stem in both models.
+
+For the next run:
+- `quiethats_prob: 0.25` (in the config): hats 12-30 dB under the other drums.
+- Shakers count as hats, always (the producer: "shakers should double as a hihat"). Roles already do this.
+- Data: beats with quiet hats/shakers under busy percussion; snare-toms stacked on percs.
+- A/B by ear with `eval/ab_kits.py` (same sound numbered the same, the song re-played with each kit).
+
 ## Stage 1 (Demucs) percussion
 Percs staying in the music is Demucs' call, before Helyx sees anything. Options to test (cheap, no
 training): run Helyx on drums + a little of "other" for perc-heavy songs, or a light separation

@@ -57,6 +57,7 @@ augmentations:
   darken_prob: 0.3      # low-pass the snare stem: dark snares on their own (helyx-4 sent hasta luego's to the kick)
   onbeat_prob: 0.3      # synth/vox/808 chops laid on the snare hits, kept in 'other' (stunyun137)
   nokick_prob: 0.1      # some clips with no kick at all (808-led beats)
+  quiethats_prob: 0.25  # hats/shakers 12-30 dB under the other drums (church's chicken: helyx-6 filed them as perc)
   master_prob: 0.5       # master chain on the whole mix: EQ, bus comp, 4-14 dB into a limiter, clipper
   loudness: true
   loudness_min: 0.5

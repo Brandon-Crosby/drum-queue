@@ -22,7 +22,8 @@ master(res, aug)                 a master chain on the whole mix: tilt EQ + low 
                                  ducked snare in the mix is a ducked snare in the target); clipping
                                  only touches the mix. Returns (res, mix).
 
-Config (augmentations:): aligned_prob, restack_prob, darken_prob, onbeat_prob, nokick_prob, master_prob. All off when missing.
+Config (augmentations:): aligned_prob, restack_prob, darken_prob, onbeat_prob, nokick_prob, quiethats_prob,
+master_prob. All off when missing.
 """
 import numpy as np
 
@@ -206,6 +207,20 @@ def nokick(res, instruments, aug, rng=np.random):
     r, was = _np(res)
     r = r.copy()
     r[instruments.index('kick')] = 0
+    return _back(r, was)
+
+
+def quiethats(res, instruments, aug, rng=np.random):
+    """Turn the hats (shakers count as hats) 12-30 dB down under the other drums. church's chicken: its
+    shaker and open hat sit ~30 dB under loud percs, and helyx-6 put 60% of them in the perc stem and 4% in
+    hats, leaving kick bleed as the 'hats'. The target hh stem is turned down with the mix, so the model
+    learns that a quiet hat is still a hat."""
+    p = _get(aug, 'quiethats_prob')
+    if p <= 0 or rng.uniform() >= p or 'hh' not in instruments:
+        return res
+    r, was = _np(res)
+    r = r.copy()
+    r[instruments.index('hh')] *= 10 ** (-rng.uniform(12, 30) / 20)
     return _back(r, was)
 
 
