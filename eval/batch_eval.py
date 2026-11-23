@@ -53,7 +53,7 @@ image = (
 class Bench:
     source: str = modal.parameter(default='mix')     # 'mix' = stems summed, 'master' = the session's Master bounce
     ckpt: str = modal.parameter(default='')          # a checkpoint on the drumsplit-train volume, e.g. /runs/trial/x.ckpt
-    chunk_s: float = modal.parameter(default=0.0)   # >0: run our model on windows of ~this many seconds
+    chunk_s: int = modal.parameter(default=0)       # >0: run our model on windows of ~this many seconds
 
     @modal.enter()
     def load(self):
@@ -247,7 +247,7 @@ def board(results):
 
 @app.local_entrypoint()
 def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'current', ckpt: str = '', mix: str = 'mix',
-         listen: str = '', chunk: float = 0.0):
+         listen: str = '', chunk: int = 0):
     """--listen "beat name" also saves the model's actual separated audio (not just scores) for that one
     beat to the eval volume, so you can download and listen to it: modal volume get drumsplit-eval
     /listen/<beat> ~/Desktop/listen. --listen all saves every beat, under /listen/<label>/."""
