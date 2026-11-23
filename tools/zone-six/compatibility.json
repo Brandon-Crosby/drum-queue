@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "requirements.txt": "be0c312e83f66a6d13305a5f9b5e6b6e94ceb7d05feed166be81e01e860721d7",
+    "web/backend/requirements.txt": "ba0a6856faafa091d95ced7b0d3cd1498519e7d3235226da9c91ac1ee8cd8b1a"
+  }
+}

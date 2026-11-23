@@ -66,6 +66,18 @@ def main():
         return text
 
     shutil.rmtree(OUT, ignore_errors=True)
+    # Public deployment identity; no credentials or inference settings.
+    revision = os.environ.get('CF_PAGES_COMMIT_SHA', '')
+    if not revision:
+        import subprocess
+        try:
+            revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=HERE, text=True).strip()
+        except (OSError, subprocess.CalledProcessError):
+            revision = ''
+    if re.fullmatch('[a-f0-9]{40}', revision):
+        marker = OUT / '_zone-six' / 'release.json'
+        marker.parent.mkdir(parents=True, exist_ok=True)
+        marker.write_text(json.dumps({'schemaVersion': 1, 'repository': 'Brandon-Crosby/drum-queue', 'sourceCommit': revision}) + '\n')
     pages = []
     for f in SRC.rglob('*'):
         rel = f.relative_to(SRC)
