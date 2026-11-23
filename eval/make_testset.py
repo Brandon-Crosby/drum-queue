@@ -34,6 +34,8 @@ def build(beat, out, seconds, spec_file, full=False):
     """60 s test clip (default), or with full=True the whole beat by role, for training
     (no mix.flac: training remixes the roles itself)."""
     spec = json.loads(spec_file.read_text())
+    if full and spec.get('test_only'):              # a test beat: scoring only, never training
+        raise ValueError(f'{beat.name} is marked test_only: never a training copy')
     prefix, roles = spec.get('prefix', ''), spec['roles']
     parts, sr = {}, None
     for role in ROLES:
@@ -60,10 +62,11 @@ def build(beat, out, seconds, spec_file, full=False):
     if 'kick' not in parts and 'snare' not in parts:
         raise ValueError('no kick or snare tracks listed')
     n = max(len(v) for v in parts.values())
-    full = {r: np.pad(parts[r], ((0, n - len(parts[r])), (0, 0))) if r in parts else np.zeros((n, 2), 'float32')
-            for r in ROLES}
+    # (named `whole`, not `full`: reusing `full` here made every test clip a whole-song training copy)
+    whole = {r: np.pad(parts[r], ((0, n - len(parts[r])), (0, 0))) if r in parts else np.zeros((n, 2), 'float32')
+             for r in ROLES}
     # the stretch with the most kit going on (kick + snare + hats), in 1 s steps
-    kit = np.abs(full['kick']).mean(1) + np.abs(full['snare']).mean(1) + np.abs(full['hh']).mean(1)
+    kit = np.abs(whole['kick']).mean(1) + np.abs(whole['snare']).mean(1) + np.abs(whole['hh']).mean(1)
     win = n if full else int(seconds * sr)
     if n > win:
         c = np.concatenate([[0], np.cumsum(kit)])
@@ -71,7 +74,7 @@ def build(beat, out, seconds, spec_file, full=False):
         s0 = int(starts[np.argmax(c[starts + win] - c[starts])])
     else:
         s0, win = 0, n
-    clip = {r: v[s0:s0 + win] for r, v in full.items()}
+    clip = {r: v[s0:s0 + win] for r, v in whole.items()}
     mix = sum(clip.values())
     g = min(1.0, 0.89 / (float(np.abs(mix).max()) + 1e-9))
     out.mkdir(parents=True, exist_ok=True)

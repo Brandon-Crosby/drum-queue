@@ -258,12 +258,12 @@ def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'cu
     except Exception:
         pass
     pick = lambda name: not only or only.lower() in name.lower()  # noqa: E731
-    if root.is_dir():
-        beats = sorted(p.name for p in root.iterdir() if (p / 'mix.flac').exists() and pick(p.name))
-    else:                                         # no local copy: score the beats already on the eval volume
-        beats = sorted(b for b in have if pick(b))
-        if beats:
-            print(f'{root} not found; using the {len(beats)} beat(s) already uploaded to the eval volume')
+    # every beat already on the eval volume, plus any local ones (new local beats get uploaded below);
+    # a local folder holding only a newly added beat must not drop the rest of the set
+    local = {p.name for p in root.iterdir() if (p / 'mix.flac').exists()} if root.is_dir() else set()
+    beats = sorted(b for b in local | have if pick(b))
+    if not root.is_dir() and beats:
+        print(f'{root} not found; using the {len(beats)} beat(s) already uploaded to the eval volume')
     if not beats:
         raise SystemExit(f'No test beats in {root} or on the eval volume (run eval/make_testset.py first)')
     new = [b for b in beats if b not in have]
