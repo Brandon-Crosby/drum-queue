@@ -1,0 +1,2814 @@
+{
+ "ONEAAZZ": {
+  "lag_ms": 0.0,
+  "shots": [
+   {
+    "label": "Kick 1",
+    "role": "kick",
+    "real": true,
+    "claim": 0.917,
+    "top": "kick",
+    "share": {
+     "kick": 0.917,
+     "snare": 0.067,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.016
+    },
+    "fit": 0.61,
+    "hits": 88
+   },
+   {
+    "label": "Snare 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.963,
+    "top": "snare",
+    "share": {
+     "kick": 0.03,
+     "snare": 0.963,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.007
+    },
+    "fit": 0.85,
+    "hits": 113
+   },
+   {
+    "label": "Snare-Perc 1",
+    "role": "sp",
+    "real": false,
+    "claim": 0.144,
+    "top": "kick",
+    "share": {
+     "kick": 0.659,
+     "snare": 0.144,
+     "other_drums": 0.0,
+     "hh": 0.194,
+     "music": 0.003
+    },
+    "fit": 0.14,
+    "hits": 48
+   },
+   {
+    "label": "Snare-Perc 2",
+    "role": "sp",
+    "real": true,
+    "claim": 0.501,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.041,
+     "snare": 0.0,
+     "other_drums": 0.501,
+     "hh": 0.458,
+     "music": 0.0
+    },
+    "fit": 0.65,
+    "hits": 23
+   },
+   {
+    "label": "Snare-Perc 3",
+    "role": "sp",
+    "real": true,
+    "claim": 0.611,
+    "top": "snare",
+    "share": {
+     "kick": 0.358,
+     "snare": 0.53,
+     "other_drums": 0.081,
+     "hh": 0.031,
+     "music": 0.0
+    },
+    "fit": 0.27,
+    "hits": 24
+   },
+   {
+    "label": "Hat 1",
+    "role": "hh",
+    "real": false,
+    "claim": 0.195,
+    "top": "kick",
+    "share": {
+     "kick": 0.678,
+     "snare": 0.0,
+     "other_drums": 0.007,
+     "hh": 0.195,
+     "music": 0.12
+    },
+    "fit": 0.23,
+    "hits": 43
+   },
+   {
+    "label": "Hat 2",
+    "role": "hh",
+    "real": true,
+    "claim": 0.818,
+    "top": "hh",
+    "share": {
+     "kick": 0.182,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.818,
+     "music": 0.0
+    },
+    "fit": 0.32,
+    "hits": 39
+   }
+  ],
+  "kit_score": 0.714
+ },
+ "T VEO SOLA 176 STEMS": {
+  "lag_ms": 0.0,
+  "shots": [
+   {
+    "label": "Kick 1",
+    "role": "kick",
+    "real": false,
+    "claim": 0.0,
+    "top": "music",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 1.0
+    },
+    "fit": 0.25,
+    "hits": 4
+   },
+   {
+    "label": "Snare-Perc 1",
+    "role": "sp",
+    "real": false,
+    "claim": 0.169,
+    "top": "hh",
+    "share": {
+     "kick": 0.364,
+     "snare": 0.057,
+     "other_drums": 0.112,
+     "hh": 0.467,
+     "music": 0.0
+    },
+    "fit": 0.34,
+    "hits": 26
+   },
+   {
+    "label": "Snare-Perc 2",
+    "role": "sp",
+    "real": false,
+    "claim": 0.488,
+    "top": "snare",
+    "share": {
+     "kick": 0.053,
+     "snare": 0.488,
+     "other_drums": 0.0,
+     "hh": 0.393,
+     "music": 0.066
+    },
+    "fit": 0.32,
+    "hits": 21
+   },
+   {
+    "label": "Snare-Perc 3",
+    "role": "sp",
+    "real": true,
+    "claim": 0.736,
+    "top": "snare",
+    "share": {
+     "kick": 0.105,
+     "snare": 0.736,
+     "other_drums": 0.0,
+     "hh": 0.159,
+     "music": 0.0
+    },
+    "fit": 0.45,
+    "hits": 21
+   },
+   {
+    "label": "Snare-Perc 4",
+    "role": "sp",
+    "real": true,
+    "claim": 0.767,
+    "top": "snare",
+    "share": {
+     "kick": 0.003,
+     "snare": 0.767,
+     "other_drums": 0.0,
+     "hh": 0.127,
+     "music": 0.103
+    },
+    "fit": 0.48,
+    "hits": 14
+   },
+   {
+    "label": "Snare-Perc 5",
+    "role": "sp",
+    "real": false,
+    "claim": 0.49,
+    "top": "snare",
+    "share": {
+     "kick": 0.171,
+     "snare": 0.49,
+     "other_drums": 0.0,
+     "hh": 0.179,
+     "music": 0.159
+    },
+    "fit": 0.34,
+    "hits": 14
+   },
+   {
+    "label": "Snare 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.986,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.986,
+     "hh": 0.0,
+     "music": 0.014
+    },
+    "fit": 0.54,
+    "hits": 11
+   },
+   {
+    "label": "Hat 1",
+    "role": "hh",
+    "real": true,
+    "claim": 0.671,
+    "top": "hh",
+    "share": {
+     "kick": 0.329,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.671,
+     "music": 0.0
+    },
+    "fit": 0.22,
+    "hits": 46
+   },
+   {
+    "label": "Hat 2",
+    "role": "hh",
+    "real": true,
+    "claim": 0.615,
+    "top": "hh",
+    "share": {
+     "kick": 0.042,
+     "snare": 0.343,
+     "other_drums": 0.0,
+     "hh": 0.615,
+     "music": 0.0
+    },
+    "fit": 0.16,
+    "hits": 37
+   },
+   {
+    "label": "Hat 3",
+    "role": "hh",
+    "real": true,
+    "claim": 0.645,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.355,
+     "other_drums": 0.0,
+     "hh": 0.645,
+     "music": 0.0
+    },
+    "fit": 0.14,
+    "hits": 24
+   }
+  ],
+  "kit_score": 0.6
+ },
+ "TABLAaLAS2am 124": {
+  "lag_ms": 0.0,
+  "shots": [
+   {
+    "label": "Kick 1",
+    "role": "kick",
+    "real": true,
+    "claim": 0.982,
+    "top": "kick",
+    "share": {
+     "kick": 0.982,
+     "snare": 0.0,
+     "other_drums": 0.006,
+     "hh": 0.0,
+     "music": 0.012
+    },
+    "fit": 0.62,
+    "hits": 76
+   },
+   {
+    "label": "Clap 1",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 1.0,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.16,
+    "hits": 31
+   },
+   {
+    "label": "Snare-Perc 1",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 1.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.43,
+    "hits": 28
+   },
+   {
+    "label": "Clap 2",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 1.0,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.17,
+    "hits": 8
+   },
+   {
+    "label": "Snare-Perc 2",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 1.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.96,
+    "hits": 5
+   },
+   {
+    "label": "Snare-Perc 3",
+    "role": "sp",
+    "real": false,
+    "claim": 0.0,
+    "top": "kick",
+    "share": {
+     "kick": 0.758,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.242
+    },
+    "fit": 0.28,
+    "hits": 2
+   },
+   {
+    "label": "Hat 1",
+    "role": "hh",
+    "real": true,
+    "claim": 1.0,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 1.0,
+     "music": 0.0
+    },
+    "fit": 0.4,
+    "hits": 63
+   },
+   {
+    "label": "Hat 2",
+    "role": "hh",
+    "real": true,
+    "claim": 1.0,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 1.0,
+     "music": 0.0
+    },
+    "fit": 0.22,
+    "hits": 37
+   },
+   {
+    "label": "Hat 3",
+    "role": "hh",
+    "real": false,
+    "claim": 0.202,
+    "top": "snare",
+    "share": {
+     "kick": 0.208,
+     "snare": 0.59,
+     "other_drums": 0.0,
+     "hh": 0.202,
+     "music": 0.0
+    },
+    "fit": 0.05,
+    "hits": 32
+   }
+  ],
+  "kit_score": 0.778
+ },
+ "TumbaLaCasa 130": {
+  "lag_ms": 0.0,
+  "shots": [
+   {
+    "label": "Kick 1",
+    "role": "kick",
+    "real": true,
+    "claim": 1.0,
+    "top": "kick",
+    "share": {
+     "kick": 1.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.88,
+    "hits": 17
+   },
+   {
+    "label": "Snare 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.913,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.913,
+     "other_drums": 0.0,
+     "hh": 0.087,
+     "music": 0.0
+    },
+    "fit": 0.6,
+    "hits": 28
+   },
+   {
+    "label": "Snare 2",
+    "role": "sp",
+    "real": false,
+    "claim": 0.0,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.967,
+     "music": 0.033
+    },
+    "fit": 0.53,
+    "hits": 20
+   },
+   {
+    "label": "Snare-Perc 1",
+    "role": "sp",
+    "real": false,
+    "claim": 0.102,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.083,
+     "other_drums": 0.019,
+     "hh": 0.898,
+     "music": 0.0
+    },
+    "fit": 0.43,
+    "hits": 19
+   },
+   {
+    "label": "Snare-Perc 2",
+    "role": "sp",
+    "real": false,
+    "claim": 0.191,
+    "top": "hh",
+    "share": {
+     "kick": 0.123,
+     "snare": 0.0,
+     "other_drums": 0.191,
+     "hh": 0.686,
+     "music": 0.0
+    },
+    "fit": 0.53,
+    "hits": 18
+   },
+   {
+    "label": "Snare 3",
+    "role": "sp",
+    "real": true,
+    "claim": 0.983,
+    "top": "snare",
+    "share": {
+     "kick": 0.004,
+     "snare": 0.983,
+     "other_drums": 0.0,
+     "hh": 0.013,
+     "music": 0.0
+    },
+    "fit": 0.72,
+    "hits": 11
+   },
+   {
+    "label": "Snare 4",
+    "role": "sp",
+    "real": false,
+    "claim": 0.035,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.035,
+     "hh": 0.965,
+     "music": 0.0
+    },
+    "fit": 0.68,
+    "hits": 9
+   },
+   {
+    "label": "Hat 1",
+    "role": "hh",
+    "real": true,
+    "claim": 1.0,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 1.0,
+     "music": 0.0
+    },
+    "fit": 0.78,
+    "hits": 105
+   },
+   {
+    "label": "Hat 2",
+    "role": "hh",
+    "real": true,
+    "claim": 0.834,
+    "top": "hh",
+    "share": {
+     "kick": 0.129,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.834,
+     "music": 0.037
+    },
+    "fit": 0.49,
+    "hits": 33
+   },
+   {
+    "label": "Hat 3",
+    "role": "hh",
+    "real": true,
+    "claim": 0.728,
+    "top": "hh",
+    "share": {
+     "kick": 0.025,
+     "snare": 0.248,
+     "other_drums": 0.0,
+     "hh": 0.728,
+     "music": 0.0
+    },
+    "fit": 0.22,
+    "hits": 16
+   }
+  ],
+  "kit_score": 0.6
+ },
+ "balbikiu 121": {
+  "lag_ms": 0.0,
+  "shots": [
+   {
+    "label": "Kick 1",
+    "role": "kick",
+    "real": true,
+    "claim": 0.974,
+    "top": "kick",
+    "share": {
+     "kick": 0.974,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.026
+    },
+    "fit": 0.57,
+    "hits": 84
+   },
+   {
+    "label": "Clap 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.824,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.742,
+     "other_drums": 0.082,
+     "hh": 0.176,
+     "music": 0.0
+    },
+    "fit": 0.58,
+    "hits": 45
+   },
+   {
+    "label": "Snare 1",
+    "role": "sp",
+    "real": false,
+    "claim": 0.212,
+    "top": "hh",
+    "share": {
+     "kick": 0.039,
+     "snare": 0.0,
+     "other_drums": 0.212,
+     "hh": 0.749,
+     "music": 0.0
+    },
+    "fit": 0.4,
+    "hits": 23
+   },
+   {
+    "label": "Snare-Perc 1",
+    "role": "sp",
+    "real": false,
+    "claim": 0.0,
+    "top": "kick",
+    "share": {
+     "kick": 1.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.82,
+    "hits": 12
+   },
+   {
+    "label": "Snare-Perc 2",
+    "role": "sp",
+    "real": false,
+    "claim": 0.15,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.15,
+     "hh": 0.85,
+     "music": 0.0
+    },
+    "fit": 0.55,
+    "hits": 14
+   },
+   {
+    "label": "Snare 2",
+    "role": "sp",
+    "real": true,
+    "claim": 0.779,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.722,
+     "other_drums": 0.057,
+     "hh": 0.221,
+     "music": 0.0
+    },
+    "fit": 0.64,
+    "hits": 13
+   },
+   {
+    "label": "Snare-Perc 3",
+    "role": "sp",
+    "real": false,
+    "claim": 0.358,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.358,
+     "hh": 0.395,
+     "music": 0.247
+    },
+    "fit": 0.31,
+    "hits": 12
+   },
+   {
+    "label": "Hat 1",
+    "role": "hh",
+    "real": true,
+    "claim": 0.975,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.013,
+     "other_drums": 0.012,
+     "hh": 0.975,
+     "music": 0.0
+    },
+    "fit": 0.47,
+    "hits": 98
+   },
+   {
+    "label": "Hat 2",
+    "role": "hh",
+    "real": true,
+    "claim": 0.813,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.187,
+     "hh": 0.813,
+     "music": 0.0
+    },
+    "fit": 0.23,
+    "hits": 46
+   },
+   {
+    "label": "Hat 3",
+    "role": "hh",
+    "real": true,
+    "claim": 0.97,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.025,
+     "hh": 0.97,
+     "music": 0.005
+    },
+    "fit": 0.65,
+    "hits": 44
+   }
+  ],
+  "kit_score": 0.6
+ },
+ "church's chicken 122bpm": {
+  "lag_ms": 0.0,
+  "shots": [
+   {
+    "label": "Kick 1",
+    "role": "kick",
+    "real": true,
+    "claim": 0.855,
+    "top": "kick",
+    "share": {
+     "kick": 0.855,
+     "snare": 0.0,
+     "other_drums": 0.145,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.64,
+    "hits": 73
+   },
+   {
+    "label": "Snare-Perc 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.916,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.088,
+     "other_drums": 0.828,
+     "hh": 0.0,
+     "music": 0.084
+    },
+    "fit": 0.33,
+    "hits": 52
+   },
+   {
+    "label": "Snare-Perc 2",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 1.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.6,
+    "hits": 52
+   },
+   {
+    "label": "Snare-Perc 3",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 1.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.55,
+    "hits": 28
+   },
+   {
+    "label": "Snare-Perc 4",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 1.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.39,
+    "hits": 11
+   },
+   {
+    "label": "Snare-Perc 5",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.975,
+     "other_drums": 0.025,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.86,
+    "hits": 12
+   },
+   {
+    "label": "Snare-Perc 6",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 1.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.6,
+    "hits": 9
+   },
+   {
+    "label": "Hat 1",
+    "role": "hh",
+    "real": false,
+    "claim": 0.0,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.729,
+     "hh": 0.0,
+     "music": 0.271
+    },
+    "fit": 0.43,
+    "hits": 23
+   },
+   {
+    "label": "Hat 2",
+    "role": "hh",
+    "real": false,
+    "claim": 0.0,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 1.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.11,
+    "hits": 23
+   },
+   {
+    "label": "Hat 3",
+    "role": "hh",
+    "real": true,
+    "claim": 0.526,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.408,
+     "other_drums": 0.0,
+     "hh": 0.526,
+     "music": 0.066
+    },
+    "fit": 0.29,
+    "hits": 19
+   }
+  ],
+  "kit_score": 0.8
+ },
+ "demobow 117bpm stems": {
+  "lag_ms": 0.0,
+  "shots": [
+   {
+    "label": "Kick 1",
+    "role": "kick",
+    "real": true,
+    "claim": 0.994,
+    "top": "kick",
+    "share": {
+     "kick": 0.994,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.006,
+     "music": 0.0
+    },
+    "fit": 0.93,
+    "hits": 103
+   },
+   {
+    "label": "Snare-Perc 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.953,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.237,
+     "other_drums": 0.716,
+     "hh": 0.0,
+     "music": 0.047
+    },
+    "fit": 0.45,
+    "hits": 53
+   },
+   {
+    "label": "Snare-Perc 2",
+    "role": "sp",
+    "real": true,
+    "claim": 0.865,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.077,
+     "other_drums": 0.788,
+     "hh": 0.0,
+     "music": 0.135
+    },
+    "fit": 0.48,
+    "hits": 22
+   },
+   {
+    "label": "Snare-Perc 3",
+    "role": "sp",
+    "real": true,
+    "claim": 0.95,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.433,
+     "other_drums": 0.517,
+     "hh": 0.044,
+     "music": 0.005
+    },
+    "fit": 0.69,
+    "hits": 39
+   },
+   {
+    "label": "Snare-Perc 4",
+    "role": "sp",
+    "real": false,
+    "claim": 0.113,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.113,
+     "hh": 0.836,
+     "music": 0.051
+    },
+    "fit": 0.56,
+    "hits": 22
+   },
+   {
+    "label": "Snare-Perc 5",
+    "role": "sp",
+    "real": false,
+    "claim": 0.021,
+    "top": "hh",
+    "share": {
+     "kick": 0.071,
+     "snare": 0.009,
+     "other_drums": 0.012,
+     "hh": 0.905,
+     "music": 0.002
+    },
+    "fit": 0.73,
+    "hits": 14
+   },
+   {
+    "label": "Snare-Perc 6",
+    "role": "sp",
+    "real": false,
+    "claim": 0.0,
+    "top": "music",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.388,
+     "music": 0.612
+    },
+    "fit": 0.36,
+    "hits": 17
+   },
+   {
+    "label": "Hat 1",
+    "role": "hh",
+    "real": true,
+    "claim": 0.972,
+    "top": "hh",
+    "share": {
+     "kick": 0.028,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.972,
+     "music": 0.0
+    },
+    "fit": 0.79,
+    "hits": 96
+   },
+   {
+    "label": "Hat 2",
+    "role": "hh",
+    "real": false,
+    "claim": 0.299,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.041,
+     "snare": 0.039,
+     "other_drums": 0.621,
+     "hh": 0.299,
+     "music": 0.0
+    },
+    "fit": 0.13,
+    "hits": 36
+   },
+   {
+    "label": "Hat 3",
+    "role": "hh",
+    "real": true,
+    "claim": 0.915,
+    "top": "hh",
+    "share": {
+     "kick": 0.047,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.915,
+     "music": 0.038
+    },
+    "fit": 0.57,
+    "hits": 29
+   }
+  ],
+  "kit_score": 0.6
+ },
+ "desbloquear 123": {
+  "lag_ms": 0.0,
+  "shots": [
+   {
+    "label": "Kick 1",
+    "role": "kick",
+    "real": true,
+    "claim": 1.0,
+    "top": "kick",
+    "share": {
+     "kick": 1.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.92,
+    "hits": 115
+   },
+   {
+    "label": "Clap 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.789,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.789,
+     "other_drums": 0.0,
+     "hh": 0.211,
+     "music": 0.0
+    },
+    "fit": 0.18,
+    "hits": 32
+   },
+   {
+    "label": "Snare-Perc 1",
+    "role": "sp",
+    "real": false,
+    "claim": 0.0,
+    "top": "hh",
+    "share": {
+     "kick": 0.167,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.833,
+     "music": 0.0
+    },
+    "fit": 0.25,
+    "hits": 22
+   },
+   {
+    "label": "Snare 1",
+    "role": "sp",
+    "real": false,
+    "claim": 0.0,
+    "top": "hh",
+    "share": {
+     "kick": 0.27,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.604,
+     "music": 0.126
+    },
+    "fit": 0.12,
+    "hits": 20
+   },
+   {
+    "label": "Snare 2",
+    "role": "sp",
+    "real": false,
+    "claim": 0.0,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.591,
+     "music": 0.409
+    },
+    "fit": 0.06,
+    "hits": 14
+   },
+   {
+    "label": "Snare 3",
+    "role": "sp",
+    "real": false,
+    "claim": 0.0,
+    "top": "hh",
+    "share": {
+     "kick": 0.119,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.482,
+     "music": 0.399
+    },
+    "fit": 0.02,
+    "hits": 14
+   },
+   {
+    "label": "Snare-Perc 2",
+    "role": "sp",
+    "real": false,
+    "claim": 0.0,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.987,
+     "music": 0.013
+    },
+    "fit": 0.61,
+    "hits": 14
+   },
+   {
+    "label": "Hat 1",
+    "role": "hh",
+    "real": true,
+    "claim": 1.0,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 1.0,
+     "music": 0.0
+    },
+    "fit": 0.68,
+    "hits": 93
+   },
+   {
+    "label": "Hat 2",
+    "role": "hh",
+    "real": true,
+    "claim": 1.0,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 1.0,
+     "music": 0.0
+    },
+    "fit": 0.4,
+    "hits": 79
+   }
+  ],
+  "kit_score": 0.444
+ },
+ "hasta luego 130": {
+  "lag_ms": 0.0,
+  "shots": [
+   {
+    "label": "Kick 1",
+    "role": "kick",
+    "real": true,
+    "claim": 0.997,
+    "top": "kick",
+    "share": {
+     "kick": 0.997,
+     "snare": 0.0,
+     "other_drums": 0.003,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.86,
+    "hits": 100
+   },
+   {
+    "label": "Snare-Perc 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.972,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.972,
+     "other_drums": 0.0,
+     "hh": 0.028,
+     "music": 0.0
+    },
+    "fit": 0.86,
+    "hits": 34
+   },
+   {
+    "label": "Snare-Perc 2",
+    "role": "sp",
+    "real": true,
+    "claim": 0.759,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.759,
+     "other_drums": 0.0,
+     "hh": 0.102,
+     "music": 0.139
+    },
+    "fit": 0.12,
+    "hits": 7
+   },
+   {
+    "label": "Snare-Perc 3",
+    "role": "sp",
+    "real": true,
+    "claim": 0.859,
+    "top": "snare",
+    "share": {
+     "kick": 0.027,
+     "snare": 0.683,
+     "other_drums": 0.176,
+     "hh": 0.08,
+     "music": 0.034
+    },
+    "fit": 0.49,
+    "hits": 12
+   },
+   {
+    "label": "Snare-Perc 4",
+    "role": "sp",
+    "real": true,
+    "claim": 0.839,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.161,
+     "snare": 0.0,
+     "other_drums": 0.839,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.22,
+    "hits": 11
+   },
+   {
+    "label": "Snare-Perc 5",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 1.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.61,
+    "hits": 5
+   },
+   {
+    "label": "Snare-Perc 6",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 1.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.73,
+    "hits": 8
+   },
+   {
+    "label": "Hat 1",
+    "role": "hh",
+    "real": true,
+    "claim": 1.0,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 1.0,
+     "music": 0.0
+    },
+    "fit": 0.92,
+    "hits": 50
+   },
+   {
+    "label": "Hat 2",
+    "role": "hh",
+    "real": false,
+    "claim": 0.0,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.136,
+     "snare": 0.062,
+     "other_drums": 0.802,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.33,
+    "hits": 18
+   }
+  ],
+  "kit_score": 0.889
+ },
+ "hyperbole 121 bpm": {
+  "lag_ms": 0.0,
+  "shots": [
+   {
+    "label": "Kick 1",
+    "role": "kick",
+    "real": false,
+    "claim": 0.155,
+    "top": "snare",
+    "share": {
+     "kick": 0.155,
+     "snare": 0.639,
+     "other_drums": 0.206,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.49,
+    "hits": 176
+   },
+   {
+    "label": "Snare 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.706,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.706,
+     "other_drums": 0.0,
+     "hh": 0.294,
+     "music": 0.0
+    },
+    "fit": 0.11,
+    "hits": 78
+   },
+   {
+    "label": "Snare 2",
+    "role": "sp",
+    "real": true,
+    "claim": 0.62,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.62,
+     "other_drums": 0.0,
+     "hh": 0.38,
+     "music": 0.0
+    },
+    "fit": 0.17,
+    "hits": 9
+   },
+   {
+    "label": "Snare 3",
+    "role": "sp",
+    "real": true,
+    "claim": 0.881,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.881,
+     "other_drums": 0.0,
+     "hh": 0.119,
+     "music": 0.0
+    },
+    "fit": 0.3,
+    "hits": 8
+   },
+   {
+    "label": "Snare-Perc 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.956,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.956,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.044
+    },
+    "fit": 0.68,
+    "hits": 8
+   },
+   {
+    "label": "Snare-Perc 2",
+    "role": "sp",
+    "real": true,
+    "claim": 0.672,
+    "top": "snare",
+    "share": {
+     "kick": 0.106,
+     "snare": 0.672,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.222
+    },
+    "fit": 0.61,
+    "hits": 4
+   },
+   {
+    "label": "Perc 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.913,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.913,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.087
+    },
+    "fit": 0.56,
+    "hits": 4
+   },
+   {
+    "label": "Hat 1",
+    "role": "hh",
+    "real": true,
+    "claim": 0.516,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.484,
+     "other_drums": 0.0,
+     "hh": 0.516,
+     "music": 0.0
+    },
+    "fit": 0.26,
+    "hits": 50
+   },
+   {
+    "label": "Hat 2",
+    "role": "hh",
+    "real": true,
+    "claim": 0.911,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.911,
+     "music": 0.089
+    },
+    "fit": 0.78,
+    "hits": 40
+   }
+  ],
+  "kit_score": 0.889
+ },
+ "la intencion 116bpm stems": {
+  "lag_ms": 0.0,
+  "shots": [
+   {
+    "label": "Kick 1",
+    "role": "kick",
+    "real": true,
+    "claim": 0.878,
+    "top": "kick",
+    "share": {
+     "kick": 0.878,
+     "snare": 0.122,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.75,
+    "hits": 24
+   },
+   {
+    "label": "Snare-Perc 1",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 1.0,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.9,
+    "hits": 65
+   },
+   {
+    "label": "Snare-Perc 2",
+    "role": "sp",
+    "real": false,
+    "claim": 0.482,
+    "top": "snare",
+    "share": {
+     "kick": 0.347,
+     "snare": 0.423,
+     "other_drums": 0.059,
+     "hh": 0.171,
+     "music": 0.0
+    },
+    "fit": 0.16,
+    "hits": 18
+   },
+   {
+    "label": "Snare-Perc 3",
+    "role": "sp",
+    "real": false,
+    "claim": 0.144,
+    "top": "music",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.144,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.856
+    },
+    "fit": 0.4,
+    "hits": 20
+   },
+   {
+    "label": "Snare-Perc 4",
+    "role": "sp",
+    "real": false,
+    "claim": 0.404,
+    "top": "snare",
+    "share": {
+     "kick": 0.309,
+     "snare": 0.39,
+     "other_drums": 0.014,
+     "hh": 0.262,
+     "music": 0.025
+    },
+    "fit": 0.43,
+    "hits": 18
+   },
+   {
+    "label": "Snare-Perc 5",
+    "role": "sp",
+    "real": false,
+    "claim": 0.024,
+    "top": "kick",
+    "share": {
+     "kick": 0.495,
+     "snare": 0.024,
+     "other_drums": 0.0,
+     "hh": 0.423,
+     "music": 0.059
+    },
+    "fit": 0.14,
+    "hits": 2
+   },
+   {
+    "label": "Snare-Perc 6",
+    "role": "sp",
+    "real": true,
+    "claim": 0.581,
+    "top": "snare",
+    "share": {
+     "kick": 0.086,
+     "snare": 0.546,
+     "other_drums": 0.035,
+     "hh": 0.333,
+     "music": 0.0
+    },
+    "fit": 0.64,
+    "hits": 13
+   },
+   {
+    "label": "Hat 1",
+    "role": "hh",
+    "real": true,
+    "claim": 1.0,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 1.0,
+     "music": 0.0
+    },
+    "fit": 0.44,
+    "hits": 77
+   },
+   {
+    "label": "Hat 2",
+    "role": "hh",
+    "real": true,
+    "claim": 0.887,
+    "top": "hh",
+    "share": {
+     "kick": 0.083,
+     "snare": 0.025,
+     "other_drums": 0.005,
+     "hh": 0.887,
+     "music": 0.0
+    },
+    "fit": 0.42,
+    "hits": 58
+   },
+   {
+    "label": "Hat 3",
+    "role": "hh",
+    "real": true,
+    "claim": 0.553,
+    "top": "hh",
+    "share": {
+     "kick": 0.432,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.553,
+     "music": 0.015
+    },
+    "fit": 0.28,
+    "hits": 55
+   }
+  ],
+  "kit_score": 0.6
+ },
+ "la rumbaaaa 125bpm": {
+  "lag_ms": 0.0,
+  "shots": [
+   {
+    "label": "Kick 1",
+    "role": "kick",
+    "real": true,
+    "claim": 0.918,
+    "top": "kick",
+    "share": {
+     "kick": 0.918,
+     "snare": 0.0,
+     "other_drums": 0.033,
+     "hh": 0.0,
+     "music": 0.049
+    },
+    "fit": 0.65,
+    "hits": 126
+   },
+   {
+    "label": "Snare-Perc 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.994,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.975,
+     "other_drums": 0.019,
+     "hh": 0.0,
+     "music": 0.005
+    },
+    "fit": 0.85,
+    "hits": 69
+   },
+   {
+    "label": "Clap 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.979,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.636,
+     "other_drums": 0.343,
+     "hh": 0.0,
+     "music": 0.021
+    },
+    "fit": 0.54,
+    "hits": 33
+   },
+   {
+    "label": "Snare-Perc 2",
+    "role": "sp",
+    "real": true,
+    "claim": 0.982,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.06,
+     "other_drums": 0.922,
+     "hh": 0.0,
+     "music": 0.018
+    },
+    "fit": 0.6,
+    "hits": 7
+   },
+   {
+    "label": "Clap 2",
+    "role": "sp",
+    "real": true,
+    "claim": 0.893,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.711,
+     "other_drums": 0.182,
+     "hh": 0.0,
+     "music": 0.107
+    },
+    "fit": 0.42,
+    "hits": 24
+   },
+   {
+    "label": "Snare-Perc 3",
+    "role": "sp",
+    "real": true,
+    "claim": 0.834,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.094,
+     "snare": 0.034,
+     "other_drums": 0.8,
+     "hh": 0.0,
+     "music": 0.072
+    },
+    "fit": 0.51,
+    "hits": 19
+   },
+   {
+    "label": "Snare-Perc 4",
+    "role": "sp",
+    "real": true,
+    "claim": 0.875,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.115,
+     "snare": 0.0,
+     "other_drums": 0.875,
+     "hh": 0.0,
+     "music": 0.01
+    },
+    "fit": 0.67,
+    "hits": 16
+   },
+   {
+    "label": "Hat 1",
+    "role": "hh",
+    "real": false,
+    "claim": 0.0,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 1.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.33,
+    "hits": 76
+   },
+   {
+    "label": "Hat 2",
+    "role": "hh",
+    "real": false,
+    "claim": 0.0,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.844,
+     "hh": 0.0,
+     "music": 0.156
+    },
+    "fit": 0.06,
+    "hits": 36
+   },
+   {
+    "label": "Hat 3",
+    "role": "hh",
+    "real": false,
+    "claim": 0.0,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.117,
+     "snare": 0.0,
+     "other_drums": 0.883,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.14,
+    "hits": 27
+   }
+  ],
+  "kit_score": 0.7
+ },
+ "llego al nite club 127 stems": {
+  "lag_ms": 0.0,
+  "shots": [
+   {
+    "label": "Kick 1",
+    "role": "kick",
+    "real": true,
+    "claim": 0.967,
+    "top": "kick",
+    "share": {
+     "kick": 0.967,
+     "snare": 0.007,
+     "other_drums": 0.006,
+     "hh": 0.004,
+     "music": 0.016
+    },
+    "fit": 0.9,
+    "hits": 100
+   },
+   {
+    "label": "Snare 1",
+    "role": "sp",
+    "real": false,
+    "claim": 0.392,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.392,
+     "other_drums": 0.0,
+     "hh": 0.469,
+     "music": 0.139
+    },
+    "fit": 0.16,
+    "hits": 6
+   },
+   {
+    "label": "Snare-Perc 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.977,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.977,
+     "other_drums": 0.0,
+     "hh": 0.023,
+     "music": 0.0
+    },
+    "fit": 0.8,
+    "hits": 32
+   },
+   {
+    "label": "Snare-Perc 2",
+    "role": "sp",
+    "real": false,
+    "claim": 0.272,
+    "top": "hh",
+    "share": {
+     "kick": 0.082,
+     "snare": 0.249,
+     "other_drums": 0.023,
+     "hh": 0.6,
+     "music": 0.046
+    },
+    "fit": 0.29,
+    "hits": 29
+   },
+   {
+    "label": "Snare-Perc 3",
+    "role": "sp",
+    "real": false,
+    "claim": 0.113,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.113,
+     "other_drums": 0.0,
+     "hh": 0.864,
+     "music": 0.023
+    },
+    "fit": 0.79,
+    "hits": 28
+   },
+   {
+    "label": "Snare-Perc 4",
+    "role": "sp",
+    "real": true,
+    "claim": 0.993,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.993,
+     "other_drums": 0.0,
+     "hh": 0.007,
+     "music": 0.0
+    },
+    "fit": 0.66,
+    "hits": 25
+   },
+   {
+    "label": "Snare-Perc 5",
+    "role": "sp",
+    "real": false,
+    "claim": 0.0,
+    "top": "hh",
+    "share": {
+     "kick": 0.009,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.88,
+     "music": 0.112
+    },
+    "fit": 0.53,
+    "hits": 17
+   },
+   {
+    "label": "Hat 1",
+    "role": "hh",
+    "real": true,
+    "claim": 0.86,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.04,
+     "hh": 0.86,
+     "music": 0.1
+    },
+    "fit": 0.53,
+    "hits": 70
+   },
+   {
+    "label": "Hat 2",
+    "role": "hh",
+    "real": true,
+    "claim": 0.953,
+    "top": "hh",
+    "share": {
+     "kick": 0.047,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.953,
+     "music": 0.0
+    },
+    "fit": 0.72,
+    "hits": 47
+   },
+   {
+    "label": "Hat 3",
+    "role": "hh",
+    "real": true,
+    "claim": 0.789,
+    "top": "hh",
+    "share": {
+     "kick": 0.092,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.789,
+     "music": 0.119
+    },
+    "fit": 0.12,
+    "hits": 15
+   }
+  ],
+  "kit_score": 0.6
+ },
+ "parqueao 120 bpm": {
+  "lag_ms": 0.0,
+  "shots": [
+   {
+    "label": "Kick 1",
+    "role": "kick",
+    "real": true,
+    "claim": 0.669,
+    "top": "kick",
+    "share": {
+     "kick": 0.669,
+     "snare": 0.065,
+     "other_drums": 0.266,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.64,
+    "hits": 106
+   },
+   {
+    "label": "Snare-Perc 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.644,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.644,
+     "other_drums": 0.0,
+     "hh": 0.356,
+     "music": 0.0
+    },
+    "fit": 0.5,
+    "hits": 33
+   },
+   {
+    "label": "Snare-Perc 2",
+    "role": "sp",
+    "real": false,
+    "claim": 0.006,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.006,
+     "hh": 0.994,
+     "music": 0.0
+    },
+    "fit": 0.72,
+    "hits": 31
+   },
+   {
+    "label": "Snare 1",
+    "role": "sp",
+    "real": false,
+    "claim": 0.367,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.367,
+     "other_drums": 0.0,
+     "hh": 0.633,
+     "music": 0.0
+    },
+    "fit": 0.1,
+    "hits": 30
+   },
+   {
+    "label": "Rim 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.834,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.834,
+     "other_drums": 0.0,
+     "hh": 0.166,
+     "music": 0.0
+    },
+    "fit": 0.05,
+    "hits": 24
+   },
+   {
+    "label": "Snare-Perc 3",
+    "role": "sp",
+    "real": true,
+    "claim": 0.947,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.357,
+     "other_drums": 0.59,
+     "hh": 0.053,
+     "music": 0.0
+    },
+    "fit": 0.13,
+    "hits": 6
+   },
+   {
+    "label": "Snare-Perc 4",
+    "role": "sp",
+    "real": true,
+    "claim": 0.992,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.992,
+     "hh": 0.008,
+     "music": 0.0
+    },
+    "fit": 0.36,
+    "hits": 4
+   },
+   {
+    "label": "Hat 1",
+    "role": "hh",
+    "real": true,
+    "claim": 1.0,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 1.0,
+     "music": 0.0
+    },
+    "fit": 0.39,
+    "hits": 196
+   },
+   {
+    "label": "Hat 2",
+    "role": "hh",
+    "real": true,
+    "claim": 0.992,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.008,
+     "other_drums": 0.0,
+     "hh": 0.992,
+     "music": 0.001
+    },
+    "fit": 0.48,
+    "hits": 33
+   },
+   {
+    "label": "Hat 3",
+    "role": "hh",
+    "real": true,
+    "claim": 0.886,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.114,
+     "hh": 0.886,
+     "music": 0.0
+    },
+    "fit": 0.23,
+    "hits": 28
+   }
+  ],
+  "kit_score": 0.8
+ },
+ "peach white claw 126": {
+  "lag_ms": 0.0,
+  "shots": [
+   {
+    "label": "Kick 1",
+    "role": "kick",
+    "real": false,
+    "claim": 0.281,
+    "top": "snare",
+    "share": {
+     "kick": 0.281,
+     "snare": 0.716,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.003
+    },
+    "fit": 0.61,
+    "hits": 120
+   },
+   {
+    "label": "Snare 1",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.822,
+     "other_drums": 0.178,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.16,
+    "hits": 94
+   },
+   {
+    "label": "Snare 2",
+    "role": "sp",
+    "real": true,
+    "claim": 0.999,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.997,
+     "other_drums": 0.002,
+     "hh": 0.0,
+     "music": 0.001
+    },
+    "fit": 0.89,
+    "hits": 24
+   },
+   {
+    "label": "Snare-Perc 1",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.049,
+     "other_drums": 0.951,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.74,
+    "hits": 24
+   },
+   {
+    "label": "Snare 3",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 1.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.76,
+    "hits": 11
+   },
+   {
+    "label": "Snare-Perc 2",
+    "role": "sp",
+    "real": false,
+    "claim": 0.0,
+    "top": "kick",
+    "share": {
+     "kick": 0.969,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.031
+    },
+    "fit": 0.34,
+    "hits": 4
+   },
+   {
+    "label": "Hat 1",
+    "role": "hh",
+    "real": false,
+    "claim": 0.0,
+    "top": "kick",
+    "share": {
+     "kick": 0.701,
+     "snare": 0.167,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.131
+    },
+    "fit": 0.17,
+    "hits": 33
+   },
+   {
+    "label": "Hat 2",
+    "role": "hh",
+    "real": false,
+    "claim": 0.0,
+    "top": "snare",
+    "share": {
+     "kick": 0.018,
+     "snare": 0.907,
+     "other_drums": 0.075,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.19,
+    "hits": 26
+   }
+  ],
+  "kit_score": 0.5
+ },
+ "providence 123": {
+  "lag_ms": 0.0,
+  "shots": [
+   {
+    "label": "Kick 1",
+    "role": "kick",
+    "real": true,
+    "claim": 1.0,
+    "top": "kick",
+    "share": {
+     "kick": 1.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.72,
+    "hits": 89
+   },
+   {
+    "label": "Snare-Perc 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.926,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.751,
+     "other_drums": 0.175,
+     "hh": 0.0,
+     "music": 0.075
+    },
+    "fit": 0.44,
+    "hits": 86
+   },
+   {
+    "label": "Clap 1",
+    "role": "sp",
+    "real": false,
+    "claim": 0.047,
+    "top": "music",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.047,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.953
+    },
+    "fit": 0.4,
+    "hits": 38
+   },
+   {
+    "label": "Snare-Perc 2",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 1.0,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.82,
+    "hits": 31
+   },
+   {
+    "label": "Clap 2",
+    "role": "sp",
+    "real": false,
+    "claim": 0.218,
+    "top": "music",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.083,
+     "other_drums": 0.135,
+     "hh": 0.0,
+     "music": 0.782
+    },
+    "fit": 0.18,
+    "hits": 38
+   },
+   {
+    "label": "Snare-Perc 3",
+    "role": "sp",
+    "real": true,
+    "claim": 0.879,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.442,
+     "other_drums": 0.437,
+     "hh": 0.0,
+     "music": 0.12
+    },
+    "fit": 0.37,
+    "hits": 20
+   },
+   {
+    "label": "Snare-Perc 4",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.72,
+     "other_drums": 0.28,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.28,
+    "hits": 14
+   },
+   {
+    "label": "Hat 1",
+    "role": "hh",
+    "real": false,
+    "claim": 0.0,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.262,
+     "other_drums": 0.428,
+     "hh": 0.0,
+     "music": 0.31
+    },
+    "fit": 0.12,
+    "hits": 21
+   },
+   {
+    "label": "Hat 2",
+    "role": "hh",
+    "real": false,
+    "claim": 0.0,
+    "top": "snare",
+    "share": {
+     "kick": 0.051,
+     "snare": 0.949,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.31,
+    "hits": 18
+   },
+   {
+    "label": "Hat 3",
+    "role": "hh",
+    "real": false,
+    "claim": 0.0,
+    "top": "kick",
+    "share": {
+     "kick": 0.899,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.101
+    },
+    "fit": 0.34,
+    "hits": 16
+   }
+  ],
+  "kit_score": 0.5
+ },
+ "we in the house 124 stems": {
+  "lag_ms": 0.0,
+  "shots": [
+   {
+    "label": "Kick 1",
+    "role": "kick",
+    "real": true,
+    "claim": 0.936,
+    "top": "kick",
+    "share": {
+     "kick": 0.936,
+     "snare": 0.0,
+     "other_drums": 0.064,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.8,
+    "hits": 125
+   },
+   {
+    "label": "Clap 1",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 1.0,
+     "other_drums": 0.0,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.87,
+    "hits": 56
+   },
+   {
+    "label": "Snare-Perc 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.699,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.047,
+     "other_drums": 0.652,
+     "hh": 0.302,
+     "music": 0.0
+    },
+    "fit": 0.43,
+    "hits": 39
+   },
+   {
+    "label": "Snare 1",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.939,
+     "other_drums": 0.061,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.7,
+    "hits": 30
+   },
+   {
+    "label": "Snare-Perc 2",
+    "role": "sp",
+    "real": false,
+    "claim": 0.191,
+    "top": "kick",
+    "share": {
+     "kick": 0.525,
+     "snare": 0.076,
+     "other_drums": 0.115,
+     "hh": 0.0,
+     "music": 0.284
+    },
+    "fit": 0.27,
+    "hits": 17
+   },
+   {
+    "label": "Snare-Perc 3",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.994,
+     "other_drums": 0.006,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.81,
+    "hits": 24
+   },
+   {
+    "label": "Snare-Perc 4",
+    "role": "sp",
+    "real": true,
+    "claim": 1.0,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.972,
+     "other_drums": 0.028,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.56,
+    "hits": 16
+   },
+   {
+    "label": "Hat 1",
+    "role": "hh",
+    "real": true,
+    "claim": 0.931,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.069,
+     "other_drums": 0.0,
+     "hh": 0.931,
+     "music": 0.0
+    },
+    "fit": 0.35,
+    "hits": 40
+   },
+   {
+    "label": "Hat 2",
+    "role": "hh",
+    "real": false,
+    "claim": 0.0,
+    "top": "kick",
+    "share": {
+     "kick": 0.64,
+     "snare": 0.311,
+     "other_drums": 0.049,
+     "hh": 0.0,
+     "music": 0.0
+    },
+    "fit": 0.48,
+    "hits": 31
+   }
+  ],
+  "kit_score": 0.778
+ },
+ "truth": {
+  "lag_ms": 29.1,
+  "shots": [
+   {
+    "label": "Snare-Perc 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.947,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.947,
+     "other_drums": 0.0,
+     "hh": 0.029,
+     "music": 0.024
+    },
+    "fit": 0.54,
+    "hits": 74
+   },
+   {
+    "label": "Snare 1",
+    "role": "sp",
+    "real": false,
+    "claim": 0.048,
+    "top": "music",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.048,
+     "hh": 0.228,
+     "music": 0.724
+    },
+    "fit": 0.01,
+    "hits": 36
+   },
+   {
+    "label": "Snare 2",
+    "role": "sp",
+    "real": true,
+    "claim": 0.934,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.871,
+     "other_drums": 0.063,
+     "hh": 0.0,
+     "music": 0.066
+    },
+    "fit": 0.66,
+    "hits": 31
+   },
+   {
+    "label": "Perc 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.921,
+    "top": "other_drums",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.921,
+     "hh": 0.063,
+     "music": 0.016
+    },
+    "fit": 0.88,
+    "hits": 18
+   },
+   {
+    "label": "Clap 1",
+    "role": "sp",
+    "real": true,
+    "claim": 0.858,
+    "top": "snare",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.621,
+     "other_drums": 0.237,
+     "hh": 0.083,
+     "music": 0.059
+    },
+    "fit": 0.46,
+    "hits": 18
+   },
+   {
+    "label": "Snare 3",
+    "role": "sp",
+    "real": false,
+    "claim": 0.274,
+    "top": "music",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.274,
+     "other_drums": 0.0,
+     "hh": 0.082,
+     "music": 0.644
+    },
+    "fit": 0.13,
+    "hits": 17
+   },
+   {
+    "label": "Hat 1",
+    "role": "hh",
+    "real": true,
+    "claim": 0.952,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.952,
+     "music": 0.048
+    },
+    "fit": 0.69,
+    "hits": 262
+   },
+   {
+    "label": "Open Hat 1",
+    "role": "hh",
+    "real": true,
+    "claim": 0.932,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.026,
+     "other_drums": 0.0,
+     "hh": 0.932,
+     "music": 0.043
+    },
+    "fit": 0.61,
+    "hits": 84
+   },
+   {
+    "label": "Hat 2",
+    "role": "hh",
+    "real": true,
+    "claim": 0.966,
+    "top": "hh",
+    "share": {
+     "kick": 0.0,
+     "snare": 0.0,
+     "other_drums": 0.0,
+     "hh": 0.966,
+     "music": 0.034
+    },
+    "fit": 0.88,
+    "hits": 75
+   }
+  ],
+  "kit_score": 0.778
+ }
+}
