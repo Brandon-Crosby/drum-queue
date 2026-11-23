@@ -1,0 +1,28 @@
+name: Zone Six desktop source sync
+on:
+  schedule:
+    - cron: '23 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['tools/zone-six/**', '.github/workflows/zone-six-desktop.yml']
+permissions:
+  contents: write
+concurrency:
+  group: zone-six-desktop-source
+  cancel-in-progress: false
+jobs:
+  deployed-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Read trusted main
+        run: git clone --quiet --depth 1 https://github.com/Brandon-Crosby/drum-queue.git source
+      - name: Install contract-test dependencies
+        run: python3 -m pip install 'fastapi==0.165.0' 'python-multipart==0.0.20' 'mutagen==1.47.0'
+      - name: Test deployment identity and compatibility guards
+        run: python3 source/tools/zone-six/test_build.py -v
+      - name: Build and publish only a compatible deployed revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 source/tools/zone-six/watch.py
