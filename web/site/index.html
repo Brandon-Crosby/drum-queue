@@ -36,25 +36,27 @@
   ]
 }
 </script>
-</head><body>
+</head><body class="home">
 {{HEADER}}
-<main class="wrap">
 <section class="hero">
-  <h1>Split any song's drums into the kit pieces</h1>
-  <p>Upload a song. Get the kick, snare, percussion and hi-hat as separate stems, plus bass, vocals and the rest of the mix. Free, in your browser.</p>
-  <div class="pieces"><span>kick</span><span>snare</span><span>percussion</span><span>hi-hat</span></div>
+  <picture class="art" aria-hidden="true">
+    <source type="image/webp" srcset="/img/hero-900.webp 900w, /img/hero-1600.webp 1600w, /img/hero-2560.webp 2560w" sizes="(max-aspect-ratio: 16/9) 205vh, 100vw">
+    <img src="/img/hero-1600.jpg" alt="" width="1600" height="900" fetchpriority="high" data-parallax>
+  </picture>
+  <div class="frame" data-reveal>
+    <h1 data-lines>Split any song's drums into the kit pieces</h1>
+    <div class="fbot">
+      <p class="sub" data-lines style="--d:200ms">Upload a song. Get the kick, snare, percussion and hi-hat as separate stems, plus bass, vocals and the rest of the mix. Free, in your browser.</p>
+      <div id="drop" class="dropbar" tabindex="0" role="button" aria-label="Choose a song to split"><b>Drop a song here</b><svg class="upi" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 14v5h14v-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <input id="file" type="file" accept="audio/*,.mp3,.wav,.flac,.m4a,.aiff,.aif,.ogg,.opus" hidden></div>
+      <div id="ts"></div>
+      <div id="msg"></div>
+      <div id="recent"></div>
+    </div>
+  </div>
 </section>
 
-<div id="drop" class="card" tabindex="0" role="button" aria-label="Choose a song to split">
-  <b>Drop a song here</b>
-  <small>or click to choose · mp3, wav, flac, m4a, aiff, ogg</small>
-  <input id="file" type="file" accept="audio/*,.mp3,.wav,.flac,.m4a,.aiff,.aif,.ogg,.opus" hidden>
-</div>
-<div id="ts"></div>
-<div class="limits" id="limits">Up to {{MAX_MINUTES}} minutes per song · {{LIMIT_PER_IP}} free splits a day · files deleted after 24 hours</div>
-<div id="msg"></div>
-<div id="recent"></div>
-
+<div class="wrap jobwrap">
 <section id="job" class="card" aria-live="polite">
   <div class="jobtop"><h2 id="jname"></h2><span class="meta" id="jmeta"></span></div>
   <ol class="steps" id="steps">
@@ -69,8 +71,8 @@
   <div class="adslot" id="waitad"></div>
   <div id="result" hidden>
     <div class="mixbar">
-      <button class="btn pri" id="play">▶ Play</button><button class="btn" id="stop">Stop</button>
-      <button class="btn" id="reset">Kit only</button><span class="time" id="time"></span>
+      <button class="btn pri" id="play">▶ Play</button><button class="btn" id="stop" data-flip>Stop</button>
+      <button class="btn" id="reset" data-flip>Kit only</button><span class="time" id="time"></span>
     </div>
     <div id="tracks"></div>
     <div id="shots" hidden>
@@ -79,48 +81,103 @@
       <div class="pads" id="pads"></div>
     </div>
     <div class="dl">
-      <a class="btn pri" id="zipshots" href="#">Download one-shots (.zip)</a>
-      <a class="btn" id="groovemid" href="#" hidden title="The beat's drum pattern, one track per one-shot. Drag it into your DAW with the kit.">Groove MIDI (.mid)</a>
-      <a class="btn" id="zipkit" href="#">Kit stems (.zip)</a>
-      <a class="btn" id="zipall" href="#">All stems (.zip)</a>
-      <button class="btn" id="again">Split another song</button>
+      <a class="btn pri" id="zipshots" data-flip href="#">Download one-shots (.zip)</a>
+      <a class="btn" id="groovemid" data-flip href="#" hidden title="The beat's drum pattern, one track per one-shot. Drag it into your DAW with the kit.">Groove MIDI (.mid)</a>
+      <a class="btn" id="zipkit" data-flip href="#">Kit stems (.zip)</a>
+      <a class="btn" id="zipall" data-flip href="#">All stems (.zip)</a>
+      <button class="btn" id="again" data-flip>Split another song</button>
     </div>
     <p class="expire" id="expire"></p>
   </div>
 </section>
+</div>
 
-<section class="section">
-  <h2>How it works</h2>
-  <div class="how">
-    <div class="card"><h3>1. Drums out of the mix</h3><p>Demucs, a source-separation model from Meta AI, pulls the full drum track away from the bass, vocals and everything else.</p></div>
-    <div class="card"><h3>2. Kit into pieces</h3><p>A second model, Helyx, splits that track into kick, snare, percussion (toms, congas, bongos, cymbals) and hi-hat. It's our own drum model, trained further on Latin, Afro and house grooves.</p></div>
-    <div class="card"><h3>3. Listen, then download</h3><p>Mute and solo each piece right here, then download WAVs of the pieces you want, or all of them as a zip.</p></div>
+<section class="band cream" id="stems">
+  <div class="wrap">
+    <div class="head2">
+      <div><p class="dot" data-reveal>Kit stems</p><h2 data-lines>Kick, snare, percussion and hi-hat.</h2></div>
+      <p class="side" data-reveal>Get separate kick, snare, percussion and hi-hat stems, plus bass, vocals and the rest of the mix.</p>
+    </div>
+    <div class="stems">
+      <div class="stem" style="--c:var(--kick);--d:0ms" data-reveal><div class="stop"><span>kick</span><small>01</small></div>
+        <svg viewBox="0 0 360 120" aria-hidden="true"><path d="M0.0,60.0 L1.2,60.0 L2.4,60.0 L3.6,60.0 L4.8,60.0 L6.0,60.0 L7.2,60.0 L8.4,60.0 L9.6,60.0 L10.8,60.0 L12.0,60.0 L13.2,60.0 L14.4,60.0 L15.6,60.0 L16.8,60.0 L18.0,60.0 L19.2,60.0 L20.4,60.0 L21.6,60.0 L22.8,60.0 L24.0,60.0 L25.2,60.0 L26.4,60.0 L27.6,60.0 L28.8,60.0 L30.0,60.0 L31.2,60.0 L32.4,60.0 L33.6,60.0 L34.8,60.0 L36.0,60.0 L37.2,60.0 L38.4,60.0 L39.6,60.0 L40.8,46.6 L42.0,30.5 L43.2,21.6 L44.4,17.4 L45.7,30.3 L46.9,36.6 L48.1,46.3 L49.3,58.5 L50.5,69.7 L51.7,79.8 L52.9,81.4 L54.1,88.3 L55.3,82.0 L56.5,72.5 L57.7,67.2 L58.9,59.3 L60.1,51.5 L61.3,48.6 L62.5,40.7 L63.7,45.6 L64.9,50.1 L66.1,52.1 L67.3,57.8 L68.5,61.4 L69.7,66.3 L70.9,65.7 L72.1,72.4 L73.3,67.0 L74.5,66.8 L75.7,65.8 L76.9,61.7 L78.1,59.3 L79.3,57.2 L80.5,52.5 L81.7,51.1 L82.9,56.0 L84.1,55.9 L85.3,56.4 L86.5,59.4 L87.7,61.7 L88.9,61.2 L90.1,63.1 L91.3,63.5 L92.5,64.6 L93.7,62.9 L94.9,61.3 L96.1,60.1 L97.3,58.8 L98.5,57.9 L99.7,58.0 L100.9,57.9 L102.1,56.5 L103.3,59.2 L104.5,59.2 L105.7,60.1 L106.9,61.0 L108.1,61.5 L109.3,61.9 L110.5,61.6 L111.7,62.1 L112.9,60.8 L114.1,60.3 L115.3,59.9 L116.5,59.1 L117.7,58.9 L118.9,58.7 L120.1,58.3 L121.3,58.9 L122.5,59.6 L123.7,59.8 L124.9,60.2 L126.1,60.4 L127.3,60.7 L128.5,61.0 L129.7,60.6 L130.9,60.7 L132.1,60.4 L133.3,60.0 L134.5,59.9 L135.8,59.7 L137.0,59.5 L138.2,59.6 L139.4,59.6 L140.6,59.6 L141.8,59.8 L143.0,60.0 L144.2,60.1 L145.4,60.2 L146.6,60.3 L147.8,60.3 L149.0,60.1 L150.2,60.2 L151.4,60.1 L152.6,60.0 L153.8,59.9 L155.0,59.8 L156.2,59.8 L157.4,59.7 L158.6,59.8 L159.8,59.9 L161.0,60.0 L162.2,60.0 L163.4,60.1 L164.6,60.2 L165.8,60.1 L167.0,60.1 L168.2,60.1 L169.4,60.1 L170.6,60.0 L171.8,60.0 L173.0,59.9 L174.2,59.9 L175.4,60.0 L176.6,59.9 L177.8,59.9 L179.0,60.0 L180.2,60.0 L181.4,60.0 L182.6,60.1 L183.8,60.1 L185.0,60.1 L186.2,60.1 L187.4,60.0 L188.6,60.0 L189.8,60.0 L191.0,54.9 L192.2,29.4 L193.4,19.3 L194.6,23.0 L195.8,27.5 L197.0,36.6 L198.2,48.4 L199.4,60.4 L200.6,70.6 L201.8,79.9 L203.0,86.4 L204.2,74.4 L205.4,79.1 L206.6,78.7 L207.8,67.1 L209.0,58.9 L210.2,52.3 L211.4,42.1 L212.6,43.9 L213.8,46.1 L215.0,48.6 L216.2,50.7 L217.4,57.0 L218.6,61.5 L219.8,66.8 L221.0,67.4 L222.2,66.9 L223.4,69.5 L224.6,70.2 L225.9,67.4 L227.1,61.2 L228.3,57.9 L229.5,54.5 L230.7,52.7 L231.9,51.3 L233.1,56.2 L234.3,56.9 L235.5,58.1 L236.7,59.7 L237.9,62.2 L239.1,64.2 L240.3,66.2 L241.5,64.6 L242.7,64.0 L243.9,62.3 L245.1,61.6 L246.3,60.0 L247.5,58.6 L248.7,57.3 L249.9,57.2 L251.1,56.9 L252.3,57.1 L253.5,58.7 L254.7,59.4 L255.9,60.2 L257.1,60.8 L258.3,61.1 L259.5,61.4 L260.7,62.1 L261.9,61.1 L263.1,61.2 L264.3,60.5 L265.5,59.8 L266.7,59.1 L267.9,59.0 L269.1,58.8 L270.3,58.8 L271.5,58.9 L272.7,59.2 L273.9,59.8 L275.1,60.1 L276.3,60.3 L277.5,60.8 L278.7,60.8 L279.9,60.7 L281.1,60.7 L282.3,60.3 L283.5,60.0 L284.7,59.7 L285.9,59.7 L287.1,59.5 L288.3,59.4 L289.5,59.4 L290.7,59.7 L291.9,59.8 L293.1,60.0 L294.3,60.1 L295.5,60.3 L296.7,60.4 L297.9,60.3 L299.1,60.3 L300.3,60.2 L301.5,60.1 L302.7,60.0 L303.9,59.8 L305.1,59.9 L306.3,59.8 L307.5,59.8 L308.7,59.8 L309.9,59.9 L311.1,59.9 L312.3,60.0 L313.5,60.1 L314.7,60.2 L316.0,60.1 L317.2,60.1 L318.4,60.1 L319.6,60.1 L320.8,60.0 L322.0,60.0 L323.2,59.9 L324.4,59.9 L325.6,59.9 L326.8,59.9 L328.0,59.9 L329.2,60.0 L330.4,60.0 L331.6,60.0 L332.8,60.1 L334.0,60.0 L335.2,60.0 L336.4,60.1 L337.6,60.0 L338.8,60.0 L340.0,60.0 L341.2,60.0 L342.4,59.9 L343.6,60.0 L344.8,59.9 L346.0,60.0 L347.2,60.0 L348.4,60.0 L349.6,60.0 L350.8,60.0 L352.0,60.0 L353.2,60.0 L354.4,60.0 L355.6,60.0 L356.8,60.0 L358.0,60.0 L359.2,60.0" pathLength="1"/></svg></div>
+      <div class="stem" style="--c:var(--snare);--d:90ms" data-reveal><div class="stop"><span>snare</span><small>02</small></div>
+        <svg viewBox="0 0 360 120" aria-hidden="true"><path d="M0.0,60.0 L1.2,60.0 L2.4,60.0 L3.6,60.0 L4.8,60.0 L6.0,60.0 L7.2,60.0 L8.4,60.0 L9.6,60.0 L10.8,60.0 L12.0,60.0 L13.2,60.0 L14.4,60.0 L15.6,60.0 L16.8,60.0 L18.0,60.0 L19.2,60.0 L20.4,60.0 L21.6,60.0 L22.8,60.0 L24.0,60.0 L25.2,60.0 L26.4,60.0 L27.6,60.0 L28.8,60.0 L30.0,60.0 L31.2,60.0 L32.4,60.0 L33.6,60.0 L34.8,60.0 L36.0,60.0 L37.2,60.0 L38.4,60.0 L39.6,60.0 L40.8,60.0 L42.0,60.0 L43.2,60.0 L44.4,60.0 L45.7,60.0 L46.9,60.0 L48.1,60.0 L49.3,60.0 L50.5,60.0 L51.7,60.0 L52.9,60.0 L54.1,60.0 L55.3,60.0 L56.5,60.0 L57.7,60.0 L58.9,60.0 L60.1,60.0 L61.3,60.0 L62.5,60.0 L63.7,60.0 L64.9,60.0 L66.1,60.0 L67.3,60.0 L68.5,60.0 L69.7,60.0 L70.9,43.8 L72.1,15.8 L73.3,20.8 L74.5,36.7 L75.7,53.8 L76.9,72.2 L78.1,93.1 L79.3,92.0 L80.5,90.2 L81.7,62.7 L82.9,45.4 L84.1,36.7 L85.3,43.5 L86.5,37.1 L87.7,57.1 L88.9,72.3 L90.1,81.7 L91.3,83.8 L92.5,79.9 L93.7,62.1 L94.9,53.0 L96.1,49.9 L97.3,41.2 L98.5,50.2 L99.7,58.0 L100.9,68.5 L102.1,70.2 L103.3,71.2 L104.5,66.0 L105.7,61.2 L106.9,55.1 L108.1,51.2 L109.3,52.4 L110.5,54.2 L111.7,58.6 L112.9,63.3 L114.1,68.6 L115.3,63.7 L116.5,63.7 L117.7,61.0 L118.9,57.1 L120.1,55.4 L121.3,56.2 L122.5,55.5 L123.7,59.2 L124.9,62.4 L126.1,63.5 L127.3,65.0 L128.5,62.4 L129.7,60.7 L130.9,58.5 L132.1,56.8 L133.3,55.8 L134.5,58.1 L135.8,59.5 L137.0,61.9 L138.2,62.1 L139.4,62.2 L140.6,61.0 L141.8,60.4 L143.0,59.0 L144.2,57.0 L145.4,57.4 L146.6,58.2 L147.8,59.7 L149.0,60.7 L150.2,62.0 L151.4,61.4 L152.6,60.7 L153.8,60.3 L155.0,59.3 L156.2,58.5 L157.4,58.1 L158.6,58.9 L159.8,59.8 L161.0,60.3 L162.2,61.0 L163.4,61.4 L164.6,60.3 L165.8,60.1 L167.0,59.5 L168.2,59.3 L169.4,59.2 L170.6,59.3 L171.8,59.9 L173.0,60.5 L174.2,60.7 L175.4,60.5 L176.6,60.4 L177.8,60.1 L179.0,59.7 L180.2,59.5 L181.4,59.2 L182.6,59.6 L183.8,60.0 L185.0,60.2 L186.2,60.5 L187.4,60.6 L188.6,60.2 L189.8,60.0 L191.0,59.8 L192.2,59.5 L193.4,59.7 L194.6,59.8 L195.8,60.0 L197.0,60.1 L198.2,60.2 L199.4,60.2 L200.6,60.2 L201.8,60.0 L203.0,59.9 L204.2,59.8 L205.4,59.7 L206.6,59.9 L207.8,60.0 L209.0,60.1 L210.2,60.2 L211.4,60.1 L212.6,60.1 L213.8,60.0 L215.0,59.9 L216.2,59.8 L217.4,59.9 L218.6,59.9 L219.8,60.0 L221.0,60.1 L222.2,60.1 L223.4,60.1 L224.6,60.1 L225.9,60.0 L227.1,59.9 L228.3,59.9 L229.5,59.9 L230.7,46.1 L231.9,38.7 L233.1,28.6 L234.3,48.4 L235.5,52.8 L236.7,65.1 L237.9,84.3 L239.1,98.4 L240.3,79.9 L241.5,68.4 L242.7,51.9 L243.9,36.5 L245.1,28.9 L246.3,49.9 L247.5,51.1 L248.7,68.8 L249.9,78.2 L251.1,84.4 L252.3,76.3 L253.5,65.2 L254.7,55.1 L255.9,49.3 L257.1,50.5 L258.3,54.9 L259.5,57.9 L260.7,64.8 L261.9,70.3 L263.1,71.7 L264.3,70.2 L265.5,63.0 L266.7,56.7 L267.9,52.2 L269.1,50.4 L270.3,53.3 L271.5,58.3 L272.7,62.6 L273.9,65.6 L275.1,70.0 L276.3,64.0 L277.5,61.8 L278.7,57.8 L279.9,57.1 L281.1,52.7 L282.3,54.7 L283.5,59.0 L284.7,62.0 L285.9,65.2 L287.1,65.7 L288.3,62.7 L289.5,60.9 L290.7,58.4 L291.9,54.6 L293.1,54.8 L294.3,57.8 L295.5,59.5 L296.7,61.4 L297.9,62.6 L299.1,63.1 L300.3,61.6 L301.5,60.7 L302.7,58.7 L303.9,58.0 L305.1,56.1 L306.3,57.7 L307.5,59.5 L308.7,60.9 L309.9,61.5 L311.1,61.5 L312.3,61.4 L313.5,60.4 L314.7,59.8 L316.0,58.6 L317.2,59.4 L318.4,58.8 L319.6,59.6 L320.8,60.5 L322.0,60.6 L323.2,61.6 L324.4,61.1 L325.6,60.2 L326.8,59.5 L328.0,59.2 L329.2,59.0 L330.4,58.8 L331.6,59.8 L332.8,60.4 L334.0,60.6 L335.2,60.9 L336.4,60.4 L337.6,60.2 L338.8,59.8 L340.0,59.5 L341.2,59.5 L342.4,59.7 L343.6,59.8 L344.8,60.2 L346.0,60.4 L347.2,60.4 L348.4,60.3 L349.6,60.1 L350.8,59.8 L352.0,59.6 L353.2,59.7 L354.4,59.7 L355.6,59.9 L356.8,60.2 L358.0,60.2 L359.2,60.3" pathLength="1"/></svg></div>
+      <div class="stem" style="--c:var(--perc);--d:180ms" data-reveal><div class="stop"><span>percussion</span><small>03</small></div>
+        <svg viewBox="0 0 360 120" aria-hidden="true"><path d="M0.0,60.0 L1.2,60.0 L2.4,60.0 L3.6,60.0 L4.8,60.0 L6.0,60.0 L7.2,60.0 L8.4,60.0 L9.6,60.0 L10.8,60.0 L12.0,60.0 L13.2,60.0 L14.4,60.0 L15.6,60.0 L16.8,60.0 L18.0,60.0 L19.2,60.0 L20.4,60.0 L21.6,60.0 L22.8,60.0 L24.0,60.0 L25.2,55.3 L26.4,46.6 L27.6,50.5 L28.8,34.3 L30.0,56.5 L31.2,65.6 L32.4,74.6 L33.6,75.6 L34.8,65.8 L36.0,59.3 L37.2,55.3 L38.4,51.1 L39.6,58.3 L40.8,58.9 L42.0,62.0 L43.2,64.6 L44.4,64.9 L45.7,62.1 L46.9,59.9 L48.1,59.1 L49.3,58.1 L50.5,57.0 L51.7,58.9 L52.9,60.7 L54.1,62.6 L55.3,61.4 L56.5,61.1 L57.7,60.1 L58.9,59.1 L60.1,59.0 L61.3,59.1 L62.5,59.5 L63.7,60.3 L64.9,60.8 L66.1,60.7 L67.3,60.5 L68.5,60.1 L69.7,59.6 L70.9,59.6 L72.1,59.4 L73.3,59.9 L74.5,60.1 L75.7,60.3 L76.9,60.4 L78.1,60.2 L79.3,60.0 L80.5,59.9 L81.7,59.8 L82.9,59.8 L84.1,59.9 L85.3,56.9 L86.5,40.5 L87.7,39.4 L88.9,36.8 L90.1,56.8 L91.3,69.8 L92.5,74.7 L93.7,71.9 L94.9,65.6 L96.1,58.2 L97.3,56.6 L98.5,49.9 L99.7,55.3 L100.9,57.6 L102.1,62.5 L103.3,65.0 L104.5,65.7 L105.7,62.3 L106.9,59.8 L108.1,57.2 L109.3,55.1 L110.5,56.8 L111.7,58.8 L112.9,61.2 L114.1,61.7 L115.3,61.7 L116.5,61.1 L117.7,60.0 L118.9,58.7 L120.1,58.7 L121.3,58.7 L122.5,59.5 L123.7,60.4 L124.9,60.9 L126.1,60.6 L127.3,60.8 L128.5,60.0 L129.7,59.5 L130.9,59.2 L132.1,59.5 L133.3,59.8 L134.5,60.1 L135.8,60.5 L137.0,60.3 L138.2,60.2 L139.4,60.0 L140.6,59.9 L141.8,59.8 L143.0,59.8 L144.2,59.9 L145.4,60.0 L146.6,60.1 L147.8,60.3 L149.0,60.1 L150.2,60.0 L151.4,60.0 L152.6,59.9 L153.8,59.9 L155.0,60.0 L156.2,60.0 L157.4,60.1 L158.6,60.1 L159.8,60.1 L161.0,49.4 L162.2,40.0 L163.4,40.2 L164.6,50.8 L165.8,61.7 L167.0,70.6 L168.2,68.1 L169.4,70.4 L170.6,62.7 L171.8,54.4 L173.0,51.7 L174.2,52.0 L175.4,56.6 L176.6,60.9 L177.8,65.3 L179.0,66.6 L180.2,62.9 L181.4,61.2 L182.6,58.1 L183.8,57.7 L185.0,57.0 L186.2,58.8 L187.4,60.2 L188.6,61.7 L189.8,62.1 L191.0,61.5 L192.2,60.2 L193.4,59.6 L194.6,59.0 L195.8,59.1 L197.0,59.6 L198.2,60.0 L199.4,60.7 L200.6,61.0 L201.8,60.7 L203.0,60.3 L204.2,59.7 L205.4,59.5 L206.6,59.4 L207.8,59.8 L209.0,60.0 L210.2,60.1 L211.4,60.4 L212.6,60.3 L213.8,60.1 L215.0,59.9 L216.2,59.8 L217.4,59.8 L218.6,59.9 L219.8,60.0 L221.0,60.1 L222.2,60.1 L223.4,60.2 L224.6,60.0 L225.9,46.0 L227.1,31.2 L228.3,40.8 L229.5,45.4 L230.7,63.5 L231.9,76.7 L233.1,80.0 L234.3,72.8 L235.5,63.9 L236.7,53.9 L237.9,50.6 L239.1,52.7 L240.3,55.9 L241.5,60.5 L242.7,65.8 L243.9,66.5 L245.1,65.4 L246.3,61.6 L247.5,57.6 L248.7,56.3 L249.9,56.6 L251.1,56.9 L252.3,60.0 L253.5,61.7 L254.7,63.0 L255.9,61.8 L257.1,60.7 L258.3,59.3 L259.5,58.1 L260.7,58.9 L261.9,59.0 L263.1,59.9 L264.3,60.6 L265.5,61.1 L266.7,60.8 L267.9,60.4 L269.1,59.8 L270.3,59.5 L271.5,59.4 L272.7,59.4 L273.9,59.9 L275.1,60.3 L276.3,60.2 L277.5,60.5 L278.7,60.2 L279.9,59.9 L281.1,59.7 L282.3,59.8 L283.5,59.8 L284.7,60.0 L285.9,60.1 L287.1,60.1 L288.3,60.1 L289.5,60.1 L290.7,60.0 L291.9,59.9 L293.1,59.9 L294.3,60.0 L295.5,60.0 L296.7,60.0 L297.9,60.1 L299.1,60.1 L300.3,60.0 L301.5,60.0 L302.7,60.0 L303.9,60.0 L305.1,60.0 L306.3,60.0 L307.5,60.0 L308.7,60.0 L309.9,60.0 L311.1,60.0 L312.3,60.0 L313.5,60.0 L314.7,60.0 L316.0,60.0 L317.2,60.0 L318.4,60.0 L319.6,60.0 L320.8,60.0 L322.0,60.0 L323.2,60.0 L324.4,60.0 L325.6,60.0 L326.8,60.0 L328.0,60.0 L329.2,60.0 L330.4,60.0 L331.6,60.0 L332.8,60.0 L334.0,60.0 L335.2,60.0 L336.4,60.0 L337.6,60.0 L338.8,60.0 L340.0,60.0 L341.2,60.0 L342.4,60.0 L343.6,60.0 L344.8,60.0 L346.0,60.0 L347.2,60.0 L348.4,60.0 L349.6,60.0 L350.8,60.0 L352.0,60.0 L353.2,60.0 L354.4,60.0 L355.6,60.0 L356.8,60.0 L358.0,60.0 L359.2,60.0" pathLength="1"/></svg></div>
+      <div class="stem" style="--c:var(--hat);--d:270ms" data-reveal><div class="stop"><span>hi-hat</span><small>04</small></div>
+        <svg viewBox="0 0 360 120" aria-hidden="true"><path d="M0.0,60.0 L1.2,60.0 L2.4,60.0 L3.6,60.0 L4.8,60.0 L6.0,60.0 L7.2,60.0 L8.4,60.0 L9.6,60.0 L10.8,60.0 L12.0,60.0 L13.2,60.0 L14.4,60.0 L15.6,49.6 L16.8,50.5 L18.0,56.0 L19.2,68.6 L20.4,69.3 L21.6,60.2 L22.8,55.9 L24.0,55.8 L25.2,60.5 L26.4,63.8 L27.6,61.7 L28.8,59.0 L30.0,58.6 L31.2,59.3 L32.4,60.7 L33.6,60.9 L34.8,60.1 L36.0,59.6 L37.2,59.4 L38.4,60.0 L39.6,60.4 L40.8,60.2 L42.0,59.9 L43.2,59.7 L44.4,59.9 L45.7,60.1 L46.9,60.1 L48.1,60.0 L49.3,59.9 L50.5,60.0 L51.7,60.0 L52.9,60.0 L54.1,60.0 L55.3,60.0 L56.5,48.3 L57.7,36.6 L58.9,53.0 L60.1,64.8 L61.3,69.9 L62.5,62.5 L63.7,54.5 L64.9,54.8 L66.1,60.4 L67.3,63.3 L68.5,62.6 L69.7,59.2 L70.9,57.2 L72.1,58.5 L73.3,61.1 L74.5,61.1 L75.7,60.3 L76.9,59.3 L78.1,59.4 L79.3,60.0 L80.5,60.5 L81.7,60.3 L82.9,59.9 L84.1,59.8 L85.3,59.9 L86.5,60.1 L87.7,60.2 L88.9,60.0 L90.1,59.9 L91.3,59.9 L92.5,60.0 L93.7,60.0 L94.9,60.0 L96.1,60.0 L97.3,53.7 L98.5,46.2 L99.7,48.3 L100.9,64.6 L102.1,69.5 L103.3,62.2 L104.5,54.9 L105.7,53.9 L106.9,59.5 L108.1,62.7 L109.3,62.3 L110.5,59.6 L111.7,57.8 L112.9,59.2 L114.1,60.4 L115.3,60.7 L116.5,60.4 L117.7,59.6 L118.9,59.6 L120.1,59.9 L121.3,60.4 L122.5,60.3 L123.7,60.0 L124.9,59.8 L126.1,59.9 L127.3,60.0 L128.5,60.2 L129.7,60.0 L130.9,59.9 L132.1,59.9 L133.3,60.0 L134.5,60.0 L135.8,60.0 L137.0,60.0 L138.2,56.7 L139.4,34.0 L140.6,47.2 L141.8,66.2 L143.0,75.4 L144.2,65.6 L145.4,57.2 L146.6,53.4 L147.8,58.8 L149.0,63.5 L150.2,62.6 L151.4,59.9 L152.6,56.7 L153.8,58.2 L155.0,60.5 L156.2,60.5 L157.4,60.8 L158.6,59.5 L159.8,59.0 L161.0,59.8 L162.2,60.4 L163.4,60.4 L164.6,60.0 L165.8,59.6 L167.0,59.8 L168.2,60.0 L169.4,60.2 L170.6,60.1 L171.8,60.0 L173.0,59.9 L174.2,60.0 L175.4,60.0 L176.6,60.0 L177.8,60.0 L179.0,60.0 L180.2,37.8 L181.4,51.9 L182.6,62.3 L183.8,71.3 L185.0,64.6 L186.2,57.2 L187.4,53.5 L188.6,58.7 L189.8,62.3 L191.0,63.5 L192.2,60.2 L193.4,58.2 L194.6,58.9 L195.8,60.2 L197.0,61.3 L198.2,60.7 L199.4,59.6 L200.6,59.5 L201.8,59.8 L203.0,60.3 L204.2,60.3 L205.4,60.1 L206.6,59.8 L207.8,59.9 L209.0,60.0 L210.2,60.1 L211.4,60.1 L212.6,60.0 L213.8,59.9 L215.0,60.0 L216.2,60.0 L217.4,60.0 L218.6,60.0 L219.8,60.0 L221.0,35.2 L222.2,42.6 L223.4,62.9 L224.6,75.2 L225.9,67.5 L227.1,56.0 L228.3,50.6 L229.5,57.3 L230.7,62.6 L231.9,63.5 L233.1,61.1 L234.3,58.7 L235.5,57.8 L236.7,60.0 L237.9,60.9 L239.1,60.5 L240.3,59.8 L241.5,58.6 L242.7,59.6 L243.9,60.3 L245.1,60.6 L246.3,60.1 L247.5,59.7 L248.7,59.8 L249.9,60.0 L251.1,60.1 L252.3,60.1 L253.5,60.0 L254.7,59.9 L255.9,60.0 L257.1,60.0 L258.3,60.0 L259.5,60.0 L260.7,60.0 L261.9,41.0 L263.1,41.8 L264.3,59.4 L265.5,70.1 L266.7,66.4 L267.9,58.5 L269.1,54.2 L270.3,57.5 L271.5,61.6 L272.7,64.0 L273.9,61.2 L275.1,58.3 L276.3,59.7 L277.5,59.8 L278.7,60.9 L279.9,60.6 L281.1,59.9 L282.3,59.4 L283.5,59.8 L284.7,60.2 L285.9,60.4 L287.1,60.1 L288.3,59.9 L289.5,59.8 L290.7,60.0 L291.9,60.1 L293.1,60.1 L294.3,60.0 L295.5,59.9 L296.7,60.0 L297.9,60.0 L299.1,60.0 L300.3,60.0 L301.5,60.0 L302.7,43.2 L303.9,38.2 L305.1,58.0 L306.3,69.3 L307.5,66.9 L308.7,59.2 L309.9,53.7 L311.1,54.6 L312.3,61.8 L313.5,66.1 L314.7,62.0 L316.0,58.4 L317.2,57.4 L318.4,59.3 L319.6,60.8 L320.8,61.2 L322.0,60.0 L323.2,59.2 L324.4,59.5 L325.6,60.1 L326.8,60.4 L328.0,60.3 L329.2,59.8 L330.4,59.6 L331.6,59.9 L332.8,60.1 L334.0,60.1 L335.2,60.0 L336.4,60.0 L337.6,59.9 L338.8,60.0 L340.0,60.0 L341.2,60.0 L342.4,60.0 L343.6,60.0 L344.8,60.0 L346.0,60.0 L347.2,60.0 L348.4,60.0 L349.6,60.0 L350.8,60.0 L352.0,60.0 L353.2,60.0 L354.4,60.0 L355.6,60.0 L356.8,60.0 L358.0,60.0 L359.2,60.0" pathLength="1"/></svg></div>
+    </div>
+    <div class="under">
+      <div>
+        <p>Mute and solo each piece right here, then download WAVs of the pieces you want, or all of them as a zip.</p>
+        <div class="tags"><span>Groove MIDI (.mid)</span><span>Kit stems (.zip)</span><span>All stems (.zip)</span></div>
+      </div>
+      <p class="lim">Up to {{MAX_MINUTES}} minutes per song<br>{{LIMIT_PER_IP}} free splits a day</p>
+    </div>
+    <div class="oneshots" data-reveal>
+      <div><h3>One-shots <span class="beta">Beta</span></h3><p>The cleanest hit of each sound, ready for a sampler.</p></div>
+      <p class="fine">Still being tuned: you might get two takes of the same sound, or a sound from a busy part of the song may be missing.</p>
+    </div>
   </div>
 </section>
 
-<section class="section" id="faq">
-  <h2>Questions</h2>
+<section class="band green">
+  <div class="wrap how2">
+    <div>
+      <p class="dot" data-reveal>How it works</p>
+      <h2 data-lines>From a full song to clean one&#8209;shots.</h2>
+      <div class="rings" aria-hidden="true"><i></i><i></i><i></i><span>Kit only</span></div>
+    </div>
+    <ol class="steps2">
+      <li data-reveal><span>01</span><div><h3>Drums out of the mix</h3><p>Demucs, a source-separation model from Meta AI, pulls the full drum track away from the bass, vocals and everything else.</p></div></li>
+      <li data-reveal style="--d:100ms"><span>02</span><div><h3>Kit into pieces</h3><p>A second model, Helyx, splits that track into kick, snare, percussion (toms, congas, bongos, cymbals) and hi-hat. It's our own drum model, trained further on Latin, Afro and house grooves.</p></div></li>
+      <li data-reveal style="--d:200ms"><span>03</span><div><h3>Listen, then download</h3><p>Mute and solo each piece right here, then download the one-shot kit, the groove as MIDI, or WAVs of every piece.</p></div></li>
+    </ol>
+  </div>
+</section>
+
+<section class="band stone">
+  <div class="wrap">
+    <div class="head2">
+      <div><p class="dot" data-reveal>Guides</p><h2 data-lines>How to make a drum kit from any song</h2></div>
+      <a class="allg" href="/guides/">All guides <span aria-hidden="true">↗</span></a>
+    </div>
+    <div class="ggrid">
+    <a class="gcard" href="/guides/make-a-drum-kit-from-a-song" data-reveal style="--d:0ms"><span class="gnum">01</span><span class="garr" aria-hidden="true">↗</span><b>How to make a drum kit from any song</b><span class="gdesc">One-shots of every sound in a song, plus the groove as MIDI.</span></a>
+    <a class="gcard" href="/guides/use-groove-midi-in-fl-studio" data-reveal style="--d:90ms"><span class="gnum">02</span><span class="garr" aria-hidden="true">↗</span><b>Use drum groove MIDI in FL Studio and Ableton</b><span class="gdesc">Load the pattern onto your one-shots in a couple of minutes.</span></a>
+    <a class="gcard" href="/guides/how-the-kit-maker-works" data-reveal style="--d:180ms"><span class="gnum">03</span><span class="garr" aria-hidden="true">↗</span><b>How the kit maker works</b><span class="gdesc">From a full song to clean one-shots, step by step.</span></a>
+    <a class="gcard" href="/guides/extract-drums-from-a-song" data-reveal style="--d:0ms"><span class="gnum">04</span><span class="garr" aria-hidden="true">↗</span><b>How to extract drums from a song</b><span class="gdesc">Get clean kick, snare and hat stems, and what to do with them.</span></a>
+    <a class="gcard" href="/guides/get-a-cleaner-drum-split" data-reveal style="--d:90ms"><span class="gnum">05</span><span class="garr" aria-hidden="true">↗</span><b>How to get a cleaner drum split</b><span class="gdesc">Source files, mastering and what makes a song harder to split.</span></a>
+    <a class="gcard" href="/guides/kick-vs-808" data-reveal style="--d:180ms"><span class="gnum">06</span><span class="garr" aria-hidden="true">↗</span><b>Kick vs 808: how to tell them apart</b><span class="gdesc">Why they get mixed up, and how to clean one out of the other.</span></a>
+    </div>
+  </div>
+</section>
+
+<section class="band cream" id="faq">
+  <div class="wrap faq2">
+    <div><p class="dot" data-reveal>FAQ</p><h2 data-lines>Questions</h2></div>
+    <div class="qs">
   <details><summary>Is it free?</summary><p>Yes. The site is paid for by ads. To keep it free for everyone, each visitor gets {{LIMIT_PER_IP}} splits a day, up to {{MAX_MINUTES}} minutes per song.</p></details>
   <details><summary>How long does a split take?</summary><p>Usually under a minute or two for a normal-length song once a GPU picks it up. If the site is busy you may wait in line for a bit first.</p></details>
   <details><summary>What happens to my files?</summary><p>Your upload is deleted as soon as it has been split. The stems are kept for 24 hours so you can come back and download them, then deleted. See the <a href="/privacy">privacy policy</a>.</p></details>
   <details><summary>Why is there some bleed between pieces?</summary><p>Separation is never perfect. Hats and cymbals share a lot of the same frequencies, and reverb gets split between pieces. Lossless files (wav or flac) give cleaner results than low-bitrate mp3s. <a href="/guides/why-drum-stems-bleed">More on bleed and how to clean it up</a>.</p></details>
   <details><summary>Can I upload any song?</summary><p>Only upload audio you have the right to use: your own music, licensed material, or audio you're studying for personal practice where that's allowed. See the <a href="/terms">terms</a>.</p></details>
   <details><summary>A piece came out silent. Why?</summary><p>If a song has no percussion, that stem will be close to silent. It's marked "silent" in the mixer.</p></details>
+    </div>
+  </div>
 </section>
 
-<section class="section">
-  <h2>Guides</h2>
-  <div class="guides">
-    <a class="card" href="/guides/make-a-drum-kit-from-a-song"><b>How to make a drum kit from any song</b><span>One-shots of every sound in a song, plus the groove as MIDI.</span></a>
-    <a class="card" href="/guides/use-groove-midi-in-fl-studio"><b>Use drum groove MIDI in FL Studio and Ableton</b><span>Load the pattern onto your one-shots in a couple of minutes.</span></a>
-    <a class="card" href="/guides/how-the-kit-maker-works"><b>How the kit maker works</b><span>From a full song to clean one-shots, step by step.</span></a>
-    <a class="card" href="/guides/extract-drums-from-a-song"><b>How to extract drums from a song</b><span>Get clean kick, snare and hat stems, and what to do with them.</span></a>
-    <a class="card" href="/guides/get-a-cleaner-drum-split"><b>How to get a cleaner drum split</b><span>Source files, mastering and what makes a song harder to split.</span></a>
-    <a class="card" href="/guides/kick-vs-808"><b>Kick vs 808: how to tell them apart</b><span>Why they get mixed up, and how to clean one out of the other.</span></a>
+<section class="band sage">
+  <div class="wrap cta">
+    <div><p class="dot" data-reveal>Free, in your browser.</p><h2 data-lines>Split any song's drums into the kit pieces</h2></div>
+    <div class="ctadrop">
+      <div class="dropbar dark" data-drop tabindex="0" role="button" aria-label="Choose a song to split"><b>Drop a song here</b><svg class="upi" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 14v5h14v-5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <p>mp3, wav, flac, m4a, aiff, ogg</p>
+      <p class="limits" id="limits">Up to {{MAX_MINUTES}} minutes per song · {{LIMIT_PER_IP}} free splits a day</p>
+    </div>
   </div>
-  <p><a href="/guides/">All guides →</a></p>
 </section>
-</main>
 {{FOOTER}}
 <script src="/app.js"></script>
 </body></html>
