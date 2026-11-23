@@ -89,12 +89,15 @@ function tsPark() { tsToken = ''; tsParked = true; $('#ts').hidden = true; }
 function tsUnpark() { if (!tsParked) return; tsParked = false; $('#ts').hidden = false; resetTurnstile(); }
 
 // ---------- upload
-const drop = $('#drop'), input = $('#file');
-drop.addEventListener('click', () => !busy && input.click());
-drop.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && !busy) { e.preventDefault(); input.click(); } });
-['dragenter', 'dragover'].forEach(n => drop.addEventListener(n, e => { e.preventDefault(); drop.classList.add('over'); }));
-['dragleave', 'drop'].forEach(n => drop.addEventListener(n, e => { e.preventDefault(); drop.classList.remove('over'); }));
-drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) start(f); });
+const input = $('#file');
+// every drop zone on the page (the hero one and the one at the bottom) opens the same picker
+document.querySelectorAll('#drop, [data-drop]').forEach(drop => {
+  drop.addEventListener('click', () => !busy && input.click());
+  drop.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && !busy) { e.preventDefault(); input.click(); } });
+  ['dragenter', 'dragover'].forEach(n => drop.addEventListener(n, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(n => drop.addEventListener(n, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) start(f); });
+});
 input.addEventListener('change', () => { const f = input.files[0]; input.value = ''; if (f) start(f); });
 
 // The invisible check takes a second or two after page load / after each upload; wait for it.

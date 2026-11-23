@@ -52,7 +52,21 @@
     el.textContent = ''; el.appendChild(box);
   }
 
+  // ---- the hero painting drifts a little slower than the page
+  function parallax() {
+    var imgs = document.querySelectorAll('[data-parallax]'); if (!imgs.length) return;
+    var ticking = false;
+    function upd() {
+      ticking = false; var y = window.scrollY;
+      if (y > window.innerHeight * 1.2) return;
+      imgs.forEach(function (im) { im.style.transform = 'translate3d(0,' + (y * 0.22 - window.innerHeight * 0.06) + 'px,0)'; });
+    }
+    window.addEventListener('scroll', function () { if (!ticking) { ticking = true; requestAnimationFrame(upd); } }, { passive: true });
+    upd();
+  }
+
   function start() {
+    parallax();
     document.querySelectorAll('[data-flip]').forEach(flip);
     var lines = document.querySelectorAll('[data-lines]');
     lines.forEach(splitLines);
