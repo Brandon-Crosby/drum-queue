@@ -72,7 +72,7 @@ function initTurnstile() {
 function showTsHelp() {
   const m = $('#msg'); m.replaceChildren();
   const box = el('div', 'msg err');
-  box.append("The \"verify you're human\" check couldn't load, so uploads are paused. It's usually an ad blocker, a VPN or iCloud Private Relay blocking Cloudflare. Allow this site (or switch them off), then ");
+  box.append("Uploads paused: the \"verify you're human\" check couldn't load (usually an ad blocker, VPN or iCloud Private Relay). Allow this site, then ");
   const b = el('button', 'btn', 'try again'); b.style.marginLeft = '4px';
   b.onclick = () => { showMsg(''); if (window.turnstile && tsWidget != null) turnstile.reset(tsWidget); else location.reload(); };
   box.append(b, '.');
