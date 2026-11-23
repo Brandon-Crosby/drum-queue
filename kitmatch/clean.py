@@ -256,12 +256,22 @@ def _sub_share(seg, cut=150):
     return float(X[f < cut].sum() / (X.sum() + 1e-12))
 
 
-def _drop_impostors(ks, split_dir, log, bass_like=0.5, kick_like=0.9, smear_sub=0.1, smear_out=3.0):
+def _fspec(y, n=2048):
+    """Unit-length magnitude spectrum of the first n samples."""
+    y = np.pad(y[:n], (0, max(0, n - len(y[:n]))))
+    S = np.abs(np.fft.rfft(y * np.hanning(n)))
+    return S / (np.linalg.norm(S) + 1e-12)
+
+
+def _drop_impostors(ks, split_dir, log, bass_like=0.5, kick_like=0.9, smear_sub=0.1, smear_out=3.0,
+                    hat_like=0.76, hat_lvl=-46.0):
     """Snare/perc sounds that are really the bass (distorted bass the first stage left in the drums)
     or really the kick (kick leaking into the perc stem). Bass: the sound's spectrum matches what the
     bass stem plays at the same moments. Kick: its fingerprint matches the main kick sound."""
     bass_f = Path(split_dir) / 'bass.wav'
     bass = H.load(bass_f) if bass_f.exists() else None
+    hh_f = Path(split_dir) / 'hh.wav'
+    hats = _mono(H.load(hh_f)) if hh_f.exists() else None
     kicks = [k for k in ks if k['role'] == 'kick']
     main_kick = max(kicks, key=lambda k: k['hits'])['fp'] if kicks else None
     keep = []
@@ -275,6 +285,22 @@ def _drop_impostors(ks, split_dir, log, bass_like=0.5, kick_like=0.9, smear_sub=
                 # together, not a drum (stunyun137, Nov 2026: two "Snare-Perc" one-shots were this)
                 log(f'dropped a {s["role"]} sound heard {s["hits"]}x: it is 808 and hats smeared together')
                 continue
+            if hats is not None and s.get('onsets') is not None and len(s['onsets']):
+                # the hats bleeding into the snare/perc stems: the sound matches what the hat stem plays at
+                # those very hits, and the hats there are loud. Kit score on the 18 test beats (Nov 2026):
+                # 10 junk one-shots out, 1 real one lost.
+                n = 2048
+                h = [hats[i:i + n] for i in s['onsets'] if i + n <= len(hats)]
+                if h:
+                    hm = np.mean(h, 0)
+                    seg = _mono(s['seg'])[:n]
+                    seg = seg * (10 ** (-1 / 20) / (np.abs(seg).max() + 1e-9))   # as written (-1 dBFS peak)
+                    a, b = _fspec(seg, n), _fspec(hm, n)
+                    # hat stem under those hits vs the one-shot as it will be written: how loud the hats really are
+                    lvl = 20 * np.log10(np.sqrt(np.mean(hm ** 2)) / (np.sqrt(np.mean(seg ** 2)) + 1e-9) + 1e-9)
+                    if float(a @ b) >= hat_like and lvl >= hat_lvl:
+                        log(f'dropped a {s["role"]} sound heard {s["hits"]}x: it is the hats bleeding in')
+                        continue
             if main_kick is not None and float(s['fp'] @ main_kick) >= kick_like:
                 log(f'dropped a {s["role"]} sound heard {s["hits"]}x: it is the kick leaking in')
                 continue
