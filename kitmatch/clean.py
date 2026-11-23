@@ -256,7 +256,7 @@ def _sub_share(seg, cut=150):
     return float(X[f < cut].sum() / (X.sum() + 1e-12))
 
 
-def _drop_impostors(ks, split_dir, log, bass_like=0.5, kick_like=0.9):
+def _drop_impostors(ks, split_dir, log, bass_like=0.5, kick_like=0.9, smear_sub=0.1, smear_out=3.0):
     """Snare/perc sounds that are really the bass (distorted bass the first stage left in the drums)
     or really the kick (kick leaking into the perc stem). Bass: the sound's spectrum matches what the
     bass stem plays at the same moments. Kick: its fingerprint matches the main kick sound."""
@@ -269,6 +269,11 @@ def _drop_impostors(ks, split_dir, log, bass_like=0.5, kick_like=0.9):
         if s['role'] in ('snare', 'perc'):
             if _sub_share(s['seg']) > 0.85:          # nearly all sub: a piece of 808/bass, not a drum
                 log(f'dropped a {s["role"]} sound heard {s["hits"]}x: it is almost all sub-bass (808)')
+                continue
+            if _sub_share(s['seg']) > smear_sub and _outside_core_db(s['seg']) > smear_out:
+                # sub under it AND more energy outside the drum range than in it: 808 + hats landing
+                # together, not a drum (stunyun137, Nov 2026: two "Snare-Perc" one-shots were this)
+                log(f'dropped a {s["role"]} sound heard {s["hits"]}x: it is 808 and hats smeared together')
                 continue
             if main_kick is not None and float(s['fp'] @ main_kick) >= kick_like:
                 log(f'dropped a {s["role"]} sound heard {s["hits"]}x: it is the kick leaking in')
