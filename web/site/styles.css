@@ -302,8 +302,8 @@ body:not(.home) .foot{margin-top:clamp(80px,10vw,140px)}
 [data-theme="dark"] .band.cream{background:#161513}
 [data-theme="dark"] .band.stone{background:#23241f}
 [data-theme="dark"] .band.sage{background:#1c1d19}
-[data-theme="dark"] .band.green{background:#0f1311;color:#efece5}
-[data-theme="dark"] .green .dot{color:#b9bfa9}
+[data-theme="dark"] .band.green{background:#161513;color:#efece5;border-top:1px solid rgba(239,236,229,.1)}
+[data-theme="dark"] .green .dot{color:#efece5}
 [data-theme="dark"] .steps2 li{border-color:rgba(239,236,229,.12)}
 [data-theme="dark"] .steps2 p{color:#b3b5ab}
 [data-theme="dark"] .rings i{border-color:rgba(239,236,229,.22)}
@@ -331,4 +331,4 @@ body:not(.home) .foot{margin-top:clamp(80px,10vw,140px)}
 [data-theme="dark"] .content .guides a.card:hover{background:#23241f}
 [data-theme="dark"] .content th{background:#23241f}
 [data-theme="dark"] .msg.err{background:rgba(255,138,116,.08)}
-[data-theme="dark"] .curtain,[data-theme="dark"].intro body::after{background:#0f1311}
+[data-theme="dark"] .curtain,[data-theme="dark"].intro body::after{background:#161513}
