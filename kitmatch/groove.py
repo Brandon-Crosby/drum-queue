@@ -77,14 +77,18 @@ def align(parts, bpm):
     step = 60 / bpm / 4
     t = np.concatenate([p['times'] for p in parts])
     ang = 2 * np.pi * (t % step) / step
-    phase = (np.angle(np.exp(1j * ang).mean()) % (2 * np.pi)) / (2 * np.pi) * step
+    phase = np.angle(np.exp(1j * ang).mean()) / (2 * np.pi) * step
     kicks = [p for p in parts if p['label'].startswith('Kick')]
-    first = (kicks[0]['times'] if kicks else t).min()
-    start = phase + np.round((first - phase) / (4 * step)) * 4 * step       # nearest beat to the first kick
+    first = (np.concatenate([k['times'] for k in kicks]) if kicks else t).min()   # any kick (Kick 1, Kick 2...)
+    start = phase + np.round((first - phase) / step) * step     # the grid line at the first kick: its downbeat
     bar = 16 * step
-    while (t < start).any():
+    # A pickup gets its own bar. A hit only a hair early (up to 20 ms: played or detected just ahead of the
+    # beat) stays on the downbeat instead of adding a near-empty bar in front of the whole song: it is
+    # clamped to 0, every other hit keeps its exact timing.
+    hair = min(step / 2, 0.02)
+    while (t < start - hair).any():
         start -= bar
-    return [dict(p, times=p['times'] - start) for p in parts], start
+    return [dict(p, times=np.maximum(p['times'] - start, 0.0)) for p in parts], start
 
 
 def quantize(parts, bpm):

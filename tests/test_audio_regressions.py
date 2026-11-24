@@ -77,7 +77,29 @@ class GrooveTests(unittest.TestCase):
         times = np.array([.12, .25, .375, .5, .625, .75])
         aligned, _ = groove.align([dict(label='Hat', times=times)], 120)
         self.assertGreaterEqual(aligned[0]['times'].min(), 0)
-        np.testing.assert_allclose(np.diff(aligned[0]['times']), np.diff(times))
+        # .12 is only 5 ms before the .125 grid line: it lands on the downbeat (clamped, at most 20 ms);
+        # every later interval keeps its detected timing. A real pickup: test_alignment_gives_a_real_pickup...
+        np.testing.assert_allclose(np.diff(aligned[0]['times'])[1:], np.diff(times)[1:])
+        self.assertLessEqual(abs(np.diff(aligned[0]['times'])[0] - np.diff(times)[0]), 0.02)
+
+    def test_alignment_keeps_slightly_early_downbeat_in_bar_one(self):
+        # 120 BPM: a 16th is 0.125 s. The first kick lands 5 ms early; the rest sit on the grid.
+        kick = np.array([1.995, 2.5, 3.0, 3.5, 4.0])
+        hat = np.array([2.0, 2.25, 2.5, 2.75, 3.0])
+        aligned, start = groove.align([dict(label='Kick 1', times=kick), dict(label='Hat', times=hat)], 120)
+        self.assertGreaterEqual(min(p['times'].min() for p in aligned), 0)
+        self.assertAlmostEqual(aligned[0]['times'][0], 0.0, places=6)      # no near-empty bar in front
+        self.assertAlmostEqual(aligned[1]['times'][0], 0.0, places=2)
+        np.testing.assert_allclose(np.diff(aligned[0]['times'][1:]), np.diff(kick[1:]))
+
+    def test_alignment_gives_a_real_pickup_its_own_bar(self):
+        # A hat a full 16th before the first kick is a pickup: the song starts a bar earlier.
+        kick = np.array([2.0, 2.5, 3.0, 3.5])
+        hat = np.array([1.875, 2.25, 2.75])
+        aligned, start = groove.align([dict(label='Kick 1', times=kick), dict(label='Hat', times=hat)], 120)
+        bar = 16 * 60 / 120 / 4
+        self.assertAlmostEqual(aligned[0]['times'][0], bar, places=2)
+        self.assertAlmostEqual(aligned[1]['times'][0], bar - 0.125, places=2)
 
     def test_full_song_preserves_detected_timing_loop_stays_quantized(self):
         on = np.array([0, 7000, 11000, 18000, 22000])
