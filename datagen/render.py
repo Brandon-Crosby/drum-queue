@@ -8,8 +8,9 @@ kind Demucs leaves in its drum stem) as FLAC, and mix.flac = their exact sum. A 
 from mix -> the class tracks. Every clip differs: genre, tempo, swing, which sounds, how they're
 played (velocity, timing), and how they're processed (EQ, saturation, compression, room).
 
-Sounds come from synth.py (no samples, no licenses). Licensed one-shots can be added later through
-the same CLASSES table.
+Sounds come from synth.py, and - when a one-shot bank is loaded (load_bank: a folder with kick/,
+snare/, clap/, hat/, openhat/, shaker/, perc/, cymbal/) - REAL_P of the time from real one-shots:
+real kicks with their knock and clipping, layered claps, real shakers, which synth sounds don't have.
 """
 import argparse
 import json
@@ -86,12 +87,57 @@ def process(x, rng):
 
 
 # ---------------------------------------------------------------- clip
+BANK = {}                                        # class -> list of (name, path)
+REAL_P = 0.6
+BANK_DIRS = {'kick': ('kick',), 'snare': ('snare', 'clap'), 'hh': ('hat', 'openhat', 'shaker'),
+             'perc': ('perc',), 'crash': ('cymbal',)}
+
+
+def load_bank(root):
+    """Index a one-shot bank (see module doc). Returns {class: count}."""
+    root = Path(root)
+    BANK.clear()
+    for cls, dirs in BANK_DIRS.items():
+        fs = [(d, f) for d in dirs if (root / d).is_dir() for f in sorted((root / d).iterdir())
+              if f.suffix.lower() in ('.wav', '.aif', '.aiff', '.flac') and not f.name.startswith('._')]
+        if fs:
+            BANK[cls] = fs
+    return {c: len(v) for c, v in BANK.items()}
+
+
+def _real(cls, rng):
+    """A real one-shot for the class: mono, at SR, peak 1, trimmed to its hit. None if unreadable."""
+    d, f = BANK[cls][rng.integers(len(BANK[cls]))]
+    try:
+        x, sr = sf.read(str(f), dtype='float32', always_2d=True)
+    except Exception:
+        return None
+    x = x.mean(1)
+    if sr != SR:
+        from scipy.signal import resample_poly
+        x = resample_poly(x, SR, sr).astype(np.float32)
+    pk = np.abs(x).max()
+    if len(x) < 200 or pk < 1e-4:
+        return None
+    x = x[int(np.argmax(np.abs(x) > 0.05 * pk)):] / pk     # start at the hit, no lead silence
+    fd = min(len(x) // 4, int(0.01 * SR))
+    x[-fd:] *= np.linspace(1, 0, fd)
+    return {'clap': 'clap', 'openhat': 'hat open', 'shaker': 'shaker', 'hat': 'hat closed'}.get(d, cls) + ' (real)', x
+
+
 def pick_sounds(cls, genre, rng, k):
-    """k sound variants for one class, leaning on the genre's favorites."""
+    """k sound variants for one class, leaning on the genre's favorites; real one-shots when a bank is
+    loaded."""
     opts = synth.CLASSES[cls]
     fav = patterns.FAVOR.get(genre, {}).get(cls)
     out = []
     for _ in range(k):
+        real = _real(cls, rng) if cls in BANK and rng.random() < REAL_P else None
+        if real:
+            name, sound = real
+            pan = rng.uniform(-0.6, 0.6) if cls not in ('kick', 'snare') else rng.uniform(-0.1, 0.1)
+            out.append((name, sound, pan))
+            continue
         if fav and rng.random() < 0.75:
             name = fav[rng.integers(len(fav))]
             gen = dict(opts)[name]

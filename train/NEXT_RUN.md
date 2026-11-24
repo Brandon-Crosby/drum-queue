@@ -64,6 +64,11 @@ For the next run:
   snare+perc), so the model must keep it: add layered kicks to the practice mixes (a clean kick plus a
   short bright click/old-school layer, both in the kick target), and real beats with layered kicks.
   Also: hasta luego's kick stem carries a ~55 Hz tone ringing past the real kick (done by 100 ms).
+- Real one-shots in the synth clips (Nov 24): 3,500 one-shots picked from the producer's La Uzi library
+  (900 kicks, 650 snares, 300 claps, 500 hats, 200 open hats, 300 shakers, 550 percs, 100 cymbals;
+  418 MB, on the T7 at DrumSplits-train/oneshots). render.load_bank() uses them 60% of the time when
+  /vol/oneshots exists: `modal volume put drumsplit-train "/Volumes/T7/DrumSplits-train/oneshots" /oneshots`
+  then re-render the synth clips (prep --synth-only).
 - A/B by ear with `eval/ab_kits.py` (same sound numbered the same, the song re-played with each kit).
 
 ## Stage 1 (Demucs) percussion
