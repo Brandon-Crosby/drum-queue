@@ -151,7 +151,7 @@ def unstack(kick_sounds, min_left_db=-20.0):
     K = lone['seg']
     out = []
     for n, s in enumerate(kick_sounds):
-        if s is lone:
+        if s is lone or s.get('split_kick'):      # a second kick of its own, not something stacked on one
             continue
         S = s['seg']
         L = min(len(S), len(K))
@@ -638,21 +638,57 @@ def _full_low(x, on, within=4.0):
     return mask if mask.sum() >= 2 else np.ones(len(on), bool)
 
 
-def clean_kicks(kx, ks, log=lambda line: None):
-    """The kick stem's biggest group is THE kick (so unstack() doesn't pick the darkest sound, an 808).
-    808 notes thumping through it are taken out (split_808); then the one-shot is one real, typical hit
-    (typical_hit) rather than an average, which dulls the top end. Its length is what the average allowed.
-    -> (groups, biggest first; number of 808 thumps removed)"""
-    if not ks:
-        return ks, 0
-    ks = sorted(ks, key=lambda k: -k['hits'])
-    k0 = ks[0]
-    keep = split_808(kx, k0['onsets'])
-    dropped = int((~keep).sum())
-    on = k0['onsets'][keep]
-    allon = np.sort(np.concatenate([k['onsets'] for k in ks]))
-    nxt = np.array([allon[allon > i][0] if (allon > i).any() else len(kx) for i in on])
-    avg = average(kx, on, nxt)[0] if dropped else k0['seg']
+def _kick_spec(x, i, L=int(0.08 * SR)):
+    """A hit's first 80 ms as 39 log bands (30 Hz-16 kHz), dB relative to its loudest band."""
+    m = _mono(x[i:i + L])
+    m = np.pad(m, (0, L - len(m)))
+    S = np.abs(np.fft.rfft(m * np.hanning(L), 8192))
+    f = np.fft.rfftfreq(8192, 1 / SR)
+    b = np.logspace(np.log10(30), np.log10(16000), 40)
+    v = 20 * np.log10(np.array([S[(f >= b[k]) & (f < b[k + 1])].mean() + 1e-9 for k in range(39)]))
+    return v - v.max()
+
+
+def _low_db(x, i):
+    f = np.fft.rfftfreq(8192, 1 / SR)
+    return float(10 * np.log10((np.abs(np.fft.rfft(_mono(x[i:i + int(0.06 * SR)]), 8192)) ** 2)[f < 120].sum() + 1e-12))
+
+
+def split_kicks(x, on, apart_db=8.0, low_db=5.0, min_share=0.1, max_n=3):
+    """The kick stem's hits as separate kicks when they sound clearly different: groups of hits whose
+    first-80 ms spectra differ by >= apart_db (RMS over 39 bands; one kick played harder or softer stays
+    within ~7 dB), each with >= min_share of the hits and real low end (within low_db of the strongest
+    group). Reggaeton often runs two kicks (the producer, Nov 2026); 18 test beats vs the real kick
+    tracks: TABLA's Heavy_Kick vs its layered kick 19 dB apart, providence's two 9 dB. A group with 5+ dB
+    less low end is mostly snares the model filed as kick (parqueao -5.7, hyperbole -8; providence's real
+    second kick -4.3, peach's -3.8): not a kick of its own, its hits stay with the nearest kick.
+    -> index arrays into on, biggest first (one array = one kick)."""
+    on = np.asarray(on)
+    if len(on) < 8:
+        return [np.arange(len(on))]
+    from scipy.cluster.hierarchy import fcluster, linkage
+    F = np.array([_kick_spec(x, i) for i in on])
+    lab = fcluster(linkage(F, 'average'), apart_db * np.sqrt(F.shape[1]), 'distance')
+    gs = [np.flatnonzero(lab == c) for c in np.unique(lab)]
+    gs = [g for g in gs if len(g) >= max(4, min_share * len(on))]
+    if len(gs) < 2:
+        return [np.arange(len(on))]
+    lows = [np.median([_low_db(x, on[i]) for i in g]) for g in gs]
+    gs = [g for g, lo in zip(gs, lows) if lo >= max(lows) - low_db]
+    gs = sorted(gs, key=len, reverse=True)[:max_n]
+    if len(gs) < 2:
+        return [np.arange(len(on))]
+    # every other hit (a snare group's too: it may hold real kicks as well, and the MIDI keeps them) goes
+    # with the kick it sounds most like; each kick's one-shot is still picked among its full-low-end hits
+    med = [np.median(F[g], 0) for g in gs]
+    rest = np.setdiff1d(np.arange(len(on)), np.concatenate(gs))
+    near = {i: int(np.argmin([np.sqrt(np.mean((F[i] - m) ** 2)) for m in med])) for i in rest}
+    return [np.sort(np.concatenate([g, [i for i, k in near.items() if k == j]]).astype(int)) for j, g in enumerate(gs)]
+
+
+def _kick_shot(kx, on, allon, avg):
+    """One real, typical hit of a kick: among its hits with full low end, as long as a real kick has before
+    the next real kick, trimmed where its tail ends."""
     full = _full_low(kx, on)                       # the hit is picked among hits with the kick's full low end
     onf = np.sort(on[full])
     nf = np.append(onf[1:], len(kx))
@@ -666,11 +702,45 @@ def clean_kicks(kx, ks, log=lambda line: None):
         seg = seg[:k].copy()
         fd = min(k, int(0.02 * SR))
         seg[k - fd:] *= (np.linspace(1, 0, fd) ** 2)[:, None] if seg.ndim == 2 else np.linspace(1, 0, fd) ** 2
-    # decisions downstream (unstacking, look-alikes) keep using the average; only the file is the real hit
-    kick = dict(k0, seg=avg, shot=seg, onsets=on, hits=len(on), is_kick=bool(dropped))
+    return seg
+
+
+def clean_kicks(kx, ks, log=lambda line: None):
+    """The kick stem's biggest group is THE kick (so unstack() doesn't pick the darkest sound, an 808),
+    split into separate kicks when its hits sound clearly different (split_kicks). 808 notes thumping
+    through each are taken out (split_808); a whole group that is the 808 (more sub, dying faster) goes.
+    Each one-shot is one real, typical hit (_kick_shot) rather than an average, which dulls the top end.
+    -> (groups, biggest first; number of 808 thumps removed)"""
+    if not ks:
+        return ks, 0
+    ks = sorted(ks, key=lambda k: -k['hits'])
+    k0 = ks[0]
+    on0 = np.asarray(k0['onsets'])
+    allon = np.sort(np.concatenate([k['onsets'] for k in ks]))
+    groups = split_kicks(kx, on0)
+    kicks, dropped, main_f = [], 0, None
+    for g in groups:
+        on = on0[g]
+        keep = split_808(kx, on)
+        dropped += int((~keep).sum())
+        on = on[keep]
+        F = np.median(_kick_feats(kx, on), 0)
+        if main_f is None:
+            main_f = F
+        elif F[0] - main_f[0] >= 3.0 and main_f[1] - F[1] >= 5.0:
+            log(f'kick: a {len(on)}-hit group is the 808, not a second kick')
+            dropped += len(on)
+            continue
+        nxt = np.array([allon[allon > i][0] if (allon > i).any() else len(kx) for i in on])
+        avg = k0['seg'] if len(groups) == 1 and not dropped else average(kx, on, nxt)[0]
+        # decisions downstream (unstacking, look-alikes) keep using the average; only the file is the real hit
+        kicks.append(dict(k0, seg=avg, shot=_kick_shot(kx, on, allon, avg), onsets=on, hits=len(on),
+                          is_kick=bool(dropped) or len(groups) > 1, split_kick=len(kicks) > 0))
     if dropped:
-        log(f'kick: {dropped} 808 notes taken out of the kick ({len(on)} real kick hits left)')
-    return [kick] + ks[1:], dropped
+        log(f'kick: {dropped} 808 notes taken out of the kick')
+    if len(kicks) > 1:
+        log(f'kick: {len(kicks)} different kicks ({", ".join(str(k["hits"]) for k in kicks)} hits)')
+    return kicks + ks[1:], dropped
 
 
 # ---------- the kick: one real hit, not an average
