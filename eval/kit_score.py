@@ -92,6 +92,7 @@ def score(split_dir, truth_dir, ref=None, log=lambda line: None):
     for label, piece, y in shots:
         role = {'snare': 'sp'}.get(piece, piece)
         y = y[:L]
+        y = np.pad(y, (0, max(0, 2048 - len(y))))          # a very short one-shot still gets a spectrum
         v = clean.fp(y)
         cands = [s for s in ks if clean.GROUP.get(s['role']) == role and s.get('fp') is not None]
         if not cands or v is None:
