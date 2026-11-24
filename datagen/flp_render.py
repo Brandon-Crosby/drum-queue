@@ -79,6 +79,7 @@ def midi_key(k):
 
 AUDIO = {'.wav', '.aif', '.aiff', '.flac', '.mp3', '.ogg', '.wv'}
 _index = {}
+EXTRA_ROOTS = []      # more sample libraries to look in (--samples): kits the projects use but didn't ship with
 
 
 def index(root):
@@ -148,7 +149,7 @@ def render(flp: Path, root: Path):
     if not p.tempo:
         return None, ['  no tempo stored in this project (newer FL format pyflp can\'t read)']
     tick = 60.0 / (float(p.tempo) * p.ppq)
-    roots = [flp.parent, root]
+    roots = [flp.parent, root] + EXTRA_ROOTS
     chans, log = {}, []
     for ch in p.channels:
         sp = getattr(ch, 'sample_path', None)
@@ -334,10 +335,12 @@ def main():
     ap.add_argument('root')
     ap.add_argument('--out', required=True, help='training copies go here (one folder per project)')
     ap.add_argument('--midi', required=True, help='grooves (MIDI + JSON answer keys) go here')
+    ap.add_argument('--samples', action='append', default=[], help='a sample library to look in for missing samples')
     ap.add_argument('--only', default=None)
     ap.add_argument('--force', action='store_true')
     ap.add_argument('--skip', action='append', default=[], help='leave out projects whose path contains this')
     a = ap.parse_args()
+    EXTRA_ROOTS.extend(Path(s) for s in a.samples)
     root, out, gdir = Path(a.root), Path(a.out), Path(a.midi)
     gdir.mkdir(parents=True, exist_ok=True)
     import os
