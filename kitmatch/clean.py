@@ -77,15 +77,16 @@ def average(x, on, nxt, max_len=MAX_LEN, ref=None):
     return avg.astype(np.float32), int(cnt.max())
 
 
-def tail_end(seg, blk=int(0.005 * SR), rise_db=8.0):
+def tail_end(seg, blk=int(0.005 * SR), rise_db=8.0, skip=0):
     """Where a one-shot really ends: follow its decay from the peak and stop at the quietest point
-    before the level climbs again by rise_db (the next hit or bleed creeping in)."""
+    before the level climbs again by rise_db (the next hit or bleed creeping in). The first `skip`
+    samples are the sound's own body (a layered kick's second transient ~40 ms in) and never end it."""
     m = np.abs(seg).max(1) if seg.ndim == 2 else np.abs(seg)
     n = len(m) // blk
     if n < 3:
         return len(seg)
     db = 20 * np.log10(m[:n * blk].reshape(n, blk).max(1) + 1e-9)
-    i = int(np.argmax(db))
+    i = max(int(np.argmax(db)), min(n - 1, skip // blk))
     lo, lo_i = db[i], i
     for j in range(i + 1, n):
         if db[j] < lo:
@@ -727,27 +728,78 @@ def split_kicks(x, on, apart_db=8.0, low_db=5.0, min_share=0.1, max_n=3):
 
 
 KICK_MIN = 0.15          # s: shortest a kick one-shot gets
+KICK_BODY = int(0.09 * SR)   # a kick's first 90 ms is its body, layers included
 
 
-def _kick_shot(kx, on, allon, avg):
-    """One real, typical hit of a kick: among its hits with full low end, as long as a real kick has before
-    the next real kick, trimmed where its tail ends."""
-    full = _full_low(kx, on)                       # the hit is picked among hits with the kick's full low end
+def _hit_start(x, i, back=0.015, floor=0.05):
+    """Where hit i really starts: an onset is often detected a few ms into the attack, so a file cut there
+    begins mid-waveform and pops (the producer heard a pop in every kick; files started at 25-83% of
+    peak). Walk back up to `back` s to where the level was under `floor` of the hit's peak."""
+    m = np.abs(_mono(x[max(0, i - int(back * SR)):i + int(0.03 * SR)]))
+    j0 = i - max(0, i - int(back * SR))
+    pk = m[j0:].max() + 1e-12
+    k = j0
+    while k > 0 and m[k - 1] > floor * pk:
+        k -= 1
+    return i - (j0 - k)
+
+
+def _sub_tail(seg, k, fc=150.0, xf=0.02):
+    """After k (where something else comes into the kick stem: a snare the model filed there), keep only
+    the kick's low end (< fc Hz), crossfaded in over xf s: the kick's sub keeps ringing as in the song
+    instead of being cut off ('short, not deep'), the snare on top of it is left out."""
+    from scipy.signal import butter, sosfiltfilt
+    if k >= len(seg) - int(xf * SR):
+        return seg
+    low = sosfiltfilt(butter(4, fc, 'low', fs=SR, output='sos'), seg, axis=0).astype(np.float32)
+    n = int(xf * SR)
+    w = np.ones(len(seg), np.float32)
+    w[k:k + n] = np.linspace(1, 0, n)
+    w[k + n:] = 0
+    w = w[:, None] if seg.ndim == 2 else w
+    return seg * w + low * (1 - w)
+
+
+def _ring_end(seg, floor_db=-40.0, blk=int(0.005 * SR)):
+    """Last point the sound is still above floor_db of its peak."""
+    m = np.abs(_mono(seg))
+    n = len(m) // blk
+    db = 20 * np.log10(m[:n * blk].reshape(n, blk).max(1) / (m.max() + 1e-12) + 1e-12)
+    above = np.flatnonzero(db > floor_db)
+    return int((above[-1] + 1) * blk) if len(above) else len(seg)
+
+
+def _kick_shot(kx, on, allon, avg, keep_q=60):
+    """One real kick hit: among its hits with full low end, those that ring longest before anything else
+    comes in (snares the model filed in the kick stem cut most tails short: kicks came out 0.15-0.2 s vs
+    0.3-0.5 s real, 'short and not deep'), the most typical of them; starting at its true start (no pop),
+    as long as it rings, with a gentle fade."""
+    full = _full_low(kx, on)
     onf = np.sort(on[full])
     nf = np.append(onf[1:], len(kx))
-    # its length is how long a real kick has before the next real kick, not before the next anything in the
-    # stem: snares filed in the kick stem cut the average short (hyperbole helyx-6: a 25 ms click, 'no low end')
-    length = int(max(len(avg), min(MAX_LEN * SR, np.median(nf - onf))))
+    length = int(max(len(avg), min(MAX_LEN * SR, 0.8 * SR, np.percentile(nf - onf, 75))))
     ref = kx[onf[int(np.argmax([np.abs(kx[i:i + int(0.03 * SR)]).max() for i in onf]))]:][:int(0.04 * SR)]
-    seg, _ = typical_hit(kx, align(kx, onf, ref), nf, length)
-    if seg is not None:
-        k = max(len(avg), tail_end(seg)) if len(seg) > len(avg) else len(seg)
-        # never shorter than a kick's body: a layered kick's second transient 20-40 ms in is the same kick
-        # (providence's dlc + Oomp came out as a 35 ms click, 'it's not even a kick')
-        k = max(k, min(len(seg), int(KICK_MIN * SR)))
-        seg = seg[:k].copy()
-        fd = min(k, int(0.02 * SR))
-        seg[k - fd:] *= (np.linspace(1, 0, fd) ** 2)[:, None] if seg.ndim == 2 else np.linspace(1, 0, fd) ** 2
+    onf = align(kx, onf, ref)
+    st = np.array([_hit_start(kx, int(i)) for i in onf])
+    ring = np.array([tail_end(kx[i:min(j, i + length)], skip=KICK_BODY) for i, j in zip(st, nf)])
+    good = ring >= np.percentile(ring, keep_q)
+    if good.sum() < 3:
+        good = np.ones(len(st), bool)
+    L = int(min(length, 0.6 * SR))
+    seg, idx = typical_hit(kx, st[good], nf[good], L)
+    if seg is None:
+        L = int(min(length, np.median(ring[good]) * 1.1))
+        seg, idx = typical_hit(kx, st[good], nf[good], L)
+    if seg is None:
+        return None
+    k0 = tail_end(seg, skip=KICK_BODY)
+    seg = _sub_tail(seg, k0)
+    k = min(len(seg), max(int(KICK_MIN * SR), k0, _ring_end(seg)))
+    seg = seg[:k].copy()
+    fi = int(0.0015 * SR)
+    seg[:fi] *= (np.linspace(0, 1, fi))[:, None] if seg.ndim == 2 else np.linspace(0, 1, fi)
+    fd = min(k // 3, int(0.06 * SR))               # a 60 ms fade: a sub tail cut fast clicks
+    seg[k - fd:] *= (np.linspace(1, 0, fd) ** 2)[:, None] if seg.ndim == 2 else np.linspace(1, 0, fd) ** 2
     return seg
 
 

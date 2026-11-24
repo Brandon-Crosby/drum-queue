@@ -116,7 +116,7 @@ def render(parts, kit_dir, stems, n, shift):
         for t, t2 in zip(on, nxt):
             pk = float(np.abs(stems_sum[t:t + int(0.03 * SR)]).max()) if t < len(stems_sum) else 0.0
             s = shot[:max(0, t2 - t)].copy()
-            fade = min(len(s), int(0.005 * SR))
+            fade = min(len(s), int(0.015 * SR))
             if len(s) < len(shot) and fade:
                 s[-fade:] *= np.linspace(1, 0, fade)
             u = t + shift
