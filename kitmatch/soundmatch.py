@@ -62,7 +62,7 @@ def load(path, sec=SEC + 0.3):
 def onset(x):
     """Start of the hit: first sample within 30 dB of the peak (skips silence before it)."""
     a = np.abs(x)
-    if a.max() < 1e-5:
+    if a.size == 0 or a.max() < 1e-5:              # a hit right at the end of the file
         return None
     i = int(np.argmax(a > a.max() * 0.0316))
     return max(0, i - int(0.002 * SR))

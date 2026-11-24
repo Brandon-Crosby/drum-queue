@@ -92,7 +92,10 @@ def onsets(x, min_gap=0.025, floor_db=45, delta=0.6, min_rise_db=0.0):
             continue
         env = np.sqrt(np.convolve(seg ** 2, np.ones(w) / w, mode='valid'))
         rise = env[w:] - env[:-w]
-        i = int(np.argmax(rise))
+        # the hit's FIRST big rise, not the biggest: a sub-heavy kick's 1.5 ms envelope follows its 50 Hz
+        # wave, a later cycle rises more, and measured from there the hit's own start looked like 'already
+        # sounding' and the hit was thrown away (BMF on a perfect kick stem: 6 of 74 kicks found)
+        i = int(np.flatnonzero(rise >= 0.5 * rise.max())[0]) if rise.max() > 0 else int(np.argmax(rise))
         lo = env[i]                                              # level just before the rise
         hi = env[i + w]
         j = i

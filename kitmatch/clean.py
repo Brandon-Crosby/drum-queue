@@ -200,6 +200,10 @@ def kit_sounds(stems, find, dedupe=0.95, min_left_db=-12.0, log=lambda line: Non
         ks, _ = clean_kicks(loaded['kick'], ks, log=log)
         if ks:
             stacked = unstack(ks, min_left_db=min_left_db)
+            # what's 'left over' on a kick group is a stacked snare/clap only if it isn't itself mostly
+            # sub: a residual that is a second, deeper kick stays a kick (ride witchu / all dogs on perfect
+            # stems: an 80-hit kick became 'snare', then was dropped as 808)
+            stacked = [t for t in stacked if _sub_share(t[0]) <= 0.6]
             stacked_idx = {i for _, _, i, _ in stacked}
             for i, s in enumerate(ks):
                 if i not in stacked_idx:
@@ -238,7 +242,7 @@ def kit_sounds(stems, find, dedupe=0.95, min_left_db=-12.0, log=lambda line: Non
 # Snare and perc share one label: the model often files a dembow snare as perc (and the other way
 # round), so which stem a sound came out of doesn't say which it is. Ordered by how often it plays.
 LABELS = {'kick': 'Kick', 'sp': 'Snare-Perc', 'hh': 'Hat'}
-MAX_SOUNDS = {'kick': 3, 'sp': 6, 'hh': 3}
+MAX_SOUNDS = {'kick': 2, 'sp': 6, 'hh': 3}
 GROUP = {'kick': 'kick', 'snare': 'sp', 'perc': 'sp', 'hh': 'hh'}
 
 
@@ -710,7 +714,7 @@ def _low_db(x, i):
     return float(10 * np.log10((np.abs(np.fft.rfft(_mono(x[i:i + int(0.06 * SR)]), 8192)) ** 2)[f < 120].sum() + 1e-12))
 
 
-def split_kicks(x, on, apart_db=8.0, low_db=5.0, min_share=0.1, max_n=3):
+def split_kicks(x, on, apart_db=8.0, low_db=5.0, min_share=0.1, max_n=2):
     """The kick stem's hits as separate kicks when they sound clearly different: groups of hits whose
     first-80 ms spectra differ by >= apart_db (RMS over 39 bands; one kick played harder or softer stays
     within ~7 dB), each with >= min_share of the hits and real low end (within low_db of the strongest
