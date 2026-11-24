@@ -1,0 +1,289 @@
+[
+ {
+  "beat": "ONEAAZZ",
+  "model": "in4",
+  "label": "Hat 1",
+  "ear": "junk",
+  "P": 0.3189218793833454
+ },
+ {
+  "beat": "TABLAaLAS2am 124",
+  "model": "in4",
+  "label": "Snare-Perc 3",
+  "ear": "junk",
+  "P": 0.10812136551672676
+ },
+ {
+  "beat": "TumbaLaCasa 130",
+  "model": "in4",
+  "label": "Snare-Perc 2",
+  "ear": "junk",
+  "P": 0.2849541931855911
+ },
+ {
+  "beat": "church's chicken 122bpm",
+  "model": "in4",
+  "label": "Hat 1",
+  "ear": "junk",
+  "P": 0.16482726917144136
+ },
+ {
+  "beat": "demobow 117bpm stems",
+  "model": "in4",
+  "label": "Snare-Perc 4",
+  "ear": "good",
+  "P": 0.25813065066275726
+ },
+ {
+  "beat": "demobow 117bpm stems",
+  "model": "in4",
+  "label": "Snare-Perc 5",
+  "ear": "junk",
+  "P": 0.2509283736707978
+ },
+ {
+  "beat": "demobow 117bpm stems",
+  "model": "in4",
+  "label": "Hat 2",
+  "ear": "good",
+  "P": 0.09957135226140217
+ },
+ {
+  "beat": "hasta luego 130",
+  "model": "in4",
+  "label": "Snare-Perc 3",
+  "ear": "good",
+  "P": 0.1853780134966715
+ },
+ {
+  "beat": "hasta luego 130",
+  "model": "in4",
+  "label": "Hat 2",
+  "ear": "junk",
+  "P": 0.17777939679389432
+ },
+ {
+  "beat": "hyperbole 121 bpm",
+  "model": "in4",
+  "label": "Hat 1",
+  "ear": "good",
+  "P": 0.0887974674334786
+ },
+ {
+  "beat": "la intencion 116bpm stems",
+  "model": "in4",
+  "label": "Snare-Perc 2",
+  "ear": "junk",
+  "P": 0.26128465039350984
+ },
+ {
+  "beat": "la intencion 116bpm stems",
+  "model": "in4",
+  "label": "Snare-Perc 4",
+  "ear": "junk",
+  "P": 0.30232463105186436
+ },
+ {
+  "beat": "la intencion 116bpm stems",
+  "model": "in4",
+  "label": "Snare-Perc 5",
+  "ear": "junk",
+  "P": 0.14983387470486145
+ },
+ {
+  "beat": "la intencion 116bpm stems",
+  "model": "in4",
+  "label": "Hat 3",
+  "ear": "junk",
+  "P": 0.19522848463539685
+ },
+ {
+  "beat": "parqueao 120 bpm",
+  "model": "in4",
+  "label": "Snare-Perc 4",
+  "ear": "junk",
+  "P": 0.11182415766299546
+ },
+ {
+  "beat": "parqueao 120 bpm",
+  "model": "in4",
+  "label": "Hat 3",
+  "ear": "junk",
+  "P": 0.3181069037933245
+ },
+ {
+  "beat": "peach white claw 126",
+  "model": "in4",
+  "label": "Snare-Perc 2",
+  "ear": "junk",
+  "P": 0.16374752578208007
+ },
+ {
+  "beat": "providence 123",
+  "model": "in4",
+  "label": "Snare-Perc 3",
+  "ear": "junk",
+  "P": 0.07649059495382113
+ },
+ {
+  "beat": "we in the house 124 stems",
+  "model": "in4",
+  "label": "Hat 2",
+  "ear": "good",
+  "P": 0.07947334419497176
+ },
+ {
+  "beat": "ONEAAZZ",
+  "model": "in6",
+  "label": "Snare-Perc 3",
+  "ear": "junk",
+  "P": 0.19769477042825537
+ },
+ {
+  "beat": "T VEO SOLA 176 STEMS",
+  "model": "in6",
+  "label": "Snare-Perc 2",
+  "ear": "junk",
+  "P": 0.34891011442751835
+ },
+ {
+  "beat": "T VEO SOLA 176 STEMS",
+  "model": "in6",
+  "label": "Hat 2",
+  "ear": "junk",
+  "P": 0.1144889732446359
+ },
+ {
+  "beat": "T VEO SOLA 176 STEMS",
+  "model": "in6",
+  "label": "Hat 3",
+  "ear": "junk",
+  "P": 0.17333937776375202
+ },
+ {
+  "beat": "TABLAaLAS2am 124",
+  "model": "in6",
+  "label": "Snare-Perc 2",
+  "ear": "junk",
+  "P": 0.2671751055228709
+ },
+ {
+  "beat": "TABLAaLAS2am 124",
+  "model": "in6",
+  "label": "Hat 3",
+  "ear": "junk",
+  "P": 0.3274031606024137
+ },
+ {
+  "beat": "TumbaLaCasa 130",
+  "model": "in6",
+  "label": "Snare 3",
+  "ear": "junk",
+  "P": 0.1430605890399963
+ },
+ {
+  "beat": "TumbaLaCasa 130",
+  "model": "in6",
+  "label": "Hat 3",
+  "ear": "junk",
+  "P": 0.18650091795007767
+ },
+ {
+  "beat": "balbikiu 121",
+  "model": "in6",
+  "label": "Snare-Perc 2",
+  "ear": "junk",
+  "P": 0.20334804730770695
+ },
+ {
+  "beat": "demobow 117bpm stems",
+  "model": "in6",
+  "label": "Snare-Perc 5",
+  "ear": "good",
+  "P": 0.20348144543801885
+ },
+ {
+  "beat": "desbloquear 123",
+  "model": "in6",
+  "label": "Snare-Perc 1",
+  "ear": "junk",
+  "P": 0.11630250624869806
+ },
+ {
+  "beat": "desbloquear 123",
+  "model": "in6",
+  "label": "Snare-Perc 2",
+  "ear": "junk",
+  "P": 0.26350071225298977
+ },
+ {
+  "beat": "hasta luego 130",
+  "model": "in6",
+  "label": "Snare-Perc 5",
+  "ear": "junk",
+  "P": 0.12266267106746634
+ },
+ {
+  "beat": "hasta luego 130",
+  "model": "in6",
+  "label": "Snare-Perc 6",
+  "ear": "good",
+  "P": 0.1418192352028855
+ },
+ {
+  "beat": "la intencion 116bpm stems",
+  "model": "in6",
+  "label": "Snare-Perc 2",
+  "ear": "junk",
+  "P": 0.1251412436204779
+ },
+ {
+  "beat": "parqueao 120 bpm",
+  "model": "in6",
+  "label": "Snare-Perc 3",
+  "ear": "junk",
+  "P": 0.0917055707796884
+ },
+ {
+  "beat": "peach white claw 126",
+  "model": "in6",
+  "label": "Snare-Perc 1",
+  "ear": "junk",
+  "P": 0.07893046631985282
+ },
+ {
+  "beat": "peach white claw 126",
+  "model": "in6",
+  "label": "Hat 2",
+  "ear": "junk",
+  "P": 0.23035681164337962
+ },
+ {
+  "beat": "providence 123",
+  "model": "in6",
+  "label": "Snare-Perc 3",
+  "ear": "junk",
+  "P": 0.12725784613994295
+ },
+ {
+  "beat": "we in the house 124 stems",
+  "model": "in6",
+  "label": "Snare-Perc 4",
+  "ear": "junk",
+  "P": 0.1302913125928973
+ },
+ {
+  "beat": "we in the house 124 stems",
+  "model": "in6",
+  "label": "Hat 1",
+  "ear": "good",
+  "P": 0.09549908163838333
+ },
+ {
+  "beat": "we in the house 124 stems",
+  "model": "in6",
+  "label": "Hat 3",
+  "ear": "junk",
+  "P": 0.3386857239480498
+ }
+]
