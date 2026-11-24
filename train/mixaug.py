@@ -22,7 +22,7 @@ master(res, aug)                 a master chain on the whole mix: tilt EQ + low 
                                  ducked snare in the mix is a ducked snare in the target); clipping
                                  only touches the mix. Returns (res, mix).
 
-Config (augmentations:): aligned_prob, restack_prob, darken_prob, onbeat_prob, nokick_prob, quiethats_prob,
+Config (augmentations:): aligned_prob, restack_prob, darken_prob, onbeat_prob, nokick_prob, quiethats_prob, layerkick_prob,
 master_prob. All off when missing.
 """
 import numpy as np
@@ -207,6 +207,51 @@ def nokick(res, instruments, aug, rng=np.random):
     r, was = _np(res)
     r = r.copy()
     r[instruments.index('kick')] = 0
+    return _back(r, was)
+
+
+def _kick_layer(rng):
+    """One clip's kick top layer: a knock (a pitched body at 250-700 Hz, dropping in pitch, 15-40 ms) and
+    a click (band-passed noise, 1.5-8 kHz, 2-8 ms), each at its own level (dB re the kick's peak)."""
+    from scipy.signal import butter, sosfilt
+    n = int(0.06 * SR)
+    t = np.arange(n) / SR
+    f0 = rng.uniform(250, 700)
+    f = f0 * (1 + rng.uniform(0.2, 1.0) * np.exp(-t / 0.004))          # quick pitch drop
+    knock = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t / rng.uniform(0.015, 0.04))
+    lo, hi = rng.uniform(1500, 3000), rng.uniform(5000, 8000)
+    click = sosfilt(butter(2, [lo, hi], 'band', fs=SR, output='sos'), rng.randn(n))
+    click *= np.exp(-t / rng.uniform(0.002, 0.008))
+    knock *= 10 ** (rng.uniform(-20, -8) / 20) / (np.abs(knock).max() + 1e-9)
+    click *= 10 ** (rng.uniform(-26, -12) / 20) / (np.abs(click).max() + 1e-9)
+    use = rng.uniform()
+    return (knock if use < 0.8 else 0) + (click if use > 0.2 else 0)
+
+
+def layerkick(res, instruments, aug, rng=np.random):
+    """Kicks with a body/knock and click on top, all in the kick target. helyx-4/6 keep a kick's sub but
+    file its 300 Hz+ knock and click in the snare/perc stems (providence, TABLA, ONEAAZZ: 5-10 dB
+    missing at 300-700 Hz, 'the kick has no body'); this teaches that the layers belong to the kick.
+    The same layer on every kick of the clip (as in a real kit), level jittered +-2 dB per hit."""
+    p = _get(aug, 'layerkick_prob')
+    if p <= 0 or rng.uniform() >= p or 'kick' not in instruments:
+        return res
+    r, was = _np(res)
+    k = instruments.index('kick')
+    if np.abs(r[k]).max() < 1e-4:
+        return res
+    on = onsets(r[k])
+    if len(on) == 0:
+        return res
+    r = r.copy()
+    T = r.shape[-1]
+    layer = _kick_layer(rng)
+    for t in on:
+        t = int(t)
+        pk = np.abs(r[k][:, t:t + int(0.03 * SR)]).max()
+        n = min(len(layer), T - t)
+        if n > 0:
+            r[k][:, t:t + n] += pk * 10 ** (rng.uniform(-2, 2) / 20) * layer[:n]
     return _back(r, was)
 
 
