@@ -476,6 +476,20 @@ def _closed_hat_out(hats, log, min_corr=0.6, win=0.03, search=60):
     return out
 
 
+def _no_click_in(seg, ms=1.0, rel=0.02):
+    """Any one-shot that starts mid-waveform (first sample above rel of its peak) clicks when played; a
+    1 ms fade-in stops it. Live kits from Nov 24 still had files starting at 11-31% of peak (a kick on
+    the fallback path, percs)."""
+    m = _mono(seg)
+    if len(m) == 0 or abs(m[0]) <= rel * (np.abs(m).max() + 1e-12):
+        return seg
+    n = min(len(m), max(2, int(ms / 1000 * SR)))
+    ramp = np.linspace(0, 1, n)
+    out = seg.copy()
+    out[:n] *= ramp[:, None] if out.ndim == 2 else ramp
+    return out
+
+
 def _start_at_hit(seg, late=0.06, pre=0.004):
     """A one-shot whose real hit comes more than `late` s in starts with something else (the tail of the
     hit before, a ghost note: hasta luego's snare had 125 ms of it, 'a noise at the beginning'). Start it
@@ -562,6 +576,7 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
                     log(f'{name}: let its release ring out {added} ms longer ({why})')
             if role != 'kick':
                 seg = _start_at_hit(seg)
+            seg = _no_click_in(seg)
             seg = seg * (10 ** (-1 / 20) / (np.abs(seg).max() + 1e-9))
             if junk_cut > 0 and not (role == 'kick' and s is mine[0]) and s.get('onsets') is not None:
                 own = [r for r in OWN[role] if r in st]
