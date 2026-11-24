@@ -58,6 +58,12 @@ For the next run:
 - `quiethats_prob: 0.25` (in the config): hats 12-30 dB under the other drums.
 - Shakers count as hats, always (the producer: "shakers should double as a hihat"). Roles already do this.
 - Data: beats with quiet hats/shakers under busy percussion; snare-toms stacked on percs.
+- Kicks keep their top layer (Nov 24): the producer hears kicks missing their click/snap (providence:
+  0.6-6 kHz attack 3-13 dB under the real kick; TABLA's old-school click layer above 500 Hz missing).
+  The layer isn't recoverable from the other stems after the fact (at kick hits it's < 1/6 coherent in
+  snare+perc), so the model must keep it: add layered kicks to the practice mixes (a clean kick plus a
+  short bright click/old-school layer, both in the kick target), and real beats with layered kicks.
+  Also: hasta luego's kick stem carries a ~55 Hz tone ringing past the real kick (done by 100 ms).
 - A/B by ear with `eval/ab_kits.py` (same sound numbered the same, the song re-played with each kit).
 
 ## Stage 1 (Demucs) percussion
