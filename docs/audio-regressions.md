@@ -11,3 +11,11 @@ The fixtures cover:
 - Real multipart uploads of synthetic WAV bytes with long and mixed-case filenames. Filename shortening preserves the validated extension, and unsupported types still return 400 without creating a job.
 
 These checks prove specific code behavior. They do not measure Helyx separation quality, correct instrument labels, kick fidelity, vocal/808 bleed, or reconstruction accuracy on Afrobeat/Afro house. Those require licensed reference audio, truth stems where available, and listening/A-B evaluation (see `eval/kit_score.py`). No model weights, dependencies used by inference, hosted deployment or desktop runtime are changed by these fixes.
+
+## UI checks on this Mac
+
+A 159-character WAV filename was uploaded through the file picker and processed by the real Demucs/Helyx pipeline on MPS. The user confirmed audible preview playback and an advancing timer. The one-shot ZIP passed its integrity check and contained two WAVs and both MIDI variants (58 notes). A second split showed 127.5 BPM after correcting the displayed tempo.
+
+Reopening a result exposed an obsolete footer selector in the desktop patch, which stopped page initialization. Local copy now lives in the main script, tolerates missing decorative elements and preserves the footer links. The theme handler also stays inside the mixer closure. `tests/ui-startup.cjs` checks the built page with local/hosted settings, result reload, a missing footer, theme changes and the MIDI download attribute. HTTP responses and audio hardware are substituted in this test; it is not a listening test.
+
+FL Studio 24.2.2 imported the full-song MIDI into separate Kick and Hat channels with notes visible in the piano roll. Its import set the project to **128 BPM**, although the MIDI tempo is **127.5 BPM**. Set FL's tempo to the exported tempo when using fractional BPM. Import used FL's default FLEX channels; loading the matching WAVs into samplers and comparing the reconstructed beat remains a separate check.

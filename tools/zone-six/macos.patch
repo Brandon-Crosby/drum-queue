@@ -197,22 +197,6 @@ index 34e620e..bef2e56 100644
    buildMixer(id, j);
    buildShots(id, j);
  }
-@@ -343,5 +345,15 @@ $('#again').onclick = () => { stopMixer(false); current = null; history.replaceS
- document.addEventListener('keydown', e => { if (e.code === 'Space' && MX && MX.ready && !/INPUT|SELECT|TEXTAREA|BUTTON|A/.test(document.activeElement.tagName)) { e.preventDefault(); $('#play').click(); } });
- window.addEventListener('resize', () => { if (MX && MX.ready) { MX.tracks.forEach(peaks); draw(); } });
-
-+if (SITE.local) {
-+  document.title = 'Drum Splitter · On this Mac';
-+  $('#faq').hidden = true;
-+  document.querySelector('.hero p').textContent = 'Choose a song. Separate its drums, bass, vocals and other parts on this Mac, then save stems, one-shots and groove MIDI.';
-+  document.querySelector('.foot p').textContent = 'Drum Splitter · Local processing in Zone Six Studio Hub.';
-+  document.querySelector('.foot .fine').textContent = 'Audio stays on this Mac. Save downloads before quitting. Only choose audio you have the right to use.';
-+  document.querySelector('.top a[href="/#faq"]').hidden = true;
-+  document.querySelector('[data-k=upload]').lastChild.textContent = 'Reading audio';
-+  document.querySelector('[data-k=queue]').lastChild.textContent = 'Starting on this Mac';
-+}
- loadLimits(); initTurnstile(); renderRecent(); route();
- })();
 diff --git a/web/site/index.html b/web/site/index.html
 index a0a13db..aec72db 100644
 --- a/web/site/index.html
