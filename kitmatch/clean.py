@@ -508,7 +508,7 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
             count[name] = count.get(name, 0) + 1
             seg = s['shot'] if s.get('shot') is not None else s['seg']
             if role == 'kick':                     # one kick per file: stop before the next hit in it
-                later = [i for i in H.onsets(seg) if i > int(0.08 * SR)]     # (peach helyx-4 held two kicks)
+                later = [i for i in H.onsets(seg) if i > int(KICK_MIN * SR)]  # (peach helyx-4 held two kicks)
                 if later:
                     k = int(later[0]) - int(0.003 * SR)
                     seg = seg[:k].copy()
@@ -686,6 +686,9 @@ def split_kicks(x, on, apart_db=8.0, low_db=5.0, min_share=0.1, max_n=3):
     return [np.sort(np.concatenate([g, [i for i, k in near.items() if k == j]]).astype(int)) for j, g in enumerate(gs)]
 
 
+KICK_MIN = 0.15          # s: shortest a kick one-shot gets
+
+
 def _kick_shot(kx, on, allon, avg):
     """One real, typical hit of a kick: among its hits with full low end, as long as a real kick has before
     the next real kick, trimmed where its tail ends."""
@@ -699,6 +702,9 @@ def _kick_shot(kx, on, allon, avg):
     seg, _ = typical_hit(kx, align(kx, onf, ref), nf, length)
     if seg is not None:
         k = max(len(avg), tail_end(seg)) if len(seg) > len(avg) else len(seg)
+        # never shorter than a kick's body: a layered kick's second transient 20-40 ms in is the same kick
+        # (providence's dlc + Oomp came out as a 35 ms click, 'it's not even a kick')
+        k = max(k, min(len(seg), int(KICK_MIN * SR)))
         seg = seg[:k].copy()
         fd = min(k, int(0.02 * SR))
         seg[k - fd:] *= (np.linspace(1, 0, fd) ** 2)[:, None] if seg.ndim == 2 else np.linspace(1, 0, fd) ** 2

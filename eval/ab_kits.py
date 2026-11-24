@@ -93,10 +93,20 @@ def same_hits(a, b):
     return 2 * hit / (len(a) + len(b))
 
 
-def render(parts, kit_dir, stems_sum, n, shift):
-    """Each one-shot at its own hits (same sound chokes itself at its next hit), as hard as the stem hit there."""
+def _own(label):
+    """The stem a one-shot came from, by its name."""
+    l = label.lower()
+    return ('kick',) if l.startswith('kick') else ('hh',) if 'hat' in l else ('snare', 'perc')
+
+
+def render(parts, kit_dir, stems, n, shift):
+    """Each one-shot at its own hits (same sound chokes itself at its next hit), as hard as ITS OWN stem hit
+    there (not every stem: a perc landing on a kick used to play at the kick's level, a blast)."""
     out = np.zeros(n, np.float32)
     for p in parts:
+        stems_sum = sum(stems[r] for r in _own(p['label']) if r in stems)
+        if not isinstance(stems_sum, np.ndarray):
+            continue
         f = kit_dir / f'{p["label"]}.wav'
         if p.get('onsets') is None or not f.exists():
             continue
@@ -141,6 +151,9 @@ def main():
         k = min(len(x) for x in xs)
         return sum(x[:k] for x in xs).mean(1)
 
+    def each(sd):
+        return {r: H.load(sd / f'{r}.wav').mean(1) for r in ('kick', 'snare', 'perc', 'hh') if (sd / f'{r}.wav').exists()}
+
     allst = {sd: stems(sd) for _, sd in models}
     base_sd = min(allst, key=lambda sd: len(allst[sd]))    # the shortest split sets the timeline
     base = allst[base_sd]
@@ -162,7 +175,7 @@ def main():
         ss = allst[sd]
         shift = 0 if sd == base_sd else -offset(base, ss)   # this split's time -> the base timeline
         parts = [dict(p, onsets=None if p.get('onsets') is None else np.asarray(p['onsets']) + shift) for p in parts]
-        kits.append(dict(name=name, dir=kd, parts=parts, stems=ss, shift=shift))
+        kits.append(dict(name=name, dir=kd, parts=parts, stems=each(sd), shift=shift))
         print(f'{name}: {len(parts)} sounds, timeline shift {shift / SR:+.3f} s', flush=True)
 
     # same sound across models = plays the same hits; numbered in the first model's order
