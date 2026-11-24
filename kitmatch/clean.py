@@ -561,8 +561,10 @@ def write_groove(split_dir, out_dir, parts, prefix, have, log, title=''):
         on = np.sort(np.asarray(p['onsets']))
         mid.append(dict(label=p['label'], times=on / SR, velocities=groove.velocities(sum(x[:n] for x in xs), on, SR)))
     mid, start = groove.align(mid, bpm)
-    mid = groove.quantize(mid, bpm)
+    # Preserve swing, pickups and closely spaced hits in the full-song export.
+    # The compact loop remains quantized for the existing drag-and-drop workflow.
     groove.write(Path(out_dir) / f'{prefix}Groove (full song).mid', mid, bpm, title=song)
+    mid = groove.quantize(mid, bpm)
     lp, first, bars = groove.loop(mid, bpm)
     f = Path(out_dir) / f'{prefix}Groove.mid'
     groove.write(f, lp, bpm, title=f'{song} - {bars} bars')
@@ -673,7 +675,10 @@ def typical_hit(x, on, nxt, length, gap=15.0):
         clean_ = ~(ok & (s > np.median(lower) + gap))
         if clean_.sum() >= max(3, 0.3 * len(on)):
             cand = np.flatnonzero(clean_)
-    cand = [c for c in cand if on[c] + length <= len(x)]
+    # A representative hit must fit before the next onset, just like the average.
+    # Otherwise its tail can contain a second drum hit. Keep the average if too
+    # few isolated candidates remain.
+    cand = [c for c in cand if on[c] + length <= min(nxt[c], len(x))]
     if len(cand) < 3:
         return None, None
     w = min(length, int(0.08 * SR))
