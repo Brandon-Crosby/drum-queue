@@ -253,9 +253,12 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
     def create_job(request: Request, file: UploadFile = File(...), token: str = Form(''), team: str = Form('')):
         # Plain def (not async): FastAPI runs it in a worker thread, so the blocking job-store and
         # Modal calls below never stall other visitors' requests.
-        name = re.sub(r'[\x00-\x1f/\\]', '_', Path(file.filename or 'song').name)[:120]
+        name = re.sub(r'[\x00-\x1f/\\]', '_', Path(file.filename or 'song').name)
         if Path(name).suffix.lower() not in AUDIO_EXTS:
             raise HTTPException(400, 'That file type is not supported. Use mp3, wav, flac, m4a, aiff or ogg.')
+        # Bound the stored filename without truncating its validated extension.
+        suffix = Path(name).suffix
+        name = Path(name).stem[:120 - len(suffix)] + suffix
         vkey = visitor_key(request, S.salt, trusted)
         mine, total = counts(vkey)
         is_team = bool(S.team_code) and hmac.compare_digest(team.encode(), S.team_code.encode())

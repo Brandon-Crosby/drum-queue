@@ -1,13 +1,14 @@
 """groove.py - the beat's drum pattern as a MIDI file, one track per one-shot.
 
 Each sound gets its own track, named like its one-shot WAV, with every note on C5 (MIDI 60) - the key
-that plays a sample at its own pitch in FL Studio. Notes are snapped to the grid that fits each sound:
+that plays a sample at its own pitch in FL Studio. The full-song export preserves detected timing.
+The compact loop is snapped to the grid that fits each sound:
 16ths for most, 16th triplets or 32nds only for sounds that really play that fast (hat rolls).
 Velocity comes from how hard each hit was.
 
 The tempo comes from the song's name when it says one ("breakdown136", "ONEAZZ 130 bpm"), else it
-is estimated from the hits. Either way the notes keep their real times: the tempo only decides how
-they line up with the DAW's grid.
+is estimated from the hits. In the full-song export, tempo only decides how detected times
+line up with the DAW's grid.
 """
 import re
 import struct
@@ -22,7 +23,7 @@ ROOT = 60          # C5 in FL Studio: a sample on a channel plays at its own pit
 
 def bpm_from_name(name):
     """A tempo written in the song's name, if there's a plausible one (60-200)."""
-    for m in re.finditer(r'(?<!\d)(\d{2,3})(?:\.\d+)?\s*(?:bpm)?(?!\d)', name, re.I):
+    for m in re.finditer(r'(?<!\d)(\d{2,3}(?:\.\d+)?)\s*(?:bpm)?(?!\d)', name, re.I):
         v = float(m.group(1))
         if 60 <= v <= 200:
             return v
@@ -81,7 +82,7 @@ def align(parts, bpm):
     first = (kicks[0]['times'] if kicks else t).min()
     start = phase + np.round((first - phase) / (4 * step)) * 4 * step       # nearest beat to the first kick
     bar = 16 * step
-    while (t < start - step / 2).any():
+    while (t < start).any():
         start -= bar
     return [dict(p, times=p['times'] - start) for p in parts], start
 

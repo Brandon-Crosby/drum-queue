@@ -248,7 +248,7 @@ function showWaitAd() {
 let MX = null, AC = null, raf = 0;
 function showResult(id, j) {
   $('#steps').hidden = true; $('#log').hidden = true; $('#result').hidden = false; showMsg('');
-  $('#jmeta').textContent = [j.bpm ? Math.round(j.bpm) + ' BPM' : null, j.duration ? mmss(j.duration) : null].filter(Boolean).join(' · ');
+  $('#jmeta').textContent = [j.bpm ? Number(j.bpm.toFixed(2)) + ' BPM' : null, j.duration ? mmss(j.duration) : null].filter(Boolean).join(' · ');
   $('#zipkit').href = `/api/jobs/${id}/zip?kit=1`; $('#zipall').href = `/api/jobs/${id}/zip`;
   const left = Math.max(0, j.expires - Date.now() / 1000);
   $('#expire').textContent = `These files are deleted in about ${Math.max(1, Math.round(left / 3600))} hours. Bookmark this page to come back.` + (j.note ? ' ' + j.note : '');
@@ -263,7 +263,7 @@ function buildShots(id, j) {
   box.hidden = !shots.length;
   if (!shots.length) return;
   $('#zipshots').href = `/api/jobs/${id}/zip?shots=1`;
-  const gm = $('#groovemid'); gm.hidden = !j.groove; gm.href = `/api/jobs/${id}/groove`;
+  const gm = $('#groovemid'); gm.hidden = !j.groove; gm.href = `/api/jobs/${id}/groove`; gm.download = 'Groove.mid'; // The API exposes availability, not a filename.
   for (const s of shots) {
     const url = `/api/jobs/${id}/shots/${encodeURIComponent(s.name)}`;
     const pad = el('div', 'pad');
@@ -346,7 +346,22 @@ $('#again').onclick = () => { stopMixer(false); current = null; history.replaceS
 document.addEventListener('keydown', e => { if (e.code === 'Space' && MX && MX.ready && !/INPUT|SELECT|TEXTAREA|BUTTON|A/.test(document.activeElement.tagName)) { e.preventDefault(); $('#play').click(); } });
 window.addEventListener('resize', () => { if (MX && MX.ready) { MX.tracks.forEach(peaks); draw(); } });
 
+// Cosmetic local copy must not prevent upload/history initialization if the layout changes.
+if (SITE.local) {
+  document.title = 'Drum Splitter · On this Mac';
+  const text = (selector, value) => { const node = $(selector); if (node) node.textContent = value; };
+  text('.hero .sub', 'Choose a song. Separate its drums, bass, vocals and other parts on this Mac, then save stems, one-shots and groove MIDI.');
+  text('.foot .tag', 'Drum Splitter · Local processing in Zone Six Studio Hub.');
+  text('.foot .fine > span', 'Audio stays on this Mac. Save downloads before quitting. Only choose audio you have the right to use.');
+  const faq = $('#faq'); if (faq) faq.hidden = true;
+  document.querySelectorAll('a[href="/#faq"]').forEach(node => { node.hidden = true; });
+  for (const [key, value] of [['upload', 'Reading audio'], ['queue', 'Starting on this Mac']]) {
+    const step = document.querySelector(`[data-k=${key}]`);
+    if (step && step.lastChild) step.lastChild.textContent = value;
+  }
+}
+// Keep the handler inside the mixer closure so MX/draw are available.
+window.addEventListener('themechange', () => { if (!MX) return; MX.tracks.forEach(t => { t.img = null; }); draw(); });
+
 loadLimits(); initTurnstile(); renderRecent(); route();
 })();
-// Light/dark switch: repaint the waveforms in the new colors
-window.addEventListener('themechange', () => { if (!MX) return; MX.tracks.forEach(t => { t.img = null; }); draw(); });

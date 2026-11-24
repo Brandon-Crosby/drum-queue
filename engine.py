@@ -192,12 +192,16 @@ class HelyxKit:
 
 # ------------------------------------------------------------------ helpers
 def analyze(path):
-    """(bpm | None, duration seconds). Tempo folded into 70-150 like MIDI Queue."""
+    """Filename tempo when supplied; otherwise estimate folded into 70-150. Also duration."""
     bpm, dur = None, 0.0
     try:
         import librosa
         import numpy as np
         dur = float(librosa.get_duration(path=str(path)))
+        from kitmatch.groove import bpm_from_name
+        named_bpm = bpm_from_name(Path(path).stem)
+        if named_bpm is not None:
+            return named_bpm, dur
         y, sr = librosa.load(str(path), sr=22050, mono=True, offset=min(15, dur / 4), duration=120)
         t, _ = librosa.beat.beat_track(y=y, sr=sr)
         b = float(np.atleast_1d(t)[0])
