@@ -606,6 +606,53 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
     return out
 
 
+LOOP_NAME = {'kick': 'Kick', 'sp': 'Snare-Perc', 'hh': 'Hats'}
+LOOP_STEMS = {'kick': ('kick',), 'sp': ('snare', 'perc'), 'hh': ('hh',)}
+
+
+def write_loops(out_dir, prefix, stems, mid, role_of, bpm, start, log, bars=4, min_per_bar=2):
+    """Bar-aligned audio loops cut straight from the stems, next to the one-shots: '<song> - Hats loop
+    (4 bars).wav' etc. A loop keeps what one-shots + MIDI can't: the real swing, ghost notes, a shaker's
+    or an Afrobeat groove's feel (the producer, Nov 2026: "most people don't program a shaker loop").
+    Each stem's own best window (groove.loop on that stem's sounds: its main pattern, not an intro or a
+    fill), on the song's grid, with 2 ms edge fades."""
+    import groove
+    import soundfile as sf
+    bar = 4 * 60 / bpm
+    nbars = bars if bar <= 2.2 else max(1, bars // 2)     # slow songs: 2 bars
+    out = []
+    for role, name in LOOP_NAME.items():
+        ps = [p for p in mid if role_of.get(p['label']) == role and len(p['times'])]
+        xs = [stems[r] for r in LOOP_STEMS[role] if stems.get(r) is not None]
+        if not ps or not xs:
+            continue
+        _, first, got = groove.loop(ps, bpm, max_bars=nbars)
+        n_hits = sum(int(((p['times'] >= (first - 1) * bar) & (p['times'] < (first - 1 + nbars) * bar)).sum()) for p in ps)
+        if n_hits < min_per_bar * nbars:
+            continue
+        n = min(len(x) for x in xs)
+        x = sum(xx[:n] for xx in xs)
+        a = int(round((start + (first - 1) * bar) * SR))
+        b = a + int(round(nbars * bar * SR))
+        if a < 0 or b > n:
+            continue
+        seg = x[a:b].copy()
+        pk = np.abs(seg).max()
+        if pk < 1e-4:
+            continue
+        fd = int(0.002 * SR)
+        ramp = np.linspace(0, 1, fd)
+        seg[:fd] *= ramp[:, None] if seg.ndim == 2 else ramp
+        seg[-fd:] *= ramp[::-1][:, None] if seg.ndim == 2 else ramp[::-1]
+        seg *= 10 ** (-1 / 20) / pk
+        f = Path(out_dir) / f'{prefix}{name} loop ({nbars} bars).wav'
+        sf.write(f, seg, SR, subtype='PCM_24')
+        out.append(f)
+    if out:
+        log(f'loops: {", ".join(f.name[len(prefix):] for f in out)}')
+    return out
+
+
 def write_groove(split_dir, out_dir, parts, prefix, have, log, title=''):
     """The kit's drum pattern as '<song> - Groove.mid' next to the one-shots (see groove.py)."""
     import groove
@@ -624,6 +671,10 @@ def write_groove(split_dir, out_dir, parts, prefix, have, log, title=''):
         on = np.sort(np.asarray(p['onsets']))
         mid.append(dict(label=p['label'], times=on / SR, velocities=groove.velocities(sum(x[:n] for x in xs), on, SR)))
     mid, start = groove.align(mid, bpm)
+    try:
+        write_loops(out_dir, prefix, stems, mid, {p['label']: p['role'] for p in parts}, bpm, start, log)
+    except Exception as e:                       # loops are a bonus: never lose the kit over them
+        log(f'loops skipped: {e}')
     # Preserve swing, pickups and closely spaced hits in the full-song export.
     # The compact loop remains quantized for the existing drag-and-drop workflow.
     groove.write(Path(out_dir) / f'{prefix}Groove (full song).mid', mid, bpm, title=song)
