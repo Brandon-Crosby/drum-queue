@@ -189,7 +189,7 @@ index 34e620e..bef2e56 100644
    const now = Date.now() / 1000;
    let left = j.status === 'running'
 @@ -248,7 +250,7 @@ function showResult(id, j) {
-   $('#jmeta').textContent = [j.bpm ? Math.round(j.bpm) + ' BPM' : null, j.duration ? mmss(j.duration) : null].filter(Boolean).join(' · ');
+   $('#jmeta').textContent = [j.bpm ? Number(j.bpm.toFixed(2)) + ' BPM' : null, j.duration ? mmss(j.duration) : null].filter(Boolean).join(' · ');
    $('#zipkit').href = `/api/jobs/${id}/zip?kit=1`; $('#zipall').href = `/api/jobs/${id}/zip`;
    const left = Math.max(0, j.expires - Date.now() / 1000);
 -  $('#expire').textContent = `These files are deleted in about ${Math.max(1, Math.round(left / 3600))} hours. Bookmark this page to come back.` + (j.note ? ' ' + j.note : '');

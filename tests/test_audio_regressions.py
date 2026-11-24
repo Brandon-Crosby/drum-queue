@@ -11,6 +11,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 import wave
+from types import SimpleNamespace
+from unittest.mock import Mock
+
+import engine
 
 import numpy as np
 
@@ -56,6 +60,14 @@ class OneShotTests(unittest.TestCase):
 
 
 class GrooveTests(unittest.TestCase):
+    def test_display_tempo_uses_filename_like_midi_export(self):
+        fake = SimpleNamespace(get_duration=Mock(return_value=12.3), load=Mock())
+        with patch.dict(sys.modules, {'librosa': fake}):
+            bpm, duration = engine.analyze(Path('127.5 bpm - swing.wav'))
+        self.assertEqual(bpm, 127.5)
+        self.assertEqual(duration, 12.3)
+        fake.load.assert_not_called()
+
     def test_filename_tempo_keeps_decimal(self):
         self.assertEqual(groove.bpm_from_name('beat 127.5 bpm.wav'), 127.5)
         self.assertEqual(groove.bpm_from_name('breakdown136'), 136)

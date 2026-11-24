@@ -248,7 +248,7 @@ function showWaitAd() {
 let MX = null, AC = null, raf = 0;
 function showResult(id, j) {
   $('#steps').hidden = true; $('#log').hidden = true; $('#result').hidden = false; showMsg('');
-  $('#jmeta').textContent = [j.bpm ? Math.round(j.bpm) + ' BPM' : null, j.duration ? mmss(j.duration) : null].filter(Boolean).join(' · ');
+  $('#jmeta').textContent = [j.bpm ? Number(j.bpm.toFixed(2)) + ' BPM' : null, j.duration ? mmss(j.duration) : null].filter(Boolean).join(' · ');
   $('#zipkit').href = `/api/jobs/${id}/zip?kit=1`; $('#zipall').href = `/api/jobs/${id}/zip`;
   const left = Math.max(0, j.expires - Date.now() / 1000);
   $('#expire').textContent = `These files are deleted in about ${Math.max(1, Math.round(left / 3600))} hours. Bookmark this page to come back.` + (j.note ? ' ' + j.note : '');
@@ -263,7 +263,7 @@ function buildShots(id, j) {
   box.hidden = !shots.length;
   if (!shots.length) return;
   $('#zipshots').href = `/api/jobs/${id}/zip?shots=1`;
-  const gm = $('#groovemid'); gm.hidden = !j.groove; gm.href = `/api/jobs/${id}/groove`;
+  const gm = $('#groovemid'); gm.hidden = !j.groove; gm.href = `/api/jobs/${id}/groove`; gm.download = j.groove || '';
   for (const s of shots) {
     const url = `/api/jobs/${id}/shots/${encodeURIComponent(s.name)}`;
     const pad = el('div', 'pad');
