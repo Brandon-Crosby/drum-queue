@@ -475,17 +475,42 @@ def _closed_hat_out(hats, log, min_corr=0.6, win=0.03, search=60):
     return out
 
 
-def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, ref=None):
+def _start_at_hit(seg, late=0.06, pre=0.004):
+    """A one-shot whose real hit comes more than `late` s in starts with something else (the tail of the
+    hit before, a ghost note: hasta luego's snare had 125 ms of it, 'a noise at the beginning'). Start it
+    `pre` s before its loudest transient, with a short fade-in. Claps' flams sit within ~30 ms: untouched."""
+    m = np.abs(_mono(seg))
+    pk = int(np.argmax(m))
+    if pk <= int(late * SR):
+        return seg
+    a = pk - int(pre * SR)
+    out = seg[a:].copy()
+    fi = int(0.001 * SR)
+    ramp = np.linspace(0, 1, fi)
+    out[:fi] *= ramp[:, None] if out.ndim == 2 else ramp
+    return out
+
+
+def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, ref=None, junk_cut=0.35):
     """split_dir holds kick/snare/perc/hh.wav from Helyx. Writes the strongest few sounds per piece
     (each averaged over all its hits, snare and perc read together, kick-stem stowaways rescued) as
-    24-bit WAVs peaking at -1 dBFS. Returns oneshots.make_kit-style records."""
+    24-bit WAVs peaking at -1 dBFS. One-shots that don't sound like a clean drum (junk.clean_p below
+    junk_cut; 0 turns it off) are left out - the producer: fewer sounds that are all clean beats more
+    with junk in them. The main kick always stays. Returns oneshots.make_kit-style records."""
     import soundfile as sf
+    import junk as J
     split_dir, out_dir = Path(split_dir), Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     have = {r: split_dir / f'{r}.wav' for r in ('kick', 'snare', 'perc', 'hh') if (split_dir / f'{r}.wav').exists()}
     log('Finding every hit and averaging the repeats')
     ks = kit_sounds(split_dir, lambda r: have.get(r), log=log)
     ks = _drop_impostors(ks, split_dir, log)
+    st = {r: _mono(H.load(p)) for r, p in have.items()}
+    n0 = min(len(v) for v in st.values())
+    st = {r: v[:n0] for r, v in st.items()}
+    kick_on = np.sort(np.concatenate([s['onsets'] for s in ks if s['role'] == 'kick'] or [np.array([], int)]))
+    sp_on = np.sort(np.concatenate([s['onsets'] for s in ks if GROUP.get(s['role']) == 'sp'] or [np.array([], int)]))
+    OWN = {'kick': ('kick',), 'sp': ('snare', 'perc'), 'hh': ('hh',)}
     namer = _namer(ref, log)
     pool = None                                    # snare + perc stems, loaded when a snare needs a real hit
     out, parts = [], []
@@ -505,7 +530,6 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
             name, drop = namer(s, role)
             if drop:
                 continue
-            count[name] = count.get(name, 0) + 1
             seg = s['shot'] if s.get('shot') is not None else s['seg']
             if role == 'kick':                     # one kick per file: stop before the next hit in it
                 later = [i for i in H.onsets(seg) if i > int(KICK_MIN * SR)]  # (peach helyx-4 held two kicks)
@@ -535,7 +559,23 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
                 if added:
                     seg = longer
                     log(f'{name}: let its release ring out {added} ms longer ({why})')
+            if role != 'kick':
+                seg = _start_at_hit(seg)
             seg = seg * (10 ** (-1 / 20) / (np.abs(seg).max() + 1e-9))
+            if junk_cut > 0 and not (role == 'kick' and s is mine[0]) and s.get('onsets') is not None:
+                own = [r for r in OWN[role] if r in st]
+                src = sum(st[r] for r in own)
+                on = np.sort(np.asarray(s['onsets']))
+                on = on[on + int(0.04 * SR) <= len(src)]
+                if len(on) >= 2:
+                    on = align(src, on, src[int(on[0]):][:int(0.04 * SR)])
+                    p = J.clean_p(seg, st, own, on,
+                                  kick_on if role != 'kick' else [], sp_on if role != 'sp' else [])
+                    if p is not None and p < junk_cut:
+                        log(f'left out a {LABELS[role].lower()} sound heard {s["hits"]}x: '
+                            f'it does not sound like a clean drum')
+                        continue
+            count[name] = count.get(name, 0) + 1
             lab = f'{name} {count[name]}'
             fname = f'{prefix}{lab}.wav'
             sf.write(str(out_dir / fname), seg, SR, subtype='PCM_24')
