@@ -19,6 +19,19 @@ class BuildTests(unittest.TestCase):
                 else:shutil.copy2(p,root/name)
             (root/'requirements.txt').write_text('torch==999\n')
             with self.assertRaisesRegex(AssertionError,'Dependencies changed'):b.build(root,Path(td)/'out','a'*40)
+    def test_eq_asset_fingerprint_changes_with_content(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td);shutil.copytree(ROOT/'web',root/'web',ignore=shutil.ignore_patterns('dist','__pycache__'))
+            def build():
+                subprocess.run(['python3',str(root/'web/build_site.py')],check=True)
+                import re
+                html=(root/'web/dist/index.html').read_text()
+                return re.search(r'/preview-sound.js\?v=([a-f0-9]+)',html).group(1)
+            first=build()
+            asset=root/'web/site/preview-sound.js';asset.write_text(asset.read_text()+'\n// changed asset\n')
+            self.assertNotEqual(first,build())
+            headers=(root/'web/dist/_headers').read_text()
+            self.assertIn('/preview-sound.js\n  Cache-Control: public, max-age=31536000, immutable',headers)
     def test_invalid_revision(self):
         with self.assertRaises(AssertionError):b.build(ROOT,Path('/tmp/not-created'),'../../main')
 if __name__=='__main__':unittest.main()
