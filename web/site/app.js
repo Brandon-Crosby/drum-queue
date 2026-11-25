@@ -43,7 +43,7 @@ function renderRecent() {
   const box = $('#recent'); box.replaceChildren();
   if (!r.length) return;
   box.append('Your splits from today: ');
-  r.forEach((x, i) => { const a = el('a', null, x.name); a.href = '#' + x.id; box.append(i ? ' · ' : '', a); });
+  r.forEach((x, i) => { const a = el('a', null, x.name.replace(/\.[a-z0-9]{2,4}$/i, '')); a.href = '#' + x.id; a.title = x.name; box.append(i ? ' · ' : '', a); });
 }
 
 async function loadLimits() {

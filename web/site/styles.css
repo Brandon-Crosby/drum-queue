@@ -70,7 +70,7 @@ body.home .top{position:absolute;inset:0 0 auto;color:#fff;text-shadow:0 1px 12p
 .dropbar.dark{background:var(--green);color:var(--cream);padding:24px 22px;font-size:19px}
 .dropbar.dark:hover{background:#24302a}
 .frame #ts{margin-top:10px}.frame #ts:empty{display:none}
-.frame #recent{font-size:13px;margin-top:10px;color:#fff}.frame #recent:empty{display:none}.frame #recent a{margin-right:10px;color:#fff}
+.frame #recent{font-size:13px;margin-top:10px;color:#fff}.frame #recent:empty{display:none}.frame #recent a{margin-right:10px;color:#fff;display:inline-block;max-width:min(100%,32ch);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
 /* errors stay a small note under the drop bar instead of a big box */
 .frame #msg:empty{display:none}
 .frame .msg,.frame .msg.err{margin-top:10px;padding:9px 12px;font-size:12.5px;line-height:1.45;background:rgba(246,245,241,.94);color:#7a2618;border:0}
