@@ -259,13 +259,12 @@ function showResult(id, j) {
   const left = Math.max(0, j.expires - Date.now() / 1000);
   $('#expire').textContent = `These files are deleted in about ${Math.max(1, Math.round(left / 3600))} hours. Bookmark this page to come back.` + (j.note ? ' ' + j.note : '');
   buildMixer(id, j);
-  stopShot();
   buildShots(id, j);
-  buildLoops(id, j);
 }
 // ---------- one-shots: one pad per sound, tap to hear, download one or the whole kit
 let shotAudio = null;
 function buildShots(id, j) {
+  stopShot(); buildLoops(id, j);                 // loops show even when a split has no one-shots
   const box = $('#shots'), pads = $('#pads'); pads.replaceChildren();
   const shots = j.shots || [];
   box.hidden = !shots.length;
