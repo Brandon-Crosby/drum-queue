@@ -77,6 +77,57 @@ def average(x, on, nxt, max_len=MAX_LEN, ref=None):
     return avg.astype(np.float32), int(cnt.max())
 
 
+def ring_out(seg, x, on, others, max_len=0.8, min_room=2, xfade=0.01):
+    """A Snare-Perc one-shot cut short because the next hit comes quickly (busy perc patterns: KUIKI's
+    lead perc came out 0.09 s). Average only the hits that have room after them (no other snare/perc hit
+    starts until well past the one-shot's end), find where that rings out, and continue the one-shot
+    with it: the head stays the same, the tail is crossfaded in at matched level. -> longer seg or None."""
+    n0 = len(seg)
+    nxt = np.array([others[others > i + int(0.02 * SR)][0] if (others > i + int(0.02 * SR)).any() else len(x)
+                    for i in on])
+    room = (nxt - on) >= n0 + int(0.08 * SR)
+    if room.sum() < min_room:
+        return None
+    ro, rn = on[room], nxt[room]
+    L = int(min(max_len * SR, np.median(rn - ro), len(x)))
+    if L <= n0 + int(0.03 * SR):
+        return None
+    ref = seg[:int(0.04 * SR)]
+    ro = align(x, ro, ref)
+    hits = [x[i:i + L] for i in ro if i + L <= len(x)]
+    if len(hits) < min_room:
+        return None
+    tail = np.median(np.stack(hits), 0) if len(hits) >= 3 else np.mean(np.stack(hits), 0)
+    # Only hits with no other snare/perc hit after them, so whatever rings here is the sound itself,
+    # including a second bounce/strike inside it (KUIKI's perc has one ~100 ms in that tail_end took for
+    # the next hit). End where it falls 40 dB under its peak, or at a real new hit (a 12 dB jump).
+    k = tail_end(tail, rise_db=12.0)
+    b = int(0.005 * SR)
+    m = np.abs(tail).max(1) if tail.ndim == 2 else np.abs(tail)
+    nb = len(m) // b
+    if nb >= 3:
+        db = 20 * np.log10(m[:nb * b].reshape(nb, b).max(1) + 1e-9)
+        loud = np.flatnonzero(db[:max(1, k // b)] > db.max() - 40)
+        k = min(k, (int(loud[-1]) + 2) * b) if len(loud) else k
+    if k <= n0 + int(0.03 * SR):
+        return None
+    tail = tail[:k]
+    f = int(xfade * SR)
+    a = n0 - f                                    # join where the old one-shot started fading out
+    if a <= int(0.02 * SR):
+        return None
+    lv = lambda y: np.sqrt((y.astype(np.float64) ** 2).mean()) + 1e-9
+    g = lv(seg[a - f:a]) / lv(tail[a - f:a])      # match the tail to the one-shot's level at the join
+    out = tail.astype(np.float32) * g
+    out[:a] = seg[:a]
+    w = np.linspace(0, 1, f)[:, None] if seg.ndim == 2 else np.linspace(0, 1, f)
+    out[a:a + f] = seg[a:a + f] * (1 - w) + out[a:a + f] * w
+    fd = min(len(out) - a - f, int(0.02 * SR))
+    if fd > 0:
+        out[-fd:] *= (np.linspace(1, 0, fd) ** 2)[:, None] if out.ndim == 2 else np.linspace(1, 0, fd) ** 2
+    return out
+
+
 def tail_end(seg, blk=int(0.005 * SR), rise_db=8.0, skip=0):
     """Where a one-shot really ends: follow its decay from the peak and stop at the quietest point
     before the level climbs again by rise_db (the next hit or bleed creeping in). The first `skip`
@@ -542,6 +593,7 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
     OWN = {'kick': ('kick',), 'sp': ('snare', 'perc'), 'hh': ('hh',)}
     namer = _namer(ref, log)
     pool = None                                    # snare + perc stems, loaded when a snare needs a real hit
+    sp_all = None                                  # every snare/perc hit start, for ring_out
     out, parts = [], []
     for role in ('kick', 'sp', 'hh'):
         mine = sorted([s for s in ks if GROUP.get(s['role']) == role and s['hits'] >= min_hits],
@@ -584,6 +636,19 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
                     hit, _ = typical_hit(pool, align(pool, on, ref), nxt, len(seg))
                     if hit is not None:
                         seg = hit
+            if role == 'sp' and s.get('onsets') is not None:
+                if pool is None:
+                    xs = [H.load(have[r]) for r in ('snare', 'perc') if r in have]
+                    m = min(len(v) for v in xs)
+                    pool = sum(v[:m] for v in xs)
+                if sp_all is None:
+                    sp_all = np.sort(np.concatenate([np.asarray(q['onsets']) for q in ks
+                                                     if q.get('onsets') is not None and GROUP.get(q['role']) == 'sp']))
+                longer = ring_out(seg, pool, np.sort(np.asarray(s['onsets'])), sp_all)
+                if longer is not None:
+                    log(f'{name}: let it ring {round(1000 * (len(longer) - len(seg)) / SR)} ms longer '
+                        f'(taken from hits with room after them)')
+                    seg = longer
             if role == 'sp' and _noisiness(seg) < 0.1:
                 fd = int(0.02 * SR)
                 longer, added, why = extend_tonal(seg[:-fd] if len(seg) > 3 * fd else seg)
@@ -626,6 +691,45 @@ LOOP_NAME = {'kick': 'Kick', 'sp': 'Snare-Perc', 'hh': 'Hats'}
 LOOP_STEMS = {'kick': ('kick',), 'sp': ('snare', 'perc'), 'hh': ('hh',)}
 
 
+CLEAN_LOOPS = ('hh', 'sp')                        # the kick loop's sub tails are left alone
+LOOP_HPF = {'hh': 250.0}                         # hats own nothing down there: it is kick/808/bass bleed
+
+
+def clean_loop(x, role, reduce_db=12.0, over=1.5, nfft=2048):
+    """Hiss and bleed between the hits of a hats or Snare-Perc loop, turned down (KUIKI's hats loop
+    hissed, Nov 2026). Spectral gating: the noise profile is each frequency's level in the loop's
+    quietest 20% of moments; anything not clearly above it (over x the profile) is turned down by up to
+    `reduce_db`, with the mask smoothed over time and frequency so it doesn't warble. Hats also lose
+    what's under 250 Hz. Loops only: stems and one-shots never go through this.
+    -> (cleaned loop, dB the quiet parts came down)."""
+    from scipy.signal import stft, istft, butter, sosfiltfilt
+    from scipy.ndimage import uniform_filter
+    y = np.asarray(x, np.float64)
+    if role in LOOP_HPF:
+        y = sosfiltfilt(butter(4, LOOP_HPF[role], 'highpass', fs=SR, output='sos'), y, axis=0)
+    mono = y.ndim == 1
+    Y = y[:, None] if mono else y
+    hop = nfft // 4
+    f, t, Z = stft(Y.T, fs=SR, nperseg=nfft, noverlap=nfft - hop)          # [ch, F, T]
+    mag = np.abs(Z)
+    if mag.shape[-1] < 20:
+        return x, 0.0
+    frame_e = mag.mean(axis=(0, 1))
+    quiet = frame_e <= np.percentile(frame_e, 20)
+    noise = np.median(mag[..., quiet], axis=-1, keepdims=True)              # [ch, F, 1]
+    floor = 10 ** (-reduce_db / 20)
+    mask = np.clip((mag - over * noise) / (mag + 1e-12), 0, 1)
+    mask = uniform_filter(mask, size=(1, 5, 3))                              # smooth: 5 bins x 3 frames
+    mask = floor + (1 - floor) * mask
+    _, out = istft(Z * mask, fs=SR, nperseg=nfft, noverlap=nfft - hop)
+    out = out.T[:len(Y)]
+    if len(out) < len(Y):
+        out = np.pad(out, ((0, len(Y) - len(out)), (0, 0)))
+    cut = float(-20 * np.log10(np.mean(mask[..., quiet]) + 1e-9))
+    out = out[:, 0] if mono else out
+    return out.astype(np.float32), cut
+
+
 def write_loops(out_dir, prefix, stems, mid, role_of, bpm, start, log, bars=4, min_per_bar=2):
     """Bar-aligned audio loops cut straight from the stems, next to the one-shots: '<song> - Hats loop
     (4 bars).wav' etc. A loop keeps what one-shots + MIDI can't: the real swing, ghost notes, a shaker's
@@ -656,6 +760,10 @@ def write_loops(out_dir, prefix, stems, mid, role_of, bpm, start, log, bars=4, m
         pk = np.abs(seg).max()
         if pk < 1e-4:
             continue
+        if role in CLEAN_LOOPS:
+            seg, cut = clean_loop(seg, role)
+            if cut >= 1:
+                log(f'{name} loop: hiss between hits turned down {cut:.0f} dB')
         fd = int(0.002 * SR)
         ramp = np.linspace(0, 1, fd)
         seg[:fd] *= ramp[:, None] if seg.ndim == 2 else ramp
