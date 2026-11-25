@@ -113,10 +113,26 @@ class GrooveTests(unittest.TestCase):
             clean.write_groove(td, td, parts, 'beat 127.5 - ', {'hh': 'unused'}, lambda _: None)
         full, loop = written
         self.assertIn('full song', full[0])
-        np.testing.assert_allclose(np.diff(full[1][0]['times']), np.diff(on) / clean.SR)
+        np.testing.assert_allclose(full[1][0]['times'], on / clean.SR)   # same clock as the audio file
         self.assertEqual(full[2], 127.5)
-        quantized = groove.quantize(full[1], full[2])
+        aligned, _ = groove.align(full[1], full[2])
+        quantized = groove.quantize(aligned, full[2])
         np.testing.assert_allclose(loop[1][0]['times'], quantized[0]['times'])
+
+    def test_full_song_midi_lines_up_with_audio_after_a_pickup(self):
+        # a hat pickup, then the first kick 0.885 s in: the full-song MIDI must not move by a pickup bar
+        sr = clean.SR
+        parts = [dict(role='hh', label='Hat 1', onsets=(np.array([0.025, 0.24, 0.455, 0.67, 1.1]) * sr).astype(int)),
+                 dict(role='kick', label='Kick 1', onsets=(np.array([0.885, 2.62]) * sr).astype(int))]
+        written = []
+        with tempfile.TemporaryDirectory() as td, \
+             patch.object(clean.H, 'load', return_value=np.ones((4 * sr, 2))), \
+             patch.object(groove, 'write', side_effect=lambda path, parts, bpm, title='': written.append((Path(path).name, parts))), \
+             patch.object(clean, 'write_loops'):
+            clean.write_groove(td, td, parts, 'idea 69 - ', {'hh': 'x', 'kick': 'x'}, lambda _: None)
+        full = dict((p['label'], p['times']) for p in written[0][1])
+        np.testing.assert_allclose(full['Kick 1'], [0.885, 2.62], atol=1 / sr)
+        np.testing.assert_allclose(full['Hat 1'][0], 0.025, atol=1 / sr)
 
 
 class UploadTests(unittest.TestCase):
