@@ -5,7 +5,11 @@ const mmss = s => { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + 
 const AUD = /\.(mp3|wav|flac|m4a|aiff?|ogg|opus)$/i;
 const SITE = window.SITE || {};
 const previewSound = window.DrumPreviewSound;
-let sound = previewSound.load();
+let sound = previewSound ? previewSound.load() : { includeBass: false, tracks: {} };
+if (!previewSound) {
+  $('.sound-hint').hidden = true;
+  $('#preview-sound-reset').hidden = true;
+}
 let LIM = { left: 1, max_mb: 30, max_minutes: 8 }, tsWidget = null, tsToken = '', pollT = 0, current = null, busy = false;
 
 const store = {
@@ -307,12 +311,13 @@ function apply() {
     t.mb.setAttribute('aria-pressed', t.mute); t.sb.setAttribute('aria-pressed', t.solo);
     if (t.gain) t.gain.gain.setTargetAtTime(on, AC.currentTime, .01);
     if (t.sound) t.sound.update(sound);
+    if (on && MX.ready && !t.buf && !t.loading) loadTrack(t, MX).catch(() => {});
   }
   syncSoundControls();
 }
 function setTrackSound(t, name, value) {
   sound.tracks[t.x.stem] = { ...previewSound.trackSettings(t.x, sound), [name]: value };
-  previewSound.save(sound); apply();
+  previewSound?.save(sound); apply();
 }
 function tonePanel(t, button, index) {
   const panel = el('div', 'stem-tone'); panel.hidden = true; panel.id = 'stem-tone-' + index;
@@ -323,7 +328,7 @@ function tonePanel(t, button, index) {
   const toggle = el('label', 'include-bass'), enabled = document.createElement('input'); enabled.type = 'checkbox'; enabled.setAttribute('aria-label', t.x.label + ' EQ on');
   enabled.onchange = () => setTrackSound(t, 'enabled', enabled.checked); toggle.append(enabled, 'EQ on'); t.toneEnabled = enabled;
   const reset = el('button', 'btn', 'Reset'); reset.type = 'button'; reset.setAttribute('aria-label', 'Reset ' + t.x.label + ' EQ');
-  reset.onclick = () => { delete sound.tracks[t.x.stem]; previewSound.save(sound); apply(); };
+  reset.onclick = () => { delete sound.tracks[t.x.stem]; previewSound?.save(sound); apply(); };
   heading.append(toggle, reset); panel.append(heading);
   const knobs = el('div', 'tone-knobs'); t.toneControls = {};
   for (const [name, label] of [['levelDb', 'Level'], ['lowDb', 'Low'], ['midsDb', 'Mid'], ['highDb', 'High']]) {
@@ -346,12 +351,13 @@ function tonePanel(t, button, index) {
 $('#preview-include-bass').onchange = event => {
   sound.includeBass = event.target.checked;
   if (MX) for (const t of MX.tracks) if (t.x.stem === 'bass') t.mute = !sound.includeBass;
-  previewSound.save(sound); apply();
+  previewSound?.save(sound); apply();
 };
 $('#preview-sound-reset').onclick = () => {
+  if (!previewSound) return;
   sound = previewSound.settings();
-  if (MX) for (const t of MX.tracks) if (t.x.stem === 'bass') t.mute = false;
-  previewSound.save(sound); apply();
+  if (MX) for (const t of MX.tracks) if (t.x.stem === 'bass') t.mute = true;
+  previewSound?.save(sound); apply();
 };
 function pos() { return MX.playing ? Math.min(MX.len, MX.off + AC.currentTime - MX.t0) : MX.off; }
 function stopMixer(keep) {
@@ -364,7 +370,7 @@ function play(from) {
   if (!MX || !MX.ready) return; stopMixer(true);
   if (from != null) MX.off = from; if (MX.off >= MX.len - .05) MX.off = 0;
   AC.resume(); const t0 = AC.currentTime + .06; MX.t0 = t0;
-  for (const t of MX.tracks) { const s = AC.createBufferSource(); s.buffer = t.buf; s.connect(t.gain); s.start(t0, MX.off); t.src = s; }
+  for (const t of MX.tracks) if (t.buf) startTrack(t, t0, MX.off);
   MX.playing = true; $('#play').textContent = '❚❚ Pause'; apply(); cancelAnimationFrame(raf);
   const tick = () => { if (!MX || !MX.playing) return; if (pos() >= MX.len) { stopMixer(false); return; } draw(); raf = requestAnimationFrame(tick); }; tick();
 }
@@ -383,10 +389,47 @@ function peaks(t) {
   for (let x = 0; x < W; x++) { let m = 0; const a = x * step, b = Math.min(d.length, a + step); for (let i = a; i < b; i += 4) { const v = Math.abs(d[i]); if (v > m) m = v; } col[x] = m; if (m > mx) mx = m; }
   const sc = mx > 0 ? (H / 2 - 1) / Math.max(mx, .25) : 0; for (let x = 0; x < W; x++) { const h = Math.max(.5, col[x] * sc); g.fillRect(x, H / 2 - h, 1, h * 2); } t.img = off;
 }
+function startTrack(t, when, offset) {
+  if (!t.buf || offset >= t.buf.duration) return;
+  const source = AC.createBufferSource(); source.buffer = t.buf; source.connect(t.gain);
+  source.start(when, Math.max(0, offset)); t.src = source;
+}
+async function loadTrack(t, mixer) {
+  if (t.buf || t.loading) return t.loading;
+  t.row.setAttribute('aria-busy', 'true'); t.cv.title = 'Loading audio…';
+  t.loading = (async () => {
+    try {
+      const url = SITE.local
+        ? `/api/jobs/${mixer.id}/files/${encodeURIComponent(t.x.name)}`
+        : `/api/jobs/${mixer.id}/preview/${encodeURIComponent(t.x.preview)}`;
+      const response = await fetch(url, { signal: mixer.abort.signal });
+      if (!response.ok) throw new Error('Preview unavailable');
+      const buffer = await AC.decodeAudioData(await response.arrayBuffer());
+      if (MX !== mixer) return;
+      t.buf = buffer;
+      if (previewSound) {
+        t.sound = previewSound.createTrack(AC, t.x, AC.destination, sound); t.gain = t.sound.input;
+      } else {
+        t.gain = AC.createGain(); t.gain.connect(AC.destination);
+      }
+      t.gain.gain.setValueAtTime(gainOn(t), AC.currentTime);
+      peaks(t); t.cv.title = '';
+      if (mixer.playing) startTrack(t, AC.currentTime, pos());
+      draw();
+    } catch (error) {
+      if (MX === mixer && error.name !== 'AbortError') t.cv.title = 'Audio could not load. Mute and unmute to retry; downloads still work.';
+      throw error;
+    } finally {
+      t.loading = null; t.row.removeAttribute('aria-busy');
+    }
+  })();
+  return t.loading;
+}
 async function buildMixer(id, j) {
   AC = AC || new (window.AudioContext || window.webkitAudioContext)();
-  if (MX) { stopMixer(false); for (const t of MX.tracks) if (t.sound) t.sound.disconnect(); }
-  const box = $('#tracks'); box.replaceChildren(); MX = { tracks: [], len: 0, off: 0, playing: false, ready: false }; const me = MX;
+  if (MX) { stopMixer(false); MX.abort.abort(); for (const t of MX.tracks) { if (t.sound) t.sound.disconnect(); else if (t.gain) t.gain.disconnect(); } }
+  const box = $('#tracks'); box.replaceChildren(); MX = { id, abort: new AbortController(), tracks: [], len: j.duration || 0, off: 0, playing: false, ready: false }; const me = MX;
+  sound.includeBass = false;
   for (const grp of ['kit', 'mix']) {
     const list = j.stems.filter(x => x.group === grp); if (!list.length) continue;
     box.append(el('div', 'grp', grp === 'kit' ? 'Kit pieces' : 'Rest of the song'));
@@ -395,33 +438,28 @@ async function buildMixer(id, j) {
       const mb = el('button', 'm', 'M'), sb = el('button', 's', 'S'), tone = el('button', 'tone-button', 'EQ'), cv = document.createElement('canvas'), dl = el('a', null, 'WAV');
       mb.title = 'Mute ' + x.label; sb.title = 'Solo ' + x.label; mb.setAttribute('aria-label', 'Mute ' + x.label); sb.setAttribute('aria-label', 'Solo ' + x.label);
       dl.href = `/api/jobs/${id}/files/${encodeURIComponent(x.name)}?dl=1`; dl.title = 'Download ' + x.label + ' (WAV)';
-      tone.type = 'button'; tone.setAttribute('aria-label', 'EQ for ' + x.label);
+      tone.hidden = !previewSound; tone.type = 'button'; tone.setAttribute('aria-label', 'EQ for ' + x.label);
       row.append(lb, mb, sb, cv, tone, dl); box.append(row);
-      const t = { x, row, mb, sb, cv, mute: grp !== 'kit' && !(x.stem === 'bass' && sound.includeBass), solo: false, buf: null, gain: null, src: null, img: null };
-      mb.onclick = () => { t.mute = !t.mute; if (x.stem === 'bass') { sound.includeBass = !t.mute; previewSound.save(sound); } apply(); };
+      const t = { x, row, mb, sb, cv, mute: grp !== 'kit', solo: false, buf: null, gain: null, src: null, img: null };
+      mb.onclick = () => { t.mute = !t.mute; if (x.stem === 'bass') { sound.includeBass = !t.mute; previewSound?.save(sound); } apply(); };
       sb.onclick = e => { if (!e.shiftKey && !e.metaKey && !t.solo) MX.tracks.forEach(o => o.solo = false); t.solo = !t.solo; apply(); };
       cv.onclick = e => { if (!MX.ready) return; const r = cv.getBoundingClientRect(); const p = (e.clientX - r.left) / r.width * MX.len; if (MX.playing) play(p); else { MX.off = p; draw(); } };
-      row.append(tonePanel(t, tone, MX.tracks.length));
+      if (previewSound) row.append(tonePanel(t, tone, MX.tracks.length));
+      if (t.mute) cv.title = 'Audio loads when unmuted or soloed.';
       MX.tracks.push(t);
     }
   }
   apply(); draw();
   try {
-    await Promise.all(MX.tracks.map(async t => {
-      const audioURL = SITE.local
-        ? `/api/jobs/${id}/files/${encodeURIComponent(t.x.name)}`
-        : `/api/jobs/${id}/preview/${encodeURIComponent(t.x.preview)}`;
-      const r = await fetch(audioURL);
-      if (!r.ok) throw new Error('Preview unavailable');
-      t.buf = await AC.decodeAudioData(await r.arrayBuffer()); if (MX !== me) return;
-      t.sound = previewSound.createTrack(AC, t.x, AC.destination, sound); t.gain = t.sound.input; peaks(t);
-    }));
+    await Promise.all(me.tracks.filter(t => t.x.group === 'kit').map(t => loadTrack(t, me)));
   } catch (_) { if (MX === me) $('#time').textContent = 'Preview unavailable, downloads still work.'; return; }
-  if (MX !== me) return; MX.len = Math.max(...MX.tracks.map(t => t.buf.duration)); MX.ready = true; apply(); draw();
+  if (MX !== me) return;
+  MX.len = Math.max(MX.len, ...MX.tracks.filter(t => t.buf).map(t => t.buf.duration));
+  MX.ready = true; apply(); draw();
 }
 $('#play').onclick = () => { if (!MX) return; if (MX.playing) stopMixer(true); else play(); };
 $('#stop').onclick = () => stopMixer(false);
-$('#reset').onclick = () => { if (!MX) return; MX.tracks.forEach(t => { t.solo = false; t.mute = t.x.group !== 'kit'; }); sound.includeBass = false; previewSound.save(sound); apply(); };
+$('#reset').onclick = () => { if (!MX) return; MX.tracks.forEach(t => { t.solo = false; t.mute = t.x.group !== 'kit'; }); sound.includeBass = false; previewSound?.save(sound); apply(); };
 $('#again').onclick = () => { stopMixer(false); current = null; history.replaceState(null, '', location.pathname); $('#job').style.display = 'none'; renderRecent(); loadLimits(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 document.addEventListener('keydown', e => { if (e.code === 'Space' && MX && MX.ready && !/INPUT|SELECT|TEXTAREA|BUTTON|A/.test(document.activeElement.tagName)) { e.preventDefault(); $('#play').click(); } });
 window.addEventListener('resize', () => { if (MX && MX.ready) { MX.tracks.forEach(peaks); draw(); } });

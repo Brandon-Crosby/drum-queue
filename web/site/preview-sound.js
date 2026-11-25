@@ -12,7 +12,7 @@
       for (const [name, limits] of Object.entries(ranges)) if (typeof saved[name] === 'number' && Number.isFinite(saved[name])) clean[name] = bounded(saved[name], 0, limits);
       tracks[stem] = clean;
     }
-    return { includeBass: typeof value.includeBass === 'boolean' ? value.includeBass : true, tracks };
+    return { includeBass: typeof value.includeBass === 'boolean' ? value.includeBass : false, tracks };
   }
   function trackSettings(track, value = settings()) {
     const saved = value.tracks?.[track.stem] || {};
