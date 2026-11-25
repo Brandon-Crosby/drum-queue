@@ -4,6 +4,8 @@ const el = (t, c, x) => { const e = document.createElement(t); if (c) e.classNam
 const mmss = s => { s = Math.max(0, Math.floor(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 const AUD = /\.(mp3|wav|flac|m4a|aiff?|ogg|opus)$/i;
 const SITE = window.SITE || {};
+const previewSound = window.DrumPreviewSound;
+let sound = previewSound.load();
 let LIM = { left: 1, max_mb: 30, max_minutes: 8 }, tsWidget = null, tsToken = '', pollT = 0, current = null, busy = false;
 
 const store = {
@@ -279,7 +281,78 @@ function buildShots(id, j) {
   }
 }
 function gainOn(t) { const solo = MX.tracks.some(x => x.solo); return (solo ? t.solo : !t.mute) ? 1 : 0; }
-function apply() { for (const t of MX.tracks) { const on = gainOn(t); t.row.classList.toggle('off', !on); t.mb.classList.toggle('on', t.mute); t.sb.classList.toggle('on', t.solo); t.mb.setAttribute('aria-pressed', t.mute); t.sb.setAttribute('aria-pressed', t.solo); if (t.gain) t.gain.gain.setTargetAtTime(on, AC.currentTime, .01); } }
+function db(value) { return (value > 0 ? '+' : '') + value + ' dB'; }
+function syncSoundControls() {
+  const bass = MX?.tracks.find(t => t.x.stem === 'bass');
+  $('#preview-include-bass').checked = bass ? !bass.mute : sound.includeBass;
+  $('#preview-include-bass').disabled = !bass;
+  $('#preview-sound-note').textContent = (bass ? '' : 'No bass stem in this split. ') + 'Playback only. Your stem downloads stay unchanged.';
+  for (const t of MX?.tracks || []) {
+    if (!t.toneControls) continue;
+    const s = previewSound.trackSettings(t.x, sound);
+    t.toneEnabled.checked = s.enabled;
+    for (const [name, control] of Object.entries(t.toneControls)) {
+      control.input.value = s[name]; control.input.disabled = name !== 'levelDb' && !s.enabled;
+      control.input.setAttribute('aria-valuetext', db(s[name])); control.output.textContent = db(s[name]);
+      const [min, max] = previewSound.ranges[name];
+      control.dial.style.setProperty('--dial-angle', (-135 + 270 * (s[name] - min) / (max - min)) + 'deg');
+    }
+  }
+}
+function apply() {
+  if (!MX) return;
+  for (const t of MX.tracks) {
+    const on = gainOn(t);
+    t.row.classList.toggle('off', !on); t.mb.classList.toggle('on', t.mute); t.sb.classList.toggle('on', t.solo);
+    t.mb.setAttribute('aria-pressed', t.mute); t.sb.setAttribute('aria-pressed', t.solo);
+    if (t.gain) t.gain.gain.setTargetAtTime(on, AC.currentTime, .01);
+    if (t.sound) t.sound.update(sound);
+  }
+  syncSoundControls();
+}
+function setTrackSound(t, name, value) {
+  sound.tracks[t.x.stem] = { ...previewSound.trackSettings(t.x, sound), [name]: value };
+  previewSound.save(sound); apply();
+}
+function tonePanel(t, button, index) {
+  const panel = el('div', 'stem-tone'); panel.hidden = true; panel.id = 'stem-tone-' + index;
+  panel.setAttribute('role', 'group'); panel.setAttribute('aria-label', t.x.label + ' EQ');
+  button.setAttribute('aria-controls', panel.id); button.setAttribute('aria-expanded', 'false');
+  button.onclick = () => { panel.hidden = !panel.hidden; button.setAttribute('aria-expanded', String(!panel.hidden)); };
+  const heading = el('div', 'tone-heading'); heading.append(el('strong', null, t.x.label + ' EQ'));
+  const toggle = el('label', 'include-bass'), enabled = document.createElement('input'); enabled.type = 'checkbox'; enabled.setAttribute('aria-label', t.x.label + ' EQ on');
+  enabled.onchange = () => setTrackSound(t, 'enabled', enabled.checked); toggle.append(enabled, 'EQ on'); t.toneEnabled = enabled;
+  const reset = el('button', 'btn', 'Reset'); reset.type = 'button'; reset.setAttribute('aria-label', 'Reset ' + t.x.label + ' EQ');
+  reset.onclick = () => { delete sound.tracks[t.x.stem]; previewSound.save(sound); apply(); };
+  heading.append(toggle, reset); panel.append(heading);
+  const knobs = el('div', 'tone-knobs'); t.toneControls = {};
+  for (const [name, label] of [['levelDb', 'Level'], ['lowDb', 'Low'], ['midsDb', 'Mid'], ['highDb', 'High']]) {
+    const dial = el('label', 'tone-dial'), face = el('span', 'dial-face'), pointer = el('span', 'dial-pointer'), input = document.createElement('input'), output = document.createElement('output');
+    input.type = 'range'; [input.min, input.max] = previewSound.ranges[name]; input.step = '.5'; input.setAttribute('aria-label', t.x.label + ' ' + label.toLowerCase());
+    input.oninput = () => setTrackSound(t, name, Number(input.value));
+    let drag = null;
+    input.onpointerdown = event => { if (event.button !== 0) return; event.preventDefault(); input.focus(); input.setPointerCapture(event.pointerId); drag = { id: event.pointerId, y: event.clientY, value: Number(input.value) }; };
+    input.onpointermove = event => {
+      if (!drag || event.pointerId !== drag.id) return;
+      const [min, max] = previewSound.ranges[name];
+      input.value = Math.max(min, Math.min(max, Math.round((drag.value + (drag.y - event.clientY) / 4) * 2) / 2));
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    };
+    input.onpointerup = input.onpointercancel = input.onlostpointercapture = () => { drag = null; };
+    face.append(pointer, input); dial.append(el('span', 'dial-label', label), face, output); knobs.append(dial); t.toneControls[name] = { dial, input, output };
+  }
+  panel.append(knobs); return panel;
+}
+$('#preview-include-bass').onchange = event => {
+  sound.includeBass = event.target.checked;
+  if (MX) for (const t of MX.tracks) if (t.x.stem === 'bass') t.mute = !sound.includeBass;
+  previewSound.save(sound); apply();
+};
+$('#preview-sound-reset').onclick = () => {
+  sound = previewSound.settings();
+  if (MX) for (const t of MX.tracks) if (t.x.stem === 'bass') t.mute = false;
+  previewSound.save(sound); apply();
+};
 function pos() { return MX.playing ? Math.min(MX.len, MX.off + AC.currentTime - MX.t0) : MX.off; }
 function stopMixer(keep) {
   if (!MX) return;
@@ -312,36 +385,43 @@ function peaks(t) {
 }
 async function buildMixer(id, j) {
   AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+  if (MX) { stopMixer(false); for (const t of MX.tracks) if (t.sound) t.sound.disconnect(); }
   const box = $('#tracks'); box.replaceChildren(); MX = { tracks: [], len: 0, off: 0, playing: false, ready: false }; const me = MX;
   for (const grp of ['kit', 'mix']) {
     const list = j.stems.filter(x => x.group === grp); if (!list.length) continue;
     box.append(el('div', 'grp', grp === 'kit' ? 'Kit pieces' : 'Rest of the song'));
     for (const x of list) {
       const row = el('div', 'trk'), lb = el('span', 'lb', x.label); if (x.quiet) lb.append(el('small', null, 'silent'));
-      const mb = el('button', 'm', 'M'), sb = el('button', 's', 'S'), cv = document.createElement('canvas'), dl = el('a', null, 'WAV');
+      const mb = el('button', 'm', 'M'), sb = el('button', 's', 'S'), tone = el('button', 'tone-button', 'EQ'), cv = document.createElement('canvas'), dl = el('a', null, 'WAV');
       mb.title = 'Mute ' + x.label; sb.title = 'Solo ' + x.label; mb.setAttribute('aria-label', 'Mute ' + x.label); sb.setAttribute('aria-label', 'Solo ' + x.label);
       dl.href = `/api/jobs/${id}/files/${encodeURIComponent(x.name)}?dl=1`; dl.title = 'Download ' + x.label + ' (WAV)';
-      row.append(lb, mb, sb, cv, dl); box.append(row);
-      const t = { x, row, mb, sb, cv, mute: grp !== 'kit', solo: false, buf: null, gain: null, src: null, img: null };
-      mb.onclick = () => { t.mute = !t.mute; apply(); };
+      tone.type = 'button'; tone.setAttribute('aria-label', 'EQ for ' + x.label);
+      row.append(lb, mb, sb, cv, tone, dl); box.append(row);
+      const t = { x, row, mb, sb, cv, mute: grp !== 'kit' && !(x.stem === 'bass' && sound.includeBass), solo: false, buf: null, gain: null, src: null, img: null };
+      mb.onclick = () => { t.mute = !t.mute; if (x.stem === 'bass') { sound.includeBass = !t.mute; previewSound.save(sound); } apply(); };
       sb.onclick = e => { if (!e.shiftKey && !e.metaKey && !t.solo) MX.tracks.forEach(o => o.solo = false); t.solo = !t.solo; apply(); };
       cv.onclick = e => { if (!MX.ready) return; const r = cv.getBoundingClientRect(); const p = (e.clientX - r.left) / r.width * MX.len; if (MX.playing) play(p); else { MX.off = p; draw(); } };
+      row.append(tonePanel(t, tone, MX.tracks.length));
       MX.tracks.push(t);
     }
   }
   apply(); draw();
   try {
     await Promise.all(MX.tracks.map(async t => {
-      const r = await fetch(`/api/jobs/${id}/preview/${encodeURIComponent(t.x.preview)}`);
+      const audioURL = SITE.local
+        ? `/api/jobs/${id}/files/${encodeURIComponent(t.x.name)}`
+        : `/api/jobs/${id}/preview/${encodeURIComponent(t.x.preview)}`;
+      const r = await fetch(audioURL);
+      if (!r.ok) throw new Error('Preview unavailable');
       t.buf = await AC.decodeAudioData(await r.arrayBuffer()); if (MX !== me) return;
-      t.gain = AC.createGain(); t.gain.connect(AC.destination); peaks(t);
+      t.sound = previewSound.createTrack(AC, t.x, AC.destination, sound); t.gain = t.sound.input; peaks(t);
     }));
   } catch (_) { if (MX === me) $('#time').textContent = 'Preview unavailable, downloads still work.'; return; }
   if (MX !== me) return; MX.len = Math.max(...MX.tracks.map(t => t.buf.duration)); MX.ready = true; apply(); draw();
 }
 $('#play').onclick = () => { if (!MX) return; if (MX.playing) stopMixer(true); else play(); };
 $('#stop').onclick = () => stopMixer(false);
-$('#reset').onclick = () => { if (!MX) return; MX.tracks.forEach(t => { t.solo = false; t.mute = t.x.group !== 'kit'; }); apply(); };
+$('#reset').onclick = () => { if (!MX) return; MX.tracks.forEach(t => { t.solo = false; t.mute = t.x.group !== 'kit'; }); sound.includeBass = false; previewSound.save(sound); apply(); };
 $('#again').onclick = () => { stopMixer(false); current = null; history.replaceState(null, '', location.pathname); $('#job').style.display = 'none'; renderRecent(); loadLimits(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 document.addEventListener('keydown', e => { if (e.code === 'Space' && MX && MX.ready && !/INPUT|SELECT|TEXTAREA|BUTTON|A/.test(document.activeElement.tagName)) { e.preventDefault(); $('#play').click(); } });
 window.addEventListener('resize', () => { if (MX && MX.ready) { MX.tracks.forEach(peaks); draw(); } });
