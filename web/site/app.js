@@ -232,7 +232,7 @@ $('#cancel').onclick = async () => {
 function route() {
   const id = location.hash.slice(1);
   if (!/^[a-f0-9]{16}$/.test(id)) return;
-  current = id; stopMixer();
+  current = id; stopMixer(); stopShot();
   const known = store.get().find(x => x.id === id);
   openJob(known ? known.name : 'Your song'); setStep('queue');
   renderRecent(); poll(id);
@@ -259,7 +259,9 @@ function showResult(id, j) {
   const left = Math.max(0, j.expires - Date.now() / 1000);
   $('#expire').textContent = `These files are deleted in about ${Math.max(1, Math.round(left / 3600))} hours. Bookmark this page to come back.` + (j.note ? ' ' + j.note : '');
   buildMixer(id, j);
+  stopShot();
   buildShots(id, j);
+  buildLoops(id, j);
 }
 // ---------- one-shots: one pad per sound, tap to hear, download one or the whole kit
 let shotAudio = null;
@@ -276,14 +278,13 @@ function buildShots(id, j) {
     const play = el('button', 'padhit'); play.type = 'button';
     play.append(el('b', null, s.label), el('small', null, `${s.seconds.toFixed(2)}s · ${s.count} hits`));
     play.onclick = () => {
-      stopShot();
+      stopShot(); if (MX && MX.playing) stopMixer(true);
       shotAudio = new Audio(url); shotAudio.play().catch(() => {});
       play.classList.add('hit'); setTimeout(() => play.classList.remove('hit'), 150);
     };
     const dl = el('a', 'paddl', '↓'); dl.href = url + '?dl=1'; dl.title = 'Download ' + s.label; dl.setAttribute('aria-label', 'Download ' + s.label);
     pad.append(play, dl); pads.append(pad);
   }
-  buildLoops(id, j);
 }
 // one sound at a time: a pad tap or a loop stops whatever pad/loop was playing
 function stopShot() {
@@ -485,7 +486,7 @@ async function buildMixer(id, j) {
   MX.ready = true; apply(); draw();
 }
 $('#play').onclick = () => { if (!MX) return; if (MX.playing) stopMixer(true); else play(); };
-$('#stop').onclick = () => stopMixer(false);
+$('#stop').onclick = () => { stopMixer(false); stopShot(); };
 $('#reset').onclick = () => { if (!MX) return; MX.tracks.forEach(t => { t.solo = false; t.mute = t.x.group !== 'kit'; }); sound.includeBass = false; previewSound?.save(sound); apply(); };
 $('#again').onclick = () => { stopMixer(false); stopShot(); current = null; history.replaceState(null, '', location.pathname); $('#job').style.display = 'none'; renderRecent(); loadLimits(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 document.addEventListener('keydown', e => { if (e.code === 'Space' && MX && MX.ready && !/INPUT|SELECT|TEXTAREA|BUTTON|A/.test(document.activeElement.tagName)) { e.preventDefault(); $('#play').click(); } });

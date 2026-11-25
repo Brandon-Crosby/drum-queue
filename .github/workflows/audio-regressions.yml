@@ -26,7 +26,7 @@ jobs:
         run: |
           python tools/zone-six/build.py --output /tmp/drumsplitter-package --revision "$GITHUB_SHA"
           python -m zipfile -e /tmp/drumsplitter-package/drumsplitter-source.zip /tmp/drumsplitter-package/extracted
-          node --test tests/ui-startup.cjs
+          node --test tests/ui-startup.cjs tests/ui-loops.cjs
         env:
           NODE_PATH: /tmp/drumsplitter-ui-tests/node_modules
           DS_UI_DIST: /tmp/drumsplitter-package/extracted/source/web/dist
