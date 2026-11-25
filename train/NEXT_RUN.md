@@ -91,12 +91,25 @@ Where hiss comes from and what to do, in order:
 2. Noise practice (mixaug `noisebed`, new): add hiss, tape/vinyl noise, room tone and a little
    lo-fi crunch to the INPUT mix only, targets stay clean (the noise is "other"). Same pattern as
    quiethats/layerkick. Start p 0.3, -45 to -25 dB under the mix.
-3. Silence loss (new): extra penalty on drum-stem energy where the true stem is silent (between hits),
-   so the model is scored on quiet gaps, not only on the hits.
+3. Silence penalty: MSST's built-in `bleedless_penalty_loss` (penalizes anything in a stem the true stem
+   doesn't have, in mel dB) on top of the main loss: `--bleedless 5e-6` on `go`. MSST suggests 2e-5, but
+   on test tensors that term outweighed masked_loss ~1000x, so start lower and watch the `fullness`
+   metric (now logged with `bleedless` next to SDR): if fullness drops, the stems are getting thin.
 4. Safety net in the kit maker (not the model): gentle gate between hits on loops; the junk filter
    keeps covering one-shots. Stems are never post-processed.
 
-How to judge it (add to eval):
-- New metric "hiss between hits" per stem: level of ours vs truth in the gaps between true hits
-  (dB, lower is better). Report next to SDR / purity / leftover junk for helyx-4, 6, 7, 8.
+How to judge it:
+- `eval/hiss.py` (new): level of our stem where the true stem is silent (between hits), in dB under the
+  hits; lower is cleaner. It counts hiss and bleed alike. Baseline, median on the test beats:
+      stem    helyx-4  helyx-6  helyx-7(ep2)  truth's own floor
+      kick     -37.4    -39.0    -42.8          -78
+      snare    -30.8    -27.4    -29.4          -76
+      perc     -25.2    -30.0    -28.7          -71
+      hh       -34.6    -29.4    -35.6          -82
+  About 40 dB of room on every stem. helyx-8 should beat helyx-7 here without losing SDR.
 - Ears: KUIKI hats loop, plus the A/B kits on the usual beats. Ship only if the ears agree.
+
+Launch (after helyx-7 finishes; data uploaded to /oneshots and /trainset-flp-bsr):
+    cd ~/drum-queue-web; and git pull; and modal deploy train/modal_train.py
+    modal run --detach train/modal_train.py::go --run helyx-8 --init runs/helyx-7/<best>.ckpt --hours 4 --synth 80 --bleedless 5e-6
+`--synth 80` re-renders the synthesized clips so they use the real La Uzi one-shots.
