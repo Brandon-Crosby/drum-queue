@@ -344,8 +344,13 @@ def process(job, out_root, models, stage, preview_fmt='wav', max_seconds=None):
         print(f'one-shots failed: {type(e).__name__}: {e}', flush=True)
     groove = next((f.name for f in sorted((out_dir / 'one-shots').glob('*Groove.mid'))), None) \
         if (out_dir / 'one-shots').exists() else None
-    return dict(stems=out, shots=shots, groove=groove, out_dir=out_dir.name, bpm=bpm, duration=round(dur, 1),
-                note=note)
+    loops = []                                 # bar-aligned loops (kitmatch write_loops), previewed on the page
+    for f in sorted((out_dir / 'one-shots').glob('* loop (* bars).wav')) if (out_dir / 'one-shots').exists() else []:
+        m = re.search(r'(Kick|Snare-Perc|Hats|[^-]+?) loop \((\d+) bars?\)\.wav$', f.name)  # kitmatch LOOP_NAME
+        if m:
+            loops.append(dict(name=f.name, label=m.group(1).strip() + ' loop', bars=int(m.group(2))))
+    return dict(stems=out, shots=shots, loops=loops, groove=groove, out_dir=out_dir.name, bpm=bpm,
+                duration=round(dur, 1), note=note)
 
 
 def separator_available():
