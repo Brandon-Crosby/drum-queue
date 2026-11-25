@@ -75,3 +75,28 @@ For the next run:
 Percs staying in the music is Demucs' call, before Helyx sees anything. Options to test (cheap, no
 training): run Helyx on drums + a little of "other" for perc-heavy songs, or a light separation
 of "other" for transients. Measure with the perc routing on stunyun 137.
+
+## helyx-8 goal: clean stems, no hiss (Nov 24, 2026)
+The producer's goal for Helyx: drum stems, one-shots and loops as clean as possible, no hissing.
+helyx-7 at epoch 2 (eval 2026-11-24): kick knock back to helyx-4 level (helyx-6 lost up to 2.4 dB),
+snare SDR back down to 1.4 (more snare goes to perc), hat stem the noisiest (leftover junk under hits
+median about -7 dB vs about -18 for kick). KUIKI's hats loop audibly hisses.
+
+Where hiss comes from and what to do, in order:
+1. Data first: upload the clean sources that are already prepared, then train on them.
+   - `modal volume put drumsplit-train "/Volumes/T7/DrumSplits-train/oneshots" /oneshots` (3,500 La Uzi
+     one-shots; synth clips use real one-shots 60% of the time)
+   - `modal volume put drumsplit-train "/Volumes/T7/DrumSplits-train/flp-renders" /trainset-flp`
+     (24 BSR beats rebuilt from their FLPs, 57.5 min, perfectly clean per-role targets)
+2. Noise practice (mixaug `noisebed`, new): add hiss, tape/vinyl noise, room tone and a little
+   lo-fi crunch to the INPUT mix only, targets stay clean (the noise is "other"). Same pattern as
+   quiethats/layerkick. Start p 0.3, -45 to -25 dB under the mix.
+3. Silence loss (new): extra penalty on drum-stem energy where the true stem is silent (between hits),
+   so the model is scored on quiet gaps, not only on the hits.
+4. Safety net in the kit maker (not the model): gentle gate between hits on loops; the junk filter
+   keeps covering one-shots. Stems are never post-processed.
+
+How to judge it (add to eval):
+- New metric "hiss between hits" per stem: level of ours vs truth in the gaps between true hits
+  (dB, lower is better). Report next to SDR / purity / leftover junk for helyx-4, 6, 7, 8.
+- Ears: KUIKI hats loop, plus the A/B kits on the usual beats. Ship only if the ears agree.
