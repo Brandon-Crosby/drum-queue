@@ -119,25 +119,28 @@ def prep(synth: int = 80, synth_only: bool = False):
 
 @app.function(image=image, volumes={V: vol}, cpu=1, memory=2048, timeout=24 * 3600)
 def pipeline(run: str, hours: float, steps: int, resume: bool = False, synth: int = 0, init: str = '',
-             loss: str = 'stem', snare_weight: float = 1.5):
+             loss: str = 'stem', snare_weight: float = 1.5, bleedless: float = 0.0):
     """(Re)render `synth` synthesized clips, prep the songs, then train - all in the cloud."""
     if synth:
         for line in synth_part.starmap([(s, 10) for s in range(max(1, synth // 10))]):
             print(line, flush=True)
     held = prep_real.remote()
     print('held out for validation:', held, flush=True)
-    return train_remote.remote(run, hours, resume, steps, init, loss, snare_weight)
+    return train_remote.remote(run, hours, resume, steps, init, loss, snare_weight, bleedless)
 
 
 @app.local_entrypoint()
 def go(run: str = 'helyx-4', hours: float = 4.0, steps: int = 1000, resume: bool = False, synth: int = 0,
-       init: str = 'runs/helyx-3/last_mdx23c.ckpt', loss: str = 'mse', snare_weight: float = 1.0):
+       init: str = 'runs/helyx-3/last_mdx23c.ckpt', loss: str = 'mse', snare_weight: float = 1.0,
+       bleedless: float = 0.0):
     """Synth + prep + training as ONE job on the deployed app: safe to close the Mac right after.
     First: modal deploy train/modal_train.py   Then: modal run train/modal_train.py::go
     init: the checkpoint a NEW run starts from (path on the volume); ignored with --resume.
-    loss: 'stem' = per-stem L1-SNR (each stem counts equally, snare x snare_weight), 'mse' = MSST default."""
+    loss: 'stem' = per-stem L1-SNR (each stem counts equally, snare x snare_weight), 'mse' = MSST default.
+    bleedless: >0 adds MSST's bleedless penalty (anything in a stem the true stem doesn't have, e.g. hiss
+    between hits) with this coefficient; MSST's suggested value is 2e-5 (helyx-8)."""
     call = modal.Function.from_name('drumsplit-train', 'pipeline').spawn(run, hours, steps, resume, synth, init,
-                                                                          loss, snare_weight)
+                                                                          loss, snare_weight, bleedless)
     print(f'Started ({call.object_id}): synth clips, prep, then {hours} h of training on {run}.')
     print('Safe to close the terminal or turn the Mac off now.')
     print('Watch it: modal.com -> Apps -> drumsplit-train (deployed) -> pipeline / train_remote')
@@ -169,7 +172,7 @@ def _committer(stop):
 
 @app.function(image=image, volumes={V: vol}, gpu='A100-40GB', cpu=8, memory=32768, timeout=24 * 3600)
 def train_remote(run: str, hours: float, resume: bool, steps: int, init: str = '', loss: str = 'mse',
-                 snare_weight: float = 1.0):
+                 snare_weight: float = 1.0, bleedless: float = 0.0):
     import yaml
     out = V / 'runs' / run
     out.mkdir(parents=True, exist_ok=True)
@@ -194,10 +197,17 @@ def train_remote(run: str, hours: float, resume: bool, steps: int, init: str = '
            # real songs listed twice so they're picked as often as the synthesized clips
            '--data_path', str(V / 'data/real'), str(V / 'data/real'), str(V / 'data/synth'),
            '--valid_path', str(V / 'data/valid'), '--num_workers', '6', '--pin_memory',
-           '--device_ids', '0', '--metrics', 'sdr', '--metric_for_scheduler', 'sdr']
+           '--device_ids', '0', '--metrics', 'sdr', 'bleedless', 'fullness', '--metric_for_scheduler', 'sdr']
+    losses = ['masked_loss']           # MSST's default ('mse')
     if loss == 'stem':                 # each stem scored on its own, in dB, so a quiet snare counts (msst_patch.py)
         w = {'snare': snare_weight}
-        cmd += ['--loss', 'stem_l1_snr_loss', '--stem_loss_weights'] + [str(w.get(k, 1.0)) for k in cfg['training']['instruments']]
+        losses = ['stem_l1_snr_loss']
+        cmd += ['--stem_loss_weights'] + [str(w.get(k, 1.0)) for k in cfg['training']['instruments']]
+    if bleedless > 0:                  # helyx-8: penalize what a stem has that the truth doesn't (hiss, bleed)
+        losses.append('bleedless_penalty_loss')
+        cmd += ['--bleedless_penalty_loss_coef', str(bleedless)]
+    if losses != ['masked_loss']:
+        cmd += ['--loss'] + losses
     if resume and last.exists():
         cmd += ['--start_check_point', str(last), '--load_optimizer', '--load_scheduler', '--load_epoch',
                 '--load_best_metric']

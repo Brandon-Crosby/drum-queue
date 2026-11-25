@@ -22,8 +22,13 @@ master(res, aug)                 a master chain on the whole mix: tilt EQ + low 
                                  ducked snare in the mix is a ducked snare in the target); clipping
                                  only touches the mix. Returns (res, mix).
 
+noisebed(res, instruments, aug)  a noise bed under the whole mix - tape/console hiss, vinyl crackle,
+                                 room tone, mains hum - 25-45 dB under it, all in the 'other' target.
+                                 Hiss is not a drum: the stems must stay silent between hits (helyx-8,
+                                 KUIKI's hats loop hissed).
+
 Config (augmentations:): aligned_prob, restack_prob, darken_prob, onbeat_prob, nokick_prob, quiethats_prob, layerkick_prob,
-master_prob. All off when missing.
+noisebed_prob, master_prob. All off when missing.
 """
 import numpy as np
 
@@ -266,6 +271,77 @@ def quiethats(res, instruments, aug, rng=np.random):
     r, was = _np(res)
     r = r.copy()
     r[instruments.index('hh')] *= 10 ** (-rng.uniform(12, 30) / 20)
+    return _back(r, was)
+
+
+def _int(rng, lo, hi, size=None):
+    """Integers in [lo, hi) from a Generator or the np.random module (the trainer passes the module)."""
+    return rng.integers(lo, hi, size) if hasattr(rng, 'integers') else rng.randint(lo, hi, size)
+
+
+def _shaped(T, rng, kind):
+    """(2, T) noise with a colour: 'hiss' (white, tilted up), 'pink', 'room' (brown, low-passed)."""
+    f = np.fft.rfftfreq(T, 1 / SR)
+    f1 = np.maximum(f, 20)
+    if kind == 'hiss':
+        g = (f1 / 1000) ** rng.uniform(0.0, 0.5)                    # flat to bright
+        g *= 1 / (1 + (f1 / rng.uniform(9000, 18000)) ** 4)         # tape/console roll-off
+    elif kind == 'pink':
+        g = 1 / np.sqrt(f1 / 1000)
+    else:                                                            # room tone / air handling
+        g = (1 / (f1 / 100)) / (1 + (f1 / rng.uniform(400, 2000)) ** 2)
+    n = rng.standard_normal((2, T))
+    if rng.uniform() < 0.6:                                          # mostly correlated, like a real bed
+        n[1] = 0.7 * n[0] + 0.3 * n[1]
+    y = np.fft.irfft(np.fft.rfft(n, axis=-1) * g, n=T, axis=-1)
+    return y / (np.sqrt((y ** 2).mean()) + 1e-12)
+
+
+def _crackle(T, rng):
+    """Vinyl: a quiet noise floor plus sparse short clicks (a few to ~40 a second)."""
+    y = 0.3 * _shaped(T, rng, 'pink')
+    k = rng.poisson(rng.uniform(3, 40) * T / SR)
+    for i in np.atleast_1d(_int(rng, 0, max(1, T - 64), k)):
+        L = int(_int(rng, 4, 48))
+        y[:, i:i + L] += rng.uniform(-6, 6) * np.exp(-np.arange(L) / (L / 4)) * rng.choice([-1, 1], (2, 1))
+    return y / (np.sqrt((y ** 2).mean()) + 1e-12)
+
+
+def _hum(T, rng):
+    t = np.arange(T) / SR
+    f0 = rng.choice([50.0, 60.0])
+    y = sum(rng.uniform(0.2, 1) / h * np.sin(2 * np.pi * f0 * h * t + rng.uniform(0, 6.3)) for h in (1, 2, 3, 5))
+    y = np.stack([y, y])
+    return y / (np.sqrt((y ** 2).mean()) + 1e-12)
+
+
+def noisebed(res, instruments, aug, rng=np.random):
+    """Lay a noise bed 25-45 dB under the mix and put it all in 'other': hiss, tape, vinyl crackle, room
+    tone and hum are not drums, so the drum stems must stay quiet between hits. The bed sometimes
+    breathes with the music (tape and console noise ride the level a little)."""
+    p = _get(aug, 'noisebed_prob')
+    if p <= 0 or rng.uniform() >= p or 'other' not in instruments:
+        return res
+    r, was = _np(res)
+    r = r.copy()
+    T = r.shape[-1]
+    mix = r.sum(0)
+    lvl = np.sqrt((mix ** 2).mean())
+    if lvl < 1e-5:
+        return res
+    kinds = rng.choice(['hiss', 'pink', 'crackle', 'room', 'hum'], size=int(_int(rng, 1, 3)), replace=False,
+                       p=[0.4, 0.2, 0.2, 0.15, 0.05])
+    bed = np.zeros((2, T))
+    for k in kinds:
+        n = _crackle(T, rng) if k == 'crackle' else _hum(T, rng) if k == 'hum' else _shaped(T, rng, k)
+        bed += n * 10 ** (-rng.uniform(25, 45) / 20)
+    if rng.uniform() < 0.3:                                          # rides the mix level a little
+        b, nb = _blocks(np.abs(mix).max(0))
+        if nb > 4:
+            env = np.repeat(b / (b.max() + 1e-9), BLK)[:T]
+            env = np.pad(env, (0, T - len(env)), mode='edge')
+            bed *= 0.6 + 0.4 * env
+    r[instruments.index('other')] += lvl * bed
     return _back(r, was)
 
 
