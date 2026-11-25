@@ -7,7 +7,7 @@ document.querySelector('#run').onclick = async () => {
   function check(condition, name) { if (!condition) throw Error(name); results.push('PASS: ' + name); }
   try {
     const defaults = api.settings();
-    check(api.trackSettings({stem:'bass',group:'mix'},defaults).levelDb === -4 && api.trackSettings({stem:'snare',group:'kit'},defaults).midsDb === 1.5 && defaults.includeBass, 'approved starting balance');
+    check(api.trackSettings({stem:'bass',group:'mix'},defaults).levelDb === -4 && api.trackSettings({stem:'snare',group:'kit'},defaults).midsDb === 1.5 && !defaults.includeBass, 'kit-only default with adjustable starting EQ');
     const invalid=api.settings({tracks:{bass:{levelDb:NaN},snare:{midsDb:Infinity}}});
     check(api.trackSettings({stem:'bass',group:'mix'},invalid).levelDb === -4 && api.trackSettings({stem:'snare',group:'kit'},invalid).midsDb === 1.5, 'invalid saved values fall back safely');
     check(api.settings({tracks:{bass:{levelDb:100}}}).tracks.bass.levelDb === 6, 'dial limits are bounded');

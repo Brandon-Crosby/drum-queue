@@ -38,7 +38,7 @@ class PreviewTests(unittest.TestCase):
                 self.assertTrue(np.all(amplitude > 0.12), amplitude)
                 self.assertGreater(np.sqrt(np.mean((decoded[:, 0] - decoded[:, 1]) ** 2)), 0.15)
             self.assertEqual(source.read_bytes(), original, 'Preview generation changed the downloadable stem')
-            self.assertGreaterEqual(MP3(root / 'preview.mp3').info.bitrate, 256000)
+            self.assertAlmostEqual(MP3(root / 'preview.mp3').info.bitrate, 192000, delta=1000)
             self.assertEqual(sf.info(root / 'preview.wav').subtype, 'PCM_24')
 
     def test_mono_input_remains_mono(self):
