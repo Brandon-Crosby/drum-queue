@@ -299,7 +299,7 @@ function buildLoops(id, j) {
     const url = `/api/jobs/${id}/shots/${encodeURIComponent(s.name)}`;
     const pad = el('div', 'pad');
     const play = el('button', 'padhit'); play.type = 'button'; play.setAttribute('aria-pressed', 'false');
-    play.append(el('b', null, s.label), el('small', null, `${s.bars} bars · loops`));
+    play.append(el('b', null, s.label), el('small', null, `${s.bars} bars` + (s.bpm ? ` · ${s.bpm} BPM` : ' · loops')));
     play.onclick = () => {
       const was = play.classList.contains('on');
       stopShot(); if (MX && MX.playing) stopMixer(true);

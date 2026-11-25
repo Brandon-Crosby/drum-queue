@@ -22,7 +22,7 @@ class LoopPreviewTest(unittest.TestCase):
                                      loops=[dict(name='song - Snare-Perc loop (4 bars).wav', label='Snare-Perc loop', bars=4)]))
             c = TestClient(service.create_app(td, store, submit=lambda jid: None))
             j = c.get('/api/jobs/0123456789abcdef').json()
-            self.assertEqual(j['loops'], [dict(name='song - Snare-Perc loop (4 bars).wav', label='Snare-Perc loop', bars=4)])
+            self.assertEqual(j['loops'], [dict(name='song - Snare-Perc loop (4 bars).wav', label='Snare-Perc loop', bars=4, bpm=None)])
             self.assertEqual(c.get('/api/jobs/0123456789abcdef/shots/song - Snare-Perc loop (4 bars).wav').status_code, 200)
             self.assertEqual(c.get('/api/jobs/0123456789abcdef/shots/song - Kick 1.wav').status_code, 200)
             self.assertEqual(c.get('/api/jobs/0123456789abcdef/shots/song - secret.wav').status_code, 404)
@@ -31,8 +31,17 @@ class LoopPreviewTest(unittest.TestCase):
         import re
         src = (ROOT / 'engine.py').read_text()
         pat = re.search(r"re\.search\(r'(.+?)', f\.name\)", src).group(1)
-        m = re.search(pat, 'OMAY - KUIKI - Snare-Perc loop (4 bars).wav')
-        self.assertEqual((m.group(1), m.group(2)), ('Snare-Perc', '4'))
+        m = re.search(pat, 'OMAY - KUIKI - Snare-Perc loop (4 bars).wav')          # splits made before the tempo
+        self.assertEqual((m.group(1), m.group(2), m.group(3)), ('Snare-Perc', None, '4'))
+        m = re.search(pat, 'OMAY - KUIKI - Snare-Perc loop 113 BPM (4 bars).wav')
+        self.assertEqual((m.group(1), m.group(2), m.group(3)), ('Snare-Perc', '113', '4'))
+        m = re.search(pat, 'idea - 127 - Hats loop 127.5 BPM (2 bars).wav')
+        self.assertEqual((m.group(1).strip(), m.group(2), m.group(3)), ('Hats', '127.5', '2'))   # engine strips
+
+    def test_bpm_label(self):
+        sys.path.insert(0, str(ROOT / 'kitmatch'))
+        import clean
+        self.assertEqual([clean.bpm_label(b) for b in (113.02, 127.5, 69.0, 89.96)], ['113', '127.5', '69', '90'])
 
 
 if __name__ == '__main__':

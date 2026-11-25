@@ -730,6 +730,12 @@ def clean_loop(x, role, reduce_db=12.0, over=1.5, nfft=2048):
     return out.astype(np.float32), cut
 
 
+def bpm_label(bpm):
+    """113.02 -> '113', 127.5 -> '127.5': the tempo as a producer would write it in a file name."""
+    b = round(float(bpm), 1)
+    return f'{b:.0f}' if abs(b - round(b)) < 0.05 else f'{b:g}'
+
+
 def write_loops(out_dir, prefix, stems, mid, role_of, bpm, start, log, bars=4, min_per_bar=2):
     """Bar-aligned audio loops cut straight from the stems, next to the one-shots: '<song> - Hats loop
     (4 bars).wav' etc. A loop keeps what one-shots + MIDI can't: the real swing, ghost notes, a shaker's
@@ -769,7 +775,7 @@ def write_loops(out_dir, prefix, stems, mid, role_of, bpm, start, log, bars=4, m
         seg[:fd] *= ramp[:, None] if seg.ndim == 2 else ramp
         seg[-fd:] *= ramp[::-1][:, None] if seg.ndim == 2 else ramp[::-1]
         seg *= 10 ** (-1 / 20) / pk
-        f = Path(out_dir) / f'{prefix}{name} loop ({nbars} bars).wav'
+        f = Path(out_dir) / f'{prefix}{name} loop {bpm_label(bpm)} BPM ({nbars} bars).wav'   # tempo in the name: drag-and-drop ready
         sf.write(f, seg, SR, subtype='PCM_24')
         out.append(f)
     if out:
