@@ -38,3 +38,9 @@ Why: after every model or kit-maker deploy we re-upload the same songs to compar
   them to A/B the pads, loops and MIDI.
 - Not for public splits: their uploads are deleted after the split (privacy rule), and the same model gives
   the same result, so a public user just re-uploads after an update.
+
+### Kit maker follow-ups (Brando + Claude)
+- Snare-Perc one-shots in busy perc patterns come out short (KUIKI Snare-Perc 2, ~0.1 s): the cut stops at
+  the next hit. Let the tail ring past it (from a hit with space after it, or the averaged tail).
+- Hats loop can carry noise from the hat stem (KUIKI). Options to A/B: a gentle gate/expander between hits,
+  a light denoise, or a high-pass/EQ on the loop only. One-shots and stems stay untouched.
