@@ -7,7 +7,7 @@ injected, so the same code runs locally (local_dev.py) and on Modal (modal_app.p
   GET  /api/jobs/{id}/files/{name}     a stem (?dl=1 to download) or preview/<name>
   GET  /api/jobs/{id}/zip              all stems (?kit=1 for kit pieces only, ?shots=1 for the one-shot kit)
   GET  /api/jobs/{id}/groove           the kit's drum pattern as MIDI
-  GET  /api/jobs/{id}/shots/{name}     a one-shot sample (?dl=1 to download)
+  GET  /api/jobs/{id}/shots/{name}     a one-shot sample or loop (?dl=1 to download)
   GET  /api/limits                     splits left today for this visitor
 """
 import datetime as dt
@@ -234,6 +234,7 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
                          for s in j.get('stems') or []]
         keep['shots'] = [{k: s.get(k) for k in ('name', 'label', 'piece', 'seconds', 'count')}
                          for s in j.get('shots') or []]
+        keep['loops'] = [{k: s.get(k) for k in ('name', 'label', 'bars')} for s in j.get('loops') or []]
         keep['groove'] = bool(j.get('groove'))
         keep['expires'] = (j.get('created') or time.time()) + S.keep_hours * 3600
         return keep
@@ -360,7 +361,8 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
                             content_disposition_type='attachment' if dl else 'inline')
 
     def shot_file(jid, j, name):
-        if not SHOT_FILE.match(name) or name.startswith('.') or name not in [s.get('name') for s in j.get('shots') or []]:
+        if not SHOT_FILE.match(name) or name.startswith('.') or \
+                name not in [s.get('name') for s in (j.get('shots') or []) + (j.get('loops') or [])]:
             raise HTTPException(404)
         p = root / 'jobs' / jid / 'out' / j['out_dir'] / 'one-shots' / name
         if not p.exists():

@@ -232,7 +232,7 @@ $('#cancel').onclick = async () => {
 function route() {
   const id = location.hash.slice(1);
   if (!/^[a-f0-9]{16}$/.test(id)) return;
-  current = id; stopMixer();
+  current = id; stopMixer(); stopShot();
   const known = store.get().find(x => x.id === id);
   openJob(known ? known.name : 'Your song'); setStep('queue');
   renderRecent(); poll(id);
@@ -264,6 +264,7 @@ function showResult(id, j) {
 // ---------- one-shots: one pad per sound, tap to hear, download one or the whole kit
 let shotAudio = null;
 function buildShots(id, j) {
+  stopShot(); buildLoops(id, j);                 // loops show even when a split has no one-shots
   const box = $('#shots'), pads = $('#pads'); pads.replaceChildren();
   const shots = j.shots || [];
   box.hidden = !shots.length;
@@ -276,9 +277,35 @@ function buildShots(id, j) {
     const play = el('button', 'padhit'); play.type = 'button';
     play.append(el('b', null, s.label), el('small', null, `${s.seconds.toFixed(2)}s · ${s.count} hits`));
     play.onclick = () => {
-      if (shotAudio) shotAudio.pause();
+      stopShot(); if (MX && MX.playing) stopMixer(true);
       shotAudio = new Audio(url); shotAudio.play().catch(() => {});
       play.classList.add('hit'); setTimeout(() => play.classList.remove('hit'), 150);
+    };
+    const dl = el('a', 'paddl', '↓'); dl.href = url + '?dl=1'; dl.title = 'Download ' + s.label; dl.setAttribute('aria-label', 'Download ' + s.label);
+    pad.append(play, dl); pads.append(pad);
+  }
+}
+// one sound at a time: a pad tap or a loop stops whatever pad/loop was playing
+function stopShot() {
+  if (shotAudio) { shotAudio.pause(); shotAudio.loop = false; }
+  shotAudio = null;
+  document.querySelectorAll('#looppads .padhit.on').forEach(b => { b.classList.remove('on'); b.setAttribute('aria-pressed', 'false'); });
+}
+function buildLoops(id, j) {
+  const box = $('#loops'), pads = $('#looppads'); pads.replaceChildren();
+  const loops = j.loops || [];
+  box.hidden = !loops.length;
+  for (const s of loops) {
+    const url = `/api/jobs/${id}/shots/${encodeURIComponent(s.name)}`;
+    const pad = el('div', 'pad');
+    const play = el('button', 'padhit'); play.type = 'button'; play.setAttribute('aria-pressed', 'false');
+    play.append(el('b', null, s.label), el('small', null, `${s.bars} bars · loops`));
+    play.onclick = () => {
+      const was = play.classList.contains('on');
+      stopShot(); if (MX && MX.playing) stopMixer(true);
+      if (was) return;
+      shotAudio = new Audio(url); shotAudio.loop = true; shotAudio.play().catch(() => stopShot());
+      play.classList.add('on'); play.setAttribute('aria-pressed', 'true');
     };
     const dl = el('a', 'paddl', '↓'); dl.href = url + '?dl=1'; dl.title = 'Download ' + s.label; dl.setAttribute('aria-label', 'Download ' + s.label);
     pad.append(play, dl); pads.append(pad);
@@ -369,7 +396,7 @@ function stopMixer(keep) {
 function play(from) {
   if (!MX || !MX.ready) return; stopMixer(true);
   if (from != null) MX.off = from; if (MX.off >= MX.len - .05) MX.off = 0;
-  AC.resume(); const t0 = AC.currentTime + .06; MX.t0 = t0;
+  stopShot(); AC.resume(); const t0 = AC.currentTime + .06; MX.t0 = t0;
   for (const t of MX.tracks) if (t.buf) startTrack(t, t0, MX.off);
   MX.playing = true; $('#play').textContent = '❚❚ Pause'; apply(); cancelAnimationFrame(raf);
   const tick = () => { if (!MX || !MX.playing) return; if (pos() >= MX.len) { stopMixer(false); return; } draw(); raf = requestAnimationFrame(tick); }; tick();
@@ -458,9 +485,9 @@ async function buildMixer(id, j) {
   MX.ready = true; apply(); draw();
 }
 $('#play').onclick = () => { if (!MX) return; if (MX.playing) stopMixer(true); else play(); };
-$('#stop').onclick = () => stopMixer(false);
+$('#stop').onclick = () => { stopMixer(false); stopShot(); };
 $('#reset').onclick = () => { if (!MX) return; MX.tracks.forEach(t => { t.solo = false; t.mute = t.x.group !== 'kit'; }); sound.includeBass = false; previewSound?.save(sound); apply(); };
-$('#again').onclick = () => { stopMixer(false); current = null; history.replaceState(null, '', location.pathname); $('#job').style.display = 'none'; renderRecent(); loadLimits(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+$('#again').onclick = () => { stopMixer(false); stopShot(); current = null; history.replaceState(null, '', location.pathname); $('#job').style.display = 'none'; renderRecent(); loadLimits(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 document.addEventListener('keydown', e => { if (e.code === 'Space' && MX && MX.ready && !/INPUT|SELECT|TEXTAREA|BUTTON|A/.test(document.activeElement.tagName)) { e.preventDefault(); $('#play').click(); } });
 window.addEventListener('resize', () => { if (MX && MX.ready) { MX.tracks.forEach(peaks); draw(); } });
 
