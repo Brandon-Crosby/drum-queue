@@ -506,6 +506,20 @@ def _start_at_hit(seg, late=0.06, pre=0.004):
     return out
 
 
+def _prominence(s, st, own):
+    """How much a Snare-Perc sound stands out in the song: hits x its typical (median) peak in its own
+    stems. Ranking by hit count alone let quiet ghost percs push out a loud perc that leads the groove
+    (KUIKI: the loudest perc in the 1:08 loop, 20 hits at -5 dB, lost its slot to -19 dB sounds)."""
+    on = s.get('onsets')
+    src = [st[r] for r in own if r in st]
+    if on is None or not len(on) or not src:
+        return float(s['hits'])
+    x = sum(src)
+    w = int(0.03 * SR)
+    pk = [np.abs(x[i:i + w]).max() for i in np.asarray(on, int) if i + w <= len(x)]
+    return s['hits'] * float(np.median(pk)) if pk else float(s['hits'])
+
+
 def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, ref=None, junk_cut=0.35):
     """split_dir holds kick/snare/perc/hh.wav from Helyx. Writes the strongest few sounds per piece
     (each averaged over all its hits, snare and perc read together, kick-stem stowaways rescued) as
@@ -532,6 +546,8 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
     for role in ('kick', 'sp', 'hh'):
         mine = sorted([s for s in ks if GROUP.get(s['role']) == role and s['hits'] >= min_hits],
                       key=lambda s: -s['hits'])
+        if role == 'sp':
+            mine = sorted(mine, key=lambda s: -_prominence(s, st, OWN[role]))
         if role == 'sp':
             mine = _merge_same_core(mine, log)
         mine = mine[:MAX_SOUNDS[role]]
