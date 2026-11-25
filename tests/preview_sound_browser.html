@@ -1,0 +1,29 @@
+<!doctype html><meta charset="utf-8"><title>Preview sound audio checks</title>
+<button id="run">Run audio checks</button><pre id="result">Ready</pre>
+<script src="/preview-sound.js"></script>
+<script>
+document.querySelector('#run').onclick = async () => {
+  const results = [], api = window.DrumPreviewSound;
+  function check(condition, name) { if (!condition) throw Error(name); results.push('PASS: ' + name); }
+  try {
+    const defaults = api.settings();
+    check(api.trackSettings({stem:'bass',group:'mix'},defaults).levelDb === -4 && api.trackSettings({stem:'snare',group:'kit'},defaults).midsDb === 1.5 && !defaults.includeBass, 'kit-only default with adjustable starting EQ');
+    const invalid=api.settings({tracks:{bass:{levelDb:NaN},snare:{midsDb:Infinity}}});
+    check(api.trackSettings({stem:'bass',group:'mix'},invalid).levelDb === -4 && api.trackSettings({stem:'snare',group:'kit'},invalid).midsDb === 1.5, 'invalid saved values fall back safely');
+    check(api.settings({tracks:{bass:{levelDb:100}}}).tracks.bass.levelDb === 6, 'dial limits are bounded');
+    const changed=api.settings({tracks:{snare:{midsDb:6}}});
+    check(api.trackSettings({stem:'snare',group:'kit'},changed).midsDb === 6 && api.trackSettings({stem:'kick',group:'kit'},changed).midsDb === 1.5, 'stem settings remain independent');
+    for (const [track, frequency, gainDb, selected] of [[{stem:'bass',group:'mix'},100,-4,defaults],[{stem:'snare',group:'kit'},1800,1.5,defaults],[{stem:'vocals',group:'mix'},1800,0,defaults],[{stem:'snare',group:'kit'},1800,6,changed],[{stem:'snare',group:'kit'},1800,0,api.settings({tracks:{snare:{midsDb:6,enabled:false}}})],[{stem:'bass',group:'mix'},100,-4,api.settings({tracks:{bass:{enabled:false}}})],[{stem:'snare',group:'kit'},20,6,api.settings({tracks:{snare:{lowDb:6,midsDb:0}}})],[{stem:'snare',group:'kit'},18000,6,api.settings({tracks:{snare:{highDb:6,midsDb:0}}})]]) {
+      const context = new OfflineAudioContext(2, 88200, 44100), signal = context.createBuffer(2,88200,44100);
+      for (let c=0;c<2;c++) for (let i=0;i<88200;i++) signal.getChannelData(c)[i]=.1*Math.sin(2*Math.PI*frequency*i/44100)*(c ? -1 : 1);
+      const graph=api.createTrack(context,track,context.destination,selected), source=context.createBufferSource();source.buffer=signal;source.connect(graph.input);source.start();
+      const rendered=await context.startRendering();let real=0,imaginary=0,stereoError=0;
+      for(let i=44100;i<88200;i++) { const value=rendered.getChannelData(0)[i];real+=value*Math.cos(2*Math.PI*frequency*i/44100);imaginary+=value*Math.sin(2*Math.PI*frequency*i/44100);stereoError=Math.max(stereoError,Math.abs(value+rendered.getChannelData(1)[i])); }
+      const amplitude=2*Math.hypot(real,imaginary)/44100,expected=.1*10**(gainDb/20);
+      check(Math.abs(amplitude-expected)<(frequency===20 || frequency===18000 ? .0015 : .00002), track.stem+' audio gain is '+gainDb+' dB');
+      check(stereoError<.000001,track.stem+' retains stereo polarity');graph.disconnect();
+    }
+    document.querySelector('#result').textContent=results.join('\n')+'\nALL PASSED';
+  } catch(error) {document.querySelector('#result').textContent=results.join('\n')+'\nFAIL: '+error.message;}
+};
+</script>

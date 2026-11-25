@@ -332,3 +332,25 @@ body:not(.home) .foot{margin-top:clamp(80px,10vw,140px)}
 [data-theme="dark"] .content th{background:#23241f}
 [data-theme="dark"] .msg.err{background:rgba(255,138,116,.08)}
 [data-theme="dark"] .curtain,[data-theme="dark"].intro body::after{background:#161513}
+
+/* Optional per-stem controls: the mixer stays compact until Tone is opened. */
+.preview-sound{display:flex;align-items:center;flex-wrap:wrap;gap:12px 20px;border:1px solid var(--line);padding:14px 16px 12px;margin:0 0 20px;min-width:0}
+.include-bass{display:flex;align-items:center;gap:7px;font-size:14px;white-space:nowrap}
+.include-bass input{accent-color:var(--run)}
+.sound-hint{font-size:13px;color:var(--mute);flex:1}
+.sound-note{flex-basis:100%;margin:0;color:var(--mute);font-size:12px}
+.trk{grid-template-columns:80px 36px 36px minmax(0,1fr) 50px 42px}
+.stem-tone{grid-column:1/-1;background:var(--soft);border:1px solid var(--line);padding:14px 18px;margin:2px 0 12px}
+.stem-tone[hidden]{display:none}
+.tone-heading{display:flex;gap:18px;align-items:center;font-size:14px;margin-bottom:14px}
+.tone-heading strong{flex:1;text-transform:capitalize}
+.trk .tone-heading .btn{padding:6px 12px}
+.tone-knobs{display:flex;justify-content:center;gap:32px;flex-wrap:wrap}
+.tone-dial{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;min-width:62px}
+.dial-face{display:block;position:relative;width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:var(--paper);box-shadow:0 2px 3px #0001}
+.dial-pointer{position:absolute;width:2px;height:15px;top:5px;left:22px;background:var(--run);transform-origin:1px 19px;transform:rotate(var(--dial-angle,0deg));pointer-events:none}
+.dial-face input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ns-resize;touch-action:none;margin:0}
+.dial-face:has(input:focus-visible){outline:2px solid var(--run);outline-offset:3px}
+.dial-face:has(input:disabled){opacity:.35}
+.tone-dial output{font-variant-numeric:tabular-nums;color:var(--mute)}
+@media(max-width:540px){.trk{grid-template-columns:48px 28px 28px minmax(0,1fr) 40px 32px;gap:4px}.preview-sound{gap:12px}.sound-hint{flex-basis:100%}.tone-knobs{gap:12px}.stem-tone{padding:12px}.tone-heading{gap:10px}}
