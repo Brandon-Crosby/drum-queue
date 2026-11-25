@@ -239,6 +239,9 @@ def kit_sounds(stems, find, dedupe=0.95, min_left_db=-12.0, log=lambda line: Non
 # round), so which stem a sound came out of doesn't say which it is. Ordered by how often it plays.
 LABELS = {'kick': 'Kick', 'sp': 'Snare-Perc', 'hh': 'Hat'}
 MAX_SOUNDS = {'kick': 3, 'sp': 6, 'hh': 3}
+# Which Snare-Perc sounds get one real, typical hit instead of the average of every hit. An average of a
+# sound that is really two or three similar percs blends them (KUIKI Snare-Perc 1, Nov 2026).
+SP_SINGLE_HIT = lambda name: True
 GROUP = {'kick': 'kick', 'snare': 'sp', 'perc': 'sp', 'hh': 'hh'}
 
 
@@ -553,7 +556,7 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
                     seg = seg[:k].copy()
                     fd = int(0.02 * SR)
                     seg[k - fd:] *= (np.linspace(1, 0, fd) ** 2)[:, None] if seg.ndim == 2 else np.linspace(1, 0, fd) ** 2
-            if role == 'sp' and name == 'Snare' and s.get('onsets') is not None and len(s['onsets']) >= 4:
+            if role == 'sp' and SP_SINGLE_HIT(name) and s.get('onsets') is not None and len(s['onsets']) >= 4:
                 # a sound the namer is sure is a snare: one real, typical hit, like the kick (the producer
                 # picked the single hit on all three snares A/B'd, Nov 2026; Snare-Perc and hats stay averaged)
                 if pool is None:
