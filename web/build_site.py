@@ -102,7 +102,7 @@ def main():
     # Fingerprint the stylesheet and scripts (styles.css?v=<hash>) so a deploy can never pair
     # new pages with a browser's cached copy of the old CSS/JS.
     import hashlib
-    ver = {n: hashlib.md5((OUT / n).read_bytes()).hexdigest()[:10] for n in ('styles.css', 'app.js', 'motion.js')
+    ver = {n: hashlib.md5((OUT / n).read_bytes()).hexdigest()[:10] for n in ('styles.css', 'app.js', 'motion.js', 'preview-sound.js')
            if (OUT / n).exists()}
     for page in OUT.rglob('*.html'):
         t = page.read_text()
