@@ -238,7 +238,7 @@ def save_preview(src, dst):
     dst.parent.mkdir(parents=True, exist_ok=True)
     if dst.suffix.lower() == '.mp3':
         sf.write(str(dst), audio, PREVIEW_SR, format='MP3', subtype='MPEG_LAYER_III',
-                 compression_level=0.0, bitrate_mode='CONSTANT')
+                 compression_level=0.4, bitrate_mode='CONSTANT')
     else:
         sf.write(str(dst), audio, PREVIEW_SR, subtype='PCM_24')
 
