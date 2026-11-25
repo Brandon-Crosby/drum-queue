@@ -25,7 +25,7 @@ KIT = ['kick', 'snare', 'toms', 'hh', 'ride', 'crash']
 HELYX_KIT = ['kick', 'snare', 'perc', 'hh']            # Helyx's 5th stem, 'other', is music bleed: dropped
 KIT_LABEL = {'hh': 'hi-hat', 'perc': 'percussion'}
 MIX_ORDER = ['drums', 'bass', 'vocals', 'guitar', 'piano', 'other']
-PREVIEW_SR = 22050
+PREVIEW_SR = 44100
 
 MODEL_DIR = Path.home() / '.drumsplit' / 'models'
 XPORT_MODELS = Path.home() / 'XportStudio' / 'Cache' / 'SeparatorModels'
@@ -228,15 +228,20 @@ def to_wav(src, dst):
 
 
 def save_preview(src, dst):
-    """Small mono copy for the in-browser mixer (full-quality files are the downloads)."""
+    """Keep the stem's stereo image and audible high end in mixer previews."""
     import librosa
     import soundfile as sf
-    y, _ = librosa.load(str(src), sr=PREVIEW_SR, mono=True)
+    y, _ = librosa.load(str(src), sr=PREVIEW_SR, mono=False)
+    # librosa returns channels-first; soundfile writes frames-first. A mono
+    # stem remains mono, while stereo stems retain both original channels.
+    audio = y.T
     dst.parent.mkdir(parents=True, exist_ok=True)
-    if dst.suffix.lower() == '.mp3':             # ~0.3 MB/min, for the website
-        sf.write(str(dst), y, PREVIEW_SR, format='MP3', subtype='MPEG_LAYER_III')
+    if dst.suffix.lower() == '.mp3':
+        sf.write(str(dst), audio, PREVIEW_SR, format='MP3', subtype='MPEG_LAYER_III',
+                 compression_level=0.0, bitrate_mode='CONSTANT')
     else:
-        sf.write(str(dst), y, PREVIEW_SR, subtype='PCM_16')
+        sf.write(str(dst), audio, PREVIEW_SR, subtype='PCM_24')
+
 
 
 def rms_db(path):
