@@ -691,7 +691,7 @@ LOOP_NAME = {'kick': 'Kick', 'sp': 'Snare-Perc', 'hh': 'Hats'}
 LOOP_STEMS = {'kick': ('kick',), 'sp': ('snare', 'perc'), 'hh': ('hh',)}
 
 
-CLEAN_LOOPS = ('hh', 'sp')                        # the kick loop's sub tails are left alone
+CLEAN_LOOPS = ('hh',)                     # hats only: the producer preferred the Snare-Perc loop uncleaned (KUIKI A/B)
 LOOP_HPF = {'hh': 250.0}                         # hats own nothing down there: it is kick/808/bass bleed
 
 
