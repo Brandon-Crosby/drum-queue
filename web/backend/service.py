@@ -234,7 +234,7 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
                          for s in j.get('stems') or []]
         keep['shots'] = [{k: s.get(k) for k in ('name', 'label', 'piece', 'seconds', 'count')}
                          for s in j.get('shots') or []]
-        keep['loops'] = [{k: s.get(k) for k in ('name', 'label', 'bars')} for s in j.get('loops') or []]
+        keep['loops'] = [{k: s.get(k) for k in ('name', 'label', 'bars', 'bpm')} for s in j.get('loops') or []]
         keep['groove'] = bool(j.get('groove'))
         keep['expires'] = (j.get('created') or time.time()) + S.keep_hours * 3600
         return keep
@@ -420,7 +420,7 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
                         z.write(full, f"{song} - one-shots/{full.name}")
                 d = root / 'jobs' / jid / 'out' / j['out_dir'] / 'one-shots'
                 if d.is_dir():                   # bar-aligned loops cut from the stems (kitmatch write_loops)
-                    for f in sorted(d.glob('* loop (* bars).wav')):
+                    for f in sorted(d.glob('* loop *bars).wav')):
                         z.write(f, f"{song} - one-shots/Loops/{f.name}")
             for s in ([] if shots else j['stems']):
                 if kit and s['group'] != 'kit':

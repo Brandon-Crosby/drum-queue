@@ -51,7 +51,7 @@ async function page(jobs) {
 const job = (shots, loops) => ({status: 'done', name: 'song.wav', bpm: 120, duration: 12, expires: Date.now() / 1000 + 3600,
   stems: [{stem: 'kick', label: 'kick', group: 'kit', name: 'kick.wav', preview: 'kick.mp3'}], shots, loops, groove: false});
 const SHOTS = [{label: 'Kick 1', name: 'Kick 1.wav', seconds: .2, count: 10}];
-const LOOPS = [{label: 'Kick loop', name: 'song - Kick loop (4 bars).wav', bars: 4},
+const LOOPS = [{label: 'Kick loop', name: 'song - Kick loop 120 BPM (4 bars).wav', bars: 4, bpm: 120},
                {label: 'Snare-Perc loop', name: 'song - Snare-Perc loop (4 bars).wav', bars: 4}];
 
 test('a one-shot stops the mixer', async () => {
