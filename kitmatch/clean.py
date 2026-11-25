@@ -670,14 +670,17 @@ def write_groove(split_dir, out_dir, parts, prefix, have, log, title=''):
         n = min(len(x) for x in xs)
         on = np.sort(np.asarray(p['onsets']))
         mid.append(dict(label=p['label'], times=on / SR, velocities=groove.velocities(sum(x[:n] for x in xs), on, SR)))
+    at_song_time = mid                           # the full-song MIDI keeps the audio's own clock
     mid, start = groove.align(mid, bpm)
     try:
         write_loops(out_dir, prefix, stems, mid, {p['label']: p['role'] for p in parts}, bpm, start, log)
     except Exception as e:                       # loops are a bonus: never lose the kit over them
         log(f'loops skipped: {e}')
-    # Preserve swing, pickups and closely spaced hits in the full-song export.
-    # The compact loop remains quantized for the existing drag-and-drop workflow.
-    groove.write(Path(out_dir) / f'{prefix}Groove (full song).mid', mid, bpm, title=song)
+    # Full song: every hit at its exact time in the audio file (swing, pickups, close hits kept), so the
+    # song and this MIDI dragged in at the same spot line up. Shifting it to start on the first kick's bar
+    # put it a pickup bar late against the audio ('u chose to play idea 69': 2.59 s late, Nov 2026).
+    # The compact loop is bar-aligned and quantized for the drag-and-drop workflow.
+    groove.write(Path(out_dir) / f'{prefix}Groove (full song).mid', at_song_time, bpm, title=song)
     mid = groove.quantize(mid, bpm)
     lp, first, bars = groove.loop(mid, bpm)
     f = Path(out_dir) / f'{prefix}Groove.mid'
