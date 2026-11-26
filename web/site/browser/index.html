@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Browser processing · Drum Splitter</title>
+    <meta name="robots" content="noindex" />
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      main.browser {
+        max-width: 840px;
+        margin: 100px auto;
+        padding: 24px;
+      }
+      .browser p {
+        line-height: 1.6;
+      }
+      .browser button,
+      .browser input {
+        font: inherit;
+        margin: 12px 12px 12px 0;
+      }
+      .browser audio {
+        width: 100%;
+      }
+      .browser article {
+        border-top: 1px solid #888;
+        padding: 20px 0;
+      }
+      .browser progress {
+        width: 100%;
+      }
+      .browser [hidden] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    {{HEADER}}
+    <main class="browser">
+      <p>EXPERIMENTAL · ON YOUR DEVICE</p>
+      <h1>Split a short clip in your browser.</h1>
+      <p>
+        Your audio stays on this device. The first run downloads about 612 MB of
+        models, plus the processing runtime. Compatible desktop browsers need
+        WebGPU and enough available memory.
+      </p>
+      <p>
+        Choose a clip up to 30 seconds and 30 MB. This preview produces kick,
+        snare, percussion and hi-hat WAVs. Keep this tab open; closing it,
+        putting the device to sleep or browser resource limits can interrupt
+        processing. Cloud processing is never started from this page.
+      </p>
+      <label for="clip">Audio clip</label
+      ><input id="clip" type="file" accept="audio/*" /><button
+        id="run"
+        type="button"
+      >
+        Split on this device</button
+      ><button id="cancel" type="button" hidden>Cancel</button>
+      <progress id="progress" aria-label="Processing clip" hidden></progress>
+      <p id="status" role="status" aria-live="polite">
+        Ready to choose a clip.
+      </p>
+      <section id="results" aria-label="Separated stems" hidden>
+        <h2>Your stems</h2>
+        <button id="stop" type="button">Stop playback</button>
+        <div id="stems"></div>
+      </section>
+      <p>
+        <a href="/">Back to Drum Splitter</a> · The standard website and desktop
+        processing are separate from this experiment.
+      </p>
+    </main>
+    <script src="/browser/client.js"></script>
+  </body>
+</html>
