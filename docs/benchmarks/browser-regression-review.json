@@ -1,0 +1,122 @@
+{
+  "schema": 1,
+  "testedCommit": "7e64b06246d535485765d4ad58b8949e8e25c755",
+  "upstreamCommit": "6d4b4e356764faca2730ae65c72aa6657e580219",
+  "fixCommit": "373bb7b",
+  "beforeFailures": [
+    "joined preparation cancellation waits for initialization",
+    "pending previews display unavailable (partial failure)",
+    "pending previews display unavailable (all fail)"
+  ],
+  "afterFailures": 0,
+  "checks": {
+    "javascript": 66,
+    "python": 35,
+    "package": 4,
+    "deploymentWatch": 1,
+    "offlineWebAudio": 20,
+    "nativeOnsetBaselineComparisons": 14
+  },
+  "originalUi": {
+    "mode": "Current public website build served locally with precomputed audio and controlled network failures",
+    "loadingStatus": true,
+    "failedStatus": true,
+    "muteUnmuteRetry": true,
+    "playbackTimerAdvanced": true,
+    "eqDialAndReset": true
+  },
+  "cloudGpuJobs": 0,
+  "upstreamIncluded": true,
+  "ciIncludesAllBrowserTests": true,
+  "limitations": [
+    "Current browser backend remains a four-stem, 30-second prototype and is not selected by the website",
+    "No new full-pipeline speed measurement; only cancellation/status/CI changed",
+    "Other browsers/hardware and real cloud publication were not exercised"
+  ],
+  "framingComparisons": [
+    {
+      "dtype": "float32",
+      "frames": 1,
+      "onsets": 0,
+      "exact": true
+    },
+    {
+      "dtype": "float32",
+      "frames": 255,
+      "onsets": 0,
+      "exact": true
+    },
+    {
+      "dtype": "float32",
+      "frames": 256,
+      "onsets": 0,
+      "exact": true
+    },
+    {
+      "dtype": "float32",
+      "frames": 2048,
+      "onsets": 0,
+      "exact": true
+    },
+    {
+      "dtype": "float32",
+      "frames": 5000,
+      "onsets": 1,
+      "exact": true
+    },
+    {
+      "dtype": "float32",
+      "frames": 44100,
+      "onsets": 1,
+      "exact": true
+    },
+    {
+      "dtype": "float32",
+      "frames": 396900,
+      "onsets": 1,
+      "exact": true
+    },
+    {
+      "dtype": "float64",
+      "frames": 1,
+      "onsets": 0,
+      "exact": true
+    },
+    {
+      "dtype": "float64",
+      "frames": 255,
+      "onsets": 0,
+      "exact": true
+    },
+    {
+      "dtype": "float64",
+      "frames": 256,
+      "onsets": 0,
+      "exact": true
+    },
+    {
+      "dtype": "float64",
+      "frames": 2048,
+      "onsets": 0,
+      "exact": true
+    },
+    {
+      "dtype": "float64",
+      "frames": 5000,
+      "onsets": 1,
+      "exact": true
+    },
+    {
+      "dtype": "float64",
+      "frames": 44100,
+      "onsets": 1,
+      "exact": true
+    },
+    {
+      "dtype": "float64",
+      "frames": 396900,
+      "onsets": 1,
+      "exact": true
+    }
+  ]
+}

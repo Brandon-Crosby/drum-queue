@@ -1,0 +1,960 @@
+{
+  "schema": 1,
+  "scope": "Local performance screening on one M1 Pro Mac; no cloud GPU jobs; not full-site integration or cross-device certification",
+  "baselineCommit": "e79ff02",
+  "loaderCommit": "9470aac",
+  "wavHeaderCommit": "3a1bb74",
+  "hardware": "Apple M1 Pro / 16 GB / Chrome 155 / WebGPU / AC power",
+  "runs": [
+    {
+      "case": "a1-9s",
+      "variant": "previous",
+      "revision": "e79ff02",
+      "inputSeconds": 9,
+      "cache": "cold model cache",
+      "seconds": 127.781,
+      "downloadedModelBodyBytes": 611957925,
+      "maxHeartbeatGapSeconds": 1.236,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": null,
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 43.8013,
+        "model-load:demucs": 46.1677,
+        "dsp:spectrum": 2.3516,
+        "inference:demucs": 11.8758,
+        "dsp:waveform": 19.3433,
+        "release:demucs": 0.591,
+        "session-create:helyx": 16.0281,
+        "model-load:helyx": 23.4917,
+        "inference:helyx": 17.0074,
+        "release:helyx": 0.0361
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 21,
+        "inference:demucs": 2,
+        "dsp:waveform": 21,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 19,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "a1-9s",
+      "variant": "previous",
+      "revision": "e79ff02",
+      "inputSeconds": 9,
+      "cache": "verified cached models",
+      "seconds": 54.777,
+      "downloadedModelBodyBytes": 0,
+      "maxHeartbeatGapSeconds": 0.34,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": null,
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 15.5926,
+        "model-load:demucs": 16.0234,
+        "dsp:spectrum": 2.4033,
+        "inference:demucs": 4.1812,
+        "dsp:waveform": 9.9999,
+        "release:demucs": 0.134,
+        "session-create:helyx": 2.3818,
+        "model-load:helyx": 4.4215,
+        "inference:helyx": 14.0443,
+        "release:helyx": 0.0178
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 21,
+        "inference:demucs": 2,
+        "dsp:waveform": 21,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 19,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "b1-9s",
+      "variant": "current loader",
+      "revision": "9470aac",
+      "inputSeconds": 9,
+      "cache": "cold model cache",
+      "seconds": 34.221,
+      "downloadedModelBodyBytes": 611957925,
+      "maxHeartbeatGapSeconds": 0.256,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": null,
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 1.3844,
+        "model-load:demucs": 2.4883,
+        "dsp:spectrum": 1.637,
+        "inference:demucs": 3.1227,
+        "dsp:waveform": 7.7989,
+        "release:demucs": 0.0155,
+        "session-create:helyx": 0.5166,
+        "model-load:helyx": 1.5426,
+        "inference:helyx": 14.3044,
+        "release:helyx": 0.0341
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 21,
+        "inference:demucs": 2,
+        "dsp:waveform": 21,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 19,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "b1-9s",
+      "variant": "current loader",
+      "revision": "9470aac",
+      "inputSeconds": 9,
+      "cache": "verified cached models",
+      "seconds": 49.982,
+      "downloadedModelBodyBytes": 0,
+      "maxHeartbeatGapSeconds": 0.146,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": null,
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 10.2974,
+        "model-load:demucs": 10.8276,
+        "dsp:spectrum": 2.6174,
+        "inference:demucs": 3.426,
+        "dsp:waveform": 10.909,
+        "release:demucs": 0.1597,
+        "session-create:helyx": 2.8539,
+        "model-load:helyx": 4.7831,
+        "inference:helyx": 14.0213,
+        "release:helyx": 0.0375
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 21,
+        "inference:demucs": 2,
+        "dsp:waveform": 21,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 19,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "a2-9s",
+      "variant": "previous",
+      "revision": "e79ff02",
+      "inputSeconds": 9,
+      "cache": "cold model cache",
+      "seconds": 52.903,
+      "downloadedModelBodyBytes": 611957925,
+      "maxHeartbeatGapSeconds": 0.234,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": null,
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 12.0416,
+        "model-load:demucs": 13.8042,
+        "dsp:spectrum": 2.3097,
+        "inference:demucs": 3.9503,
+        "dsp:waveform": 10.0509,
+        "release:demucs": 0.0852,
+        "session-create:helyx": 2.4181,
+        "model-load:helyx": 5.5019,
+        "inference:helyx": 14.1774,
+        "release:helyx": 0.0255
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 21,
+        "inference:demucs": 2,
+        "dsp:waveform": 21,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 19,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "a2-9s",
+      "variant": "previous",
+      "revision": "e79ff02",
+      "inputSeconds": 9,
+      "cache": "verified cached models",
+      "seconds": 51.69,
+      "downloadedModelBodyBytes": 0,
+      "maxHeartbeatGapSeconds": 1.131,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": null,
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 10.0961,
+        "model-load:demucs": 10.5142,
+        "dsp:spectrum": 2.469,
+        "inference:demucs": 6.1384,
+        "dsp:waveform": 10.3894,
+        "release:demucs": 0.1279,
+        "session-create:helyx": 2.5722,
+        "model-load:helyx": 4.3102,
+        "inference:helyx": 14.0422,
+        "release:helyx": 0.0328
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 21,
+        "inference:demucs": 2,
+        "dsp:waveform": 21,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 19,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "b2-9s",
+      "variant": "current loader",
+      "revision": "9470aac",
+      "inputSeconds": 9,
+      "cache": "cold model cache",
+      "seconds": 32.833,
+      "downloadedModelBodyBytes": 611957925,
+      "maxHeartbeatGapSeconds": 0.536,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": null,
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 1.2397,
+        "model-load:demucs": 1.8341,
+        "dsp:spectrum": 1.5272,
+        "inference:demucs": 3.0765,
+        "dsp:waveform": 8.1137,
+        "release:demucs": 0.0149,
+        "session-create:helyx": 0.3789,
+        "model-load:helyx": 1.0933,
+        "inference:helyx": 14.1229,
+        "release:helyx": 0.0488
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 21,
+        "inference:demucs": 2,
+        "dsp:waveform": 21,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 19,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "b2-9s",
+      "variant": "current loader",
+      "revision": "9470aac",
+      "inputSeconds": 9,
+      "cache": "verified cached models",
+      "seconds": 54.615,
+      "downloadedModelBodyBytes": 0,
+      "maxHeartbeatGapSeconds": 0.499,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": null,
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 10.5301,
+        "model-load:demucs": 10.9549,
+        "dsp:spectrum": 2.709,
+        "inference:demucs": 4.1664,
+        "dsp:waveform": 10.4885,
+        "release:demucs": 0.1823,
+        "session-create:helyx": 3.8656,
+        "model-load:helyx": 6.7898,
+        "inference:helyx": 14.3043,
+        "release:helyx": 0.0455
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 21,
+        "inference:demucs": 2,
+        "dsp:waveform": 21,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 19,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "a1-30s",
+      "variant": "previous",
+      "revision": "e79ff02",
+      "inputSeconds": 30,
+      "cache": "cold model cache",
+      "seconds": 109.389,
+      "downloadedModelBodyBytes": 611957925,
+      "maxHeartbeatGapSeconds": 0.862,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": null,
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 10.8662,
+        "model-load:demucs": 12.1585,
+        "dsp:spectrum": 6.7121,
+        "inference:demucs": 13.4863,
+        "dsp:waveform": 26.9314,
+        "release:demucs": 0.0949,
+        "session-create:helyx": 2.4408,
+        "model-load:helyx": 5.0335,
+        "inference:helyx": 35.862,
+        "release:helyx": 0.0862
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 53,
+        "inference:demucs": 6,
+        "dsp:waveform": 53,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 47,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "a1-30s",
+      "variant": "previous",
+      "revision": "e79ff02",
+      "inputSeconds": 30,
+      "cache": "verified cached models",
+      "seconds": 156.687,
+      "downloadedModelBodyBytes": 0,
+      "maxHeartbeatGapSeconds": 4.471,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": null,
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 34.1851,
+        "model-load:demucs": 34.9135,
+        "dsp:spectrum": 9.5129,
+        "inference:demucs": 16.3372,
+        "dsp:waveform": 34.8161,
+        "release:demucs": 0.4283,
+        "session-create:helyx": 3.2164,
+        "model-load:helyx": 5.1482,
+        "inference:helyx": 34.6489,
+        "release:helyx": 0.0207
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 53,
+        "inference:demucs": 6,
+        "dsp:waveform": 53,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 47,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "b1-30s",
+      "variant": "current loader",
+      "revision": "9470aac",
+      "inputSeconds": 30,
+      "cache": "cold model cache",
+      "seconds": 97.086,
+      "downloadedModelBodyBytes": 611957925,
+      "maxHeartbeatGapSeconds": 0.537,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": null,
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 1.5744,
+        "model-load:demucs": 3.3839,
+        "dsp:spectrum": 5.3188,
+        "inference:demucs": 6.5732,
+        "dsp:waveform": 29.6203,
+        "release:demucs": 0.0715,
+        "session-create:helyx": 0.5933,
+        "model-load:helyx": 1.6263,
+        "inference:helyx": 37.0008,
+        "release:helyx": 0.0494
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 53,
+        "inference:demucs": 6,
+        "dsp:waveform": 53,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 47,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "b1-30s",
+      "variant": "current loader",
+      "revision": "9470aac",
+      "inputSeconds": 30,
+      "cache": "verified cached models",
+      "seconds": 320.244,
+      "downloadedModelBodyBytes": 0,
+      "maxHeartbeatGapSeconds": 37.059,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": null,
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 13.0479,
+        "model-load:demucs": 13.4548,
+        "dsp:spectrum": 23.3568,
+        "inference:demucs": 32.5181,
+        "dsp:waveform": 74.691,
+        "release:demucs": 0.3169,
+        "session-create:helyx": 6.2795,
+        "model-load:helyx": 7.958,
+        "inference:helyx": 139.6201,
+        "release:helyx": 0.2628
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 53,
+        "inference:demucs": 6,
+        "dsp:waveform": 53,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 47,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "focused-current-30s",
+      "variant": "WAV header candidate",
+      "revision": "initial header candidate; final conservative fallback in 3a1bb74",
+      "inputSeconds": 30,
+      "cache": "cold model cache",
+      "seconds": 81.683,
+      "downloadedModelBodyBytes": 611957925,
+      "maxHeartbeatGapSeconds": 0.229,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": [
+        {
+          "ms": 0,
+          "focused": true
+        }
+      ],
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 1.5001,
+        "model-load:demucs": 2.5314,
+        "dsp:spectrum": 4.7313,
+        "inference:demucs": 6.699,
+        "dsp:waveform": 21.0055,
+        "release:demucs": 0.1018,
+        "session-create:helyx": 0.731,
+        "model-load:helyx": 1.9394,
+        "inference:helyx": 36.8523,
+        "release:helyx": 0.0505
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 53,
+        "inference:demucs": 6,
+        "dsp:waveform": 53,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 47,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "focused-current-30s",
+      "variant": "WAV header candidate",
+      "revision": "initial header candidate; final conservative fallback in 3a1bb74",
+      "inputSeconds": 30,
+      "cache": "verified cached models",
+      "seconds": 94.462,
+      "downloadedModelBodyBytes": 0,
+      "maxHeartbeatGapSeconds": 0.148,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": [
+        {
+          "ms": 0,
+          "focused": true
+        }
+      ],
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 10.4879,
+        "model-load:demucs": 10.9416,
+        "dsp:spectrum": 6.3221,
+        "inference:demucs": 8.459,
+        "dsp:waveform": 22.3321,
+        "release:demucs": 0.1377,
+        "session-create:helyx": 1.5384,
+        "model-load:helyx": 2.5813,
+        "inference:helyx": 34.9311,
+        "release:helyx": 0.0278
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 53,
+        "inference:demucs": 6,
+        "dsp:waveform": 53,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 47,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "focused-baseline-30s",
+      "variant": "previous",
+      "revision": "e79ff02",
+      "inputSeconds": 30,
+      "cache": "cold model cache",
+      "seconds": 153.881,
+      "downloadedModelBodyBytes": 611957925,
+      "maxHeartbeatGapSeconds": 0.919,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": [
+        {
+          "ms": 0,
+          "focused": true
+        }
+      ],
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 14.8457,
+        "model-load:demucs": 16.1496,
+        "dsp:spectrum": 8.7327,
+        "inference:demucs": 12.1747,
+        "dsp:waveform": 33.8049,
+        "release:demucs": 0.4048,
+        "session-create:helyx": 15.5638,
+        "model-load:helyx": 27.2762,
+        "inference:helyx": 40.312,
+        "release:helyx": 0.0788
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 53,
+        "inference:demucs": 6,
+        "dsp:waveform": 53,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 47,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "focused-baseline-30s",
+      "variant": "previous",
+      "revision": "e79ff02",
+      "inputSeconds": 30,
+      "cache": "verified cached models",
+      "seconds": 107.715,
+      "downloadedModelBodyBytes": 0,
+      "maxHeartbeatGapSeconds": 1.285,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": [
+        {
+          "ms": 0,
+          "focused": true
+        }
+      ],
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 10.2865,
+        "model-load:demucs": 10.7286,
+        "dsp:spectrum": 7.4782,
+        "inference:demucs": 8.3213,
+        "dsp:waveform": 29.8344,
+        "release:demucs": 0.0965,
+        "session-create:helyx": 1.6466,
+        "model-load:helyx": 2.7378,
+        "inference:helyx": 37.0797,
+        "release:helyx": 0.1649
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 53,
+        "inference:demucs": 6,
+        "dsp:waveform": 53,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 47,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "native-before-wav-fix",
+      "variant": "initial loader, media metadata path",
+      "revision": "9470aac",
+      "inputSeconds": 30,
+      "cache": "cold model cache",
+      "seconds": 101.046,
+      "downloadedModelBodyBytes": 611957925,
+      "maxHeartbeatGapSeconds": 2.514,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        },
+        {
+          "ms": 11755.7,
+          "state": "hidden"
+        }
+      ],
+      "focus": [
+        {
+          "ms": 0,
+          "focused": true
+        },
+        {
+          "ms": 11681.9,
+          "focused": false
+        },
+        {
+          "ms": 19080.3,
+          "focused": true
+        }
+      ],
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 2.2724,
+        "model-load:demucs": 2.7306,
+        "dsp:spectrum": 5.3202,
+        "inference:demucs": 6.7937,
+        "dsp:waveform": 21.3248,
+        "release:demucs": 0.0253,
+        "session-create:helyx": 6.7671,
+        "model-load:helyx": 18.9721,
+        "inference:helyx": 37.307,
+        "release:helyx": 0.0745
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 53,
+        "inference:demucs": 6,
+        "dsp:waveform": 53,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 47,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "raw-100mbps",
+      "variant": "identity",
+      "revision": "3a1bb74",
+      "inputSeconds": 9,
+      "cache": "cold model cache",
+      "seconds": 122.766,
+      "downloadedModelBodyBytes": 611957925,
+      "maxHeartbeatGapSeconds": 0.606,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": [
+        {
+          "ms": 0,
+          "focused": true
+        }
+      ],
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 15.0233,
+        "model-load:demucs": 29.5143,
+        "dsp:spectrum": 1.9776,
+        "inference:demucs": 21.6155,
+        "dsp:waveform": 9.8325,
+        "release:demucs": 1.127,
+        "session-create:helyx": 1.5503,
+        "model-load:helyx": 38.3722,
+        "inference:helyx": 14.7178,
+        "release:helyx": 0.1789
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 21,
+        "inference:demucs": 2,
+        "dsp:waveform": 21,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 19,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "gzip-100mbps",
+      "variant": "gzip",
+      "revision": "3a1bb74",
+      "inputSeconds": 9,
+      "cache": "cold model cache",
+      "seconds": 95.741,
+      "downloadedModelBodyBytes": 505600227,
+      "maxHeartbeatGapSeconds": 0.557,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": [
+        {
+          "ms": 0,
+          "focused": true
+        }
+      ],
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 16.9291,
+        "model-load:demucs": 25.3986,
+        "dsp:spectrum": 2.799,
+        "inference:demucs": 4.46,
+        "dsp:waveform": 10.0917,
+        "release:demucs": 0.167,
+        "session-create:helyx": 0.8196,
+        "model-load:helyx": 34.5415,
+        "inference:helyx": 14.5755,
+        "release:helyx": 0.0428
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 21,
+        "inference:demucs": 2,
+        "dsp:waveform": 21,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 19,
+        "release:helyx": 1
+      }
+    },
+    {
+      "case": "gzip-100mbps",
+      "variant": "gzip",
+      "revision": "3a1bb74",
+      "inputSeconds": 9,
+      "cache": "verified cached models",
+      "seconds": 52.85,
+      "downloadedModelBodyBytes": 0,
+      "maxHeartbeatGapSeconds": 0.718,
+      "visibility": [
+        {
+          "ms": 0,
+          "state": "visible"
+        }
+      ],
+      "focus": [
+        {
+          "ms": 0,
+          "focused": true
+        }
+      ],
+      "outputMatchesBaselineBytes": true,
+      "phaseSeconds": {
+        "session-create:demucs": 12.4926,
+        "model-load:demucs": 12.9334,
+        "dsp:spectrum": 2.2511,
+        "inference:demucs": 3.9294,
+        "dsp:waveform": 10.4861,
+        "release:demucs": 0.2008,
+        "session-create:helyx": 1.5918,
+        "model-load:helyx": 3.3789,
+        "inference:helyx": 16.1435,
+        "release:helyx": 0.0348
+      },
+      "phaseCalls": {
+        "session-create:demucs": 1,
+        "model-load:demucs": 1,
+        "dsp:spectrum": 21,
+        "inference:demucs": 2,
+        "dsp:waveform": 21,
+        "release:demucs": 1,
+        "session-create:helyx": 1,
+        "model-load:helyx": 1,
+        "inference:helyx": 19,
+        "release:helyx": 1
+      }
+    }
+  ],
+  "flaggedCases": [
+    {
+      "case": "b1-30s/run-2",
+      "issue": "320.24 second cached run with 37.06 second main-thread heartbeat gap; retained as a performance outlier, cause not fully isolated"
+    },
+    {
+      "case": "focused-current-30s before WAV fix",
+      "error": "Error: Could not read this audio file.",
+      "details": "Second run started hidden and failed metadata preflight; repeated PCM WAV processing now uses bounded header reads instead of a media element"
+    }
+  ],
+  "outputSha256": {
+    "9s": {
+      "kick.wav": "6a74cae2671e3ac9c60ba35e61481a83bd8a66e2f14d6a9d7d607b3fd25f0912",
+      "snare.wav": "fcddccd7898e327f66aa29ad0e946b7ba633fbcb155795ecaaaf9e80f3b5318f",
+      "percussion.wav": "c2b5ee42f01346f9bdf550dd5f11c2d374c527a32ef71b445ec88cbc5c88c297",
+      "hi-hat.wav": "0f053533d030f31fbd0fb92c80c60b2e6255ee3896d1405e7fd4f48b9a1ee04a"
+    },
+    "30s": {
+      "kick.wav": "7240ad1cd8ce9a94af938628a9e87cab472d044be33db19cbc9a3fa608d46f93",
+      "snare.wav": "42e9200bd099ed8967068a80cf3db96788f9ddcca34cabd4959f1f2cd737be88",
+      "percussion.wav": "a6c4aad9e8af73e86da210c421baac1b669366a4ab4e7ab16cf92f9aaa5877dc",
+      "hi-hat.wav": "2cb2cfcd0f4a31320335289239c1c2b394ef92ea3e7c7a11f61a2f5029675bd1"
+    }
+  },
+  "limitations": [
+    "Only one physical Mac tested; other Macs and browsers remain unverified",
+    "Small sample sizes, background app load and varying browser scheduling; do not claim zero speed regressions",
+    "GPU driver/compiled-code caches not reset; cold means model/HTTP asset transfer",
+    "Prototype remains limited to four kit WAVs and clips up to 30 seconds; full-site feature parity is incomplete"
+  ],
+  "tests": {
+    "node": 48,
+    "python": 23,
+    "sourcePackage": 4,
+    "deploymentWatch": 1,
+    "wasmRebuild": "identical",
+    "productHtmlCss": "identical to c9d765e",
+    "packagedBrowserAssets": "all seven match source byte for byte"
+  },
+  "newCloudGpuJobs": 0,
+  "verdict": "NOT CLEARED: first-use speed target still unmet at 100 Mbps; severe latency outlier retained; no universal no-regression or cross-device claim; PR held",
+  "compression": {
+    "rawModelBytes": 611957925,
+    "gzipModelBytes": 505600227,
+    "reductionPercent": 17.38,
+    "rawCappedSeconds": 122.766,
+    "gzipCappedSeconds": 95.741,
+    "gzipCachedSeconds": 52.85,
+    "decodedModelsStillUseOriginalSha256": true,
+    "enabledOnLiveSite": false,
+    "note": "Observed elapsed times include varying GPU setup/inference. Payload reduction is lossless; the timing difference is not entirely attributable to transport."
+  },
+  "completedSplitsWithMatchingAudio": 20,
+  "wavOutputsCompared": 80,
+  "preFixMetadataFailures": 1,
+  "metricsNote": "Historical reports record the maximum sampled heartbeat gap. The current harness additionally counts the final interval before completion.",
+  "temporaryBenchmarkCacheOriginsCleared": 16
+}

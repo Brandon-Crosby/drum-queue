@@ -1,0 +1,843 @@
+{
+  "schema": 1,
+  "status": "experimental; not deployed",
+  "hardware": "Apple M1 Pro, 16 GB, Chrome 155, WebGPU",
+  "cloudJobsSubmitted": 0,
+  "uiChanged": false,
+  "gpuCleanup": {
+    "baseline": [
+      {
+        "seconds": 33.703,
+        "files": [
+          {
+            "name": "kick.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.4900728464126587,
+            "sha256": "6a74cae2671e3ac9c60ba35e61481a83bd8a66e2f14d6a9d7d607b3fd25f0912"
+          },
+          {
+            "name": "snare.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.3531721830368042,
+            "sha256": "fcddccd7898e327f66aa29ad0e946b7ba633fbcb155795ecaaaf9e80f3b5318f"
+          },
+          {
+            "name": "percussion.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.02842402458190918,
+            "sha256": "c2b5ee42f01346f9bdf550dd5f11c2d374c527a32ef71b445ec88cbc5c88c297"
+          },
+          {
+            "name": "hi-hat.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.30270159244537354,
+            "sha256": "0f053533d030f31fbd0fb92c80c60b2e6255ee3896d1405e7fd4f48b9a1ee04a"
+          }
+        ],
+        "visibility": [
+          {
+            "ms": 0,
+            "state": "visible"
+          }
+        ],
+        "focus": [
+          {
+            "ms": 0,
+            "focused": true
+          }
+        ]
+      },
+      {
+        "seconds": 49.165,
+        "files": [
+          {
+            "name": "kick.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.4900728464126587,
+            "sha256": "6a74cae2671e3ac9c60ba35e61481a83bd8a66e2f14d6a9d7d607b3fd25f0912"
+          },
+          {
+            "name": "snare.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.3531721830368042,
+            "sha256": "fcddccd7898e327f66aa29ad0e946b7ba633fbcb155795ecaaaf9e80f3b5318f"
+          },
+          {
+            "name": "percussion.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.02842402458190918,
+            "sha256": "c2b5ee42f01346f9bdf550dd5f11c2d374c527a32ef71b445ec88cbc5c88c297"
+          },
+          {
+            "name": "hi-hat.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.30270159244537354,
+            "sha256": "0f053533d030f31fbd0fb92c80c60b2e6255ee3896d1405e7fd4f48b9a1ee04a"
+          }
+        ],
+        "visibility": [
+          {
+            "ms": 0,
+            "state": "visible"
+          }
+        ],
+        "focus": [
+          {
+            "ms": 0,
+            "focused": true
+          }
+        ]
+      },
+      {
+        "seconds": 52.778,
+        "files": [
+          {
+            "name": "kick.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.4900728464126587,
+            "sha256": "6a74cae2671e3ac9c60ba35e61481a83bd8a66e2f14d6a9d7d607b3fd25f0912"
+          },
+          {
+            "name": "snare.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.3531721830368042,
+            "sha256": "fcddccd7898e327f66aa29ad0e946b7ba633fbcb155795ecaaaf9e80f3b5318f"
+          },
+          {
+            "name": "percussion.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.02842402458190918,
+            "sha256": "c2b5ee42f01346f9bdf550dd5f11c2d374c527a32ef71b445ec88cbc5c88c297"
+          },
+          {
+            "name": "hi-hat.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.30270159244537354,
+            "sha256": "0f053533d030f31fbd0fb92c80c60b2e6255ee3896d1405e7fd4f48b9a1ee04a"
+          }
+        ],
+        "visibility": [
+          {
+            "ms": 0,
+            "state": "visible"
+          }
+        ],
+        "focus": [
+          {
+            "ms": 0,
+            "focused": true
+          }
+        ]
+      }
+    ],
+    "candidate": [
+      {
+        "seconds": 29.605,
+        "files": [
+          {
+            "name": "kick.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.4900728464126587,
+            "sha256": "6a74cae2671e3ac9c60ba35e61481a83bd8a66e2f14d6a9d7d607b3fd25f0912"
+          },
+          {
+            "name": "snare.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.3531721830368042,
+            "sha256": "fcddccd7898e327f66aa29ad0e946b7ba633fbcb155795ecaaaf9e80f3b5318f"
+          },
+          {
+            "name": "percussion.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.02842402458190918,
+            "sha256": "c2b5ee42f01346f9bdf550dd5f11c2d374c527a32ef71b445ec88cbc5c88c297"
+          },
+          {
+            "name": "hi-hat.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.30270159244537354,
+            "sha256": "0f053533d030f31fbd0fb92c80c60b2e6255ee3896d1405e7fd4f48b9a1ee04a"
+          }
+        ],
+        "visibility": [
+          {
+            "ms": 0,
+            "state": "visible"
+          }
+        ],
+        "focus": [
+          {
+            "ms": 0,
+            "focused": true
+          }
+        ]
+      },
+      {
+        "seconds": 48.991,
+        "files": [
+          {
+            "name": "kick.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.4900728464126587,
+            "sha256": "6a74cae2671e3ac9c60ba35e61481a83bd8a66e2f14d6a9d7d607b3fd25f0912"
+          },
+          {
+            "name": "snare.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.3531721830368042,
+            "sha256": "fcddccd7898e327f66aa29ad0e946b7ba633fbcb155795ecaaaf9e80f3b5318f"
+          },
+          {
+            "name": "percussion.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.02842402458190918,
+            "sha256": "c2b5ee42f01346f9bdf550dd5f11c2d374c527a32ef71b445ec88cbc5c88c297"
+          },
+          {
+            "name": "hi-hat.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.30270159244537354,
+            "sha256": "0f053533d030f31fbd0fb92c80c60b2e6255ee3896d1405e7fd4f48b9a1ee04a"
+          }
+        ],
+        "visibility": [
+          {
+            "ms": 0,
+            "state": "visible"
+          }
+        ],
+        "focus": [
+          {
+            "ms": 0,
+            "focused": true
+          }
+        ]
+      },
+      {
+        "seconds": 46.449,
+        "files": [
+          {
+            "name": "kick.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.4900728464126587,
+            "sha256": "6a74cae2671e3ac9c60ba35e61481a83bd8a66e2f14d6a9d7d607b3fd25f0912"
+          },
+          {
+            "name": "snare.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.3531721830368042,
+            "sha256": "fcddccd7898e327f66aa29ad0e946b7ba633fbcb155795ecaaaf9e80f3b5318f"
+          },
+          {
+            "name": "percussion.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.02842402458190918,
+            "sha256": "c2b5ee42f01346f9bdf550dd5f11c2d374c527a32ef71b445ec88cbc5c88c297"
+          },
+          {
+            "name": "hi-hat.wav",
+            "bytes": 2381444,
+            "rate": 44100,
+            "channels": 2,
+            "bits": 24,
+            "peak": 0.30270159244537354,
+            "sha256": "0f053533d030f31fbd0fb92c80c60b2e6255ee3896d1405e7fd4f48b9a1ee04a"
+          }
+        ],
+        "visibility": [
+          {
+            "ms": 0,
+            "state": "visible"
+          }
+        ],
+        "focus": [
+          {
+            "ms": 0,
+            "focused": true
+          }
+        ]
+      }
+    ],
+    "limitation": "Identical audio in these repeats; the older 320-second outlier is not explained or proved fixed."
+  },
+  "smallerModel": {
+    "weights": [
+      {
+        "model": "helyx",
+        "mantissaBits": 16,
+        "rawBytes": 437694437,
+        "gzipBytes": 343553050,
+        "changedWeights": 108521936,
+        "maxWeightAbsoluteError": 1.33514404296875e-05,
+        "seconds": 43.080705250031315,
+        "sha256": "6035e4cc8d580948d561755256b0e1623eacaca21e1a581b6ad80a785ee5eabb"
+      },
+      {
+        "model": "helyx",
+        "mantissaBits": 12,
+        "rawBytes": 437694437,
+        "gzipBytes": 292020230,
+        "changedWeights": 109322879,
+        "maxWeightAbsoluteError": 0.0002269744873046875,
+        "seconds": 67.4386947080493,
+        "sha256": "80d33e20120bff36d7fbd645e6ba1526552041d69844646e542e674f7506e608"
+      },
+      {
+        "model": "helyx",
+        "mantissaBits": 10,
+        "rawBytes": 437694437,
+        "gzipBytes": 255927770,
+        "changedWeights": 109363181,
+        "maxWeightAbsoluteError": 0.0007853507995605469,
+        "seconds": 73.05624579207506,
+        "sha256": "7a7ea202b4c911da330efe840fd79343312ce25934cdc50263d34a2011b15a60"
+      }
+    ],
+    "audioComparison": [
+      {
+        "stem": "kick",
+        "snrDb": 58.76872976756567,
+        "maxError": 9.417533874511719e-06,
+        "peak": 0.006229996681213379
+      },
+      {
+        "stem": "snare",
+        "snrDb": 78.599754044154,
+        "maxError": 3.2782554626464844e-05,
+        "peak": 0.3775836229324341
+      },
+      {
+        "stem": "percussion",
+        "snrDb": 83.48439110163778,
+        "maxError": 2.2530555725097656e-05,
+        "peak": 0.2602494955062866
+      },
+      {
+        "stem": "hi-hat",
+        "snrDb": 63.68938505497226,
+        "maxError": 1.2516975402832031e-05,
+        "peak": 0.02780318260192871
+      }
+    ],
+    "audioScope": "One authorized 9-second music excerpt, same WebGPU pipeline; SNR is an error metric, not an audibility guarantee.",
+    "speedComparison": {
+      "original": [
+        {
+          "seconds": 88.698,
+          "cache": "cold model cache",
+          "modelBytes": 505600227,
+          "networkBytes": 531255900,
+          "profile": {
+            "session-create:demucs": {
+              "calls": 1,
+              "ms": 12391.099999904633
+            },
+            "model-load:demucs": {
+              "calls": 1,
+              "ms": 20920.899999976158
+            },
+            "dsp:spectrum": {
+              "calls": 21,
+              "ms": 1864.8999999761581
+            },
+            "inference:demucs": {
+              "calls": 2,
+              "ms": 5841.299999952316
+            },
+            "dsp:waveform": {
+              "calls": 21,
+              "ms": 8032.800000190735
+            },
+            "release:demucs": {
+              "calls": 1,
+              "ms": 136.09999990463257
+            },
+            "session-create:helyx": {
+              "calls": 1,
+              "ms": 807.1000000238419
+            },
+            "model-load:helyx": {
+              "calls": 1,
+              "ms": 34876.5
+            },
+            "inference:helyx": {
+              "calls": 19,
+              "ms": 13891.100000023842
+            },
+            "release:helyx": {
+              "calls": 1,
+              "ms": 40.39999997615814
+            }
+          },
+          "heartbeat": {
+            "ticks": 881,
+            "maxGapMs": 445.59999990463257
+          },
+          "visibility": [
+            {
+              "ms": 0,
+              "state": "visible"
+            }
+          ],
+          "focus": [
+            {
+              "ms": 0,
+              "focused": true
+            }
+          ]
+        },
+        {
+          "seconds": 49.158,
+          "cache": "verified cached models",
+          "modelBytes": 0,
+          "networkBytes": 25655683,
+          "profile": {
+            "session-create:demucs": {
+              "calls": 1,
+              "ms": 11140.100000023842
+            },
+            "model-load:demucs": {
+              "calls": 1,
+              "ms": 11512
+            },
+            "dsp:spectrum": {
+              "calls": 21,
+              "ms": 2455.100000143051
+            },
+            "inference:demucs": {
+              "calls": 2,
+              "ms": 4221.399999976158
+            },
+            "dsp:waveform": {
+              "calls": 21,
+              "ms": 9364.100000023842
+            },
+            "release:demucs": {
+              "calls": 1,
+              "ms": 117.19999992847443
+            },
+            "session-create:helyx": {
+              "calls": 1,
+              "ms": 2598.600000023842
+            },
+            "model-load:helyx": {
+              "calls": 1,
+              "ms": 4590.5
+            },
+            "inference:helyx": {
+              "calls": 19,
+              "ms": 13741.899999856949
+            },
+            "release:helyx": {
+              "calls": 1,
+              "ms": 28.700000047683716
+            }
+          },
+          "heartbeat": {
+            "ticks": 490,
+            "maxGapMs": 192.60000002384186
+          },
+          "visibility": [
+            {
+              "ms": 0,
+              "state": "visible"
+            }
+          ],
+          "focus": [
+            {
+              "ms": 0,
+              "focused": true
+            }
+          ]
+        }
+      ],
+      "candidate": [
+        {
+          "seconds": 99.627,
+          "cache": "cold model cache",
+          "modelBytes": 391880121,
+          "networkBytes": 417535794,
+          "profile": {
+            "session-create:demucs": {
+              "calls": 1,
+              "ms": 15327.5
+            },
+            "model-load:demucs": {
+              "calls": 1,
+              "ms": 24134.300000071526
+            },
+            "dsp:spectrum": {
+              "calls": 21,
+              "ms": 2095.0000001192093
+            },
+            "inference:demucs": {
+              "calls": 2,
+              "ms": 7425.399999856949
+            },
+            "dsp:waveform": {
+              "calls": 21,
+              "ms": 13529.70000052452
+            },
+            "release:demucs": {
+              "calls": 1,
+              "ms": 330.60000002384186
+            },
+            "session-create:helyx": {
+              "calls": 1,
+              "ms": 762.5
+            },
+            "model-load:helyx": {
+              "calls": 1,
+              "ms": 25413.600000023842
+            },
+            "inference:helyx": {
+              "calls": 19,
+              "ms": 14391.89999973774
+            },
+            "release:helyx": {
+              "calls": 1,
+              "ms": 23.300000071525574
+            }
+          },
+          "heartbeat": {
+            "ticks": 897,
+            "maxGapMs": 5265.399999976158
+          },
+          "visibility": [
+            {
+              "ms": 0,
+              "state": "visible"
+            }
+          ],
+          "focus": [
+            {
+              "ms": 0,
+              "focused": true
+            }
+          ]
+        },
+        {
+          "seconds": 71.132,
+          "cache": "verified cached models",
+          "modelBytes": 0,
+          "networkBytes": 25655683,
+          "profile": {
+            "session-create:demucs": {
+              "calls": 1,
+              "ms": 21103.5
+            },
+            "model-load:demucs": {
+              "calls": 1,
+              "ms": 21531.100000023842
+            },
+            "dsp:spectrum": {
+              "calls": 21,
+              "ms": 3898.9000000953674
+            },
+            "inference:demucs": {
+              "calls": 2,
+              "ms": 6861.200000047684
+            },
+            "dsp:waveform": {
+              "calls": 21,
+              "ms": 12599.900000095367
+            },
+            "release:demucs": {
+              "calls": 1,
+              "ms": 284.39999997615814
+            },
+            "session-create:helyx": {
+              "calls": 1,
+              "ms": 4181.5
+            },
+            "model-load:helyx": {
+              "calls": 1,
+              "ms": 6135.199999928474
+            },
+            "inference:helyx": {
+              "calls": 19,
+              "ms": 14469.299999833107
+            },
+            "release:helyx": {
+              "calls": 1,
+              "ms": 44.200000047683716
+            }
+          },
+          "heartbeat": {
+            "ticks": 657,
+            "maxGapMs": 3026.5
+          },
+          "visibility": [
+            {
+              "ms": 0,
+              "state": "visible"
+            }
+          ],
+          "focus": [
+            {
+              "ms": 0,
+              "focused": true
+            }
+          ]
+        }
+      ],
+      "scope": "Sequential original/candidate pairs on one shared Mac; simulated shared 100 Mbps, 9-second generated fixture, model caches cleared before each pair, GPU driver caches not reset. Runtime fetched each run by diagnostic no-store server. Not an end-to-end full-site comparison."
+    },
+    "syntheticAudioComparison": [
+      {
+        "stem": "kick",
+        "snrDb": 91.91786398897125,
+        "maxError": 3.826618194580078e-05
+      },
+      {
+        "stem": "snare",
+        "snrDb": 75.70789602297319,
+        "maxError": 6.091594696044922e-05
+      },
+      {
+        "stem": "percussion",
+        "snrDb": 59.49556469281987,
+        "maxError": 1.5974044799804688e-05
+      },
+      {
+        "stem": "hi-hat",
+        "snrDb": 71.35448332588273,
+        "maxError": 7.665157318115234e-05
+      }
+    ]
+  },
+  "postprocessing": {
+    "runtime": "Pyodide 0.29.0",
+    "runtimeBytes": 31539400,
+    "mode": "Native Python, Node-hosted WASM and real Chrome worker proofs; not original website UI",
+    "input": "Four existing stems from the same 9-second music excerpt",
+    "nativeComparison": [
+      {
+        "kind": "stem",
+        "name": "kick.wav",
+        "matches": true
+      },
+      {
+        "kind": "stem",
+        "name": "snare.wav",
+        "matches": true
+      },
+      {
+        "kind": "stem",
+        "name": "perc.wav",
+        "matches": true
+      },
+      {
+        "kind": "stem",
+        "name": "hh.wav",
+        "matches": true
+      },
+      {
+        "kind": "shot",
+        "name": "Oulio - Groove (full song).mid",
+        "matches": true
+      },
+      {
+        "kind": "shot",
+        "name": "Oulio - Groove.mid",
+        "matches": true
+      },
+      {
+        "kind": "shot",
+        "name": "Oulio - Kick 1.wav",
+        "matches": true
+      },
+      {
+        "kind": "shot",
+        "name": "Oulio - Kick loop 80 BPM (2 bars).wav",
+        "matches": true
+      },
+      {
+        "kind": "shot",
+        "name": "Oulio - Snare-Perc 1.wav",
+        "matches": true
+      },
+      {
+        "kind": "shot",
+        "name": "Oulio - Snare-Perc 2.wav",
+        "matches": true
+      },
+      {
+        "kind": "shot",
+        "name": "Oulio - Snare-Perc loop 80 BPM (2 bars).wav",
+        "matches": true
+      },
+      {
+        "kind": "zip",
+        "name": "kit",
+        "matches": true
+      },
+      {
+        "kind": "zip",
+        "name": "all",
+        "matches": true
+      },
+      {
+        "kind": "zip",
+        "name": "shots",
+        "matches": true
+      }
+    ],
+    "fullMixVerified": false,
+    "limitation": "Byte-matching shots/loops/MIDI and ZIP contents for this clip. Full-mix stems, >30 seconds and other devices are not validated.",
+    "browserComparison": {
+      "runtime": "Pyodide 0.29.0",
+      "runtimeSeconds": 13.839,
+      "processingSeconds": 41.602,
+      "totalSeconds": 55.584,
+      "artifacts": [
+        {
+          "kind": "stem",
+          "name": "kick.wav",
+          "matches": true
+        },
+        {
+          "kind": "stem",
+          "name": "snare.wav",
+          "matches": true
+        },
+        {
+          "kind": "stem",
+          "name": "perc.wav",
+          "matches": true
+        },
+        {
+          "kind": "stem",
+          "name": "hh.wav",
+          "matches": true
+        },
+        {
+          "kind": "shot",
+          "name": "Oulio - Groove (full song).mid",
+          "matches": true
+        },
+        {
+          "kind": "shot",
+          "name": "Oulio - Groove.mid",
+          "matches": true
+        },
+        {
+          "kind": "shot",
+          "name": "Oulio - Kick 1.wav",
+          "matches": true
+        },
+        {
+          "kind": "shot",
+          "name": "Oulio - Kick loop 80 BPM (2 bars).wav",
+          "matches": true
+        },
+        {
+          "kind": "shot",
+          "name": "Oulio - Snare-Perc 1.wav",
+          "matches": true
+        },
+        {
+          "kind": "shot",
+          "name": "Oulio - Snare-Perc 2.wav",
+          "matches": true
+        },
+        {
+          "kind": "shot",
+          "name": "Oulio - Snare-Perc loop 80 BPM (2 bars).wav",
+          "matches": true
+        },
+        {
+          "kind": "zip",
+          "name": "kit",
+          "matches": true
+        },
+        {
+          "kind": "zip",
+          "name": "all",
+          "matches": true
+        },
+        {
+          "kind": "zip",
+          "name": "shots",
+          "matches": true
+        }
+      ],
+      "scope": "Real Chrome worker, local no-store runtime server, original-weight 9-second stems; not integrated original site UI"
+    }
+  },
+  "tests": {
+    "javascript": 53,
+    "python": 32,
+    "package": 4,
+    "deploymentWatch": 1
+  }
+}

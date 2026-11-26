@@ -1,0 +1,111 @@
+{
+  "schema": 1,
+  "hardware": "M1 Pro / 16 GB / Chrome 155",
+  "scope": "Local browser sample extraction only; no model separation or original site UI integration",
+  "cloudJobs": 0,
+  "uiChanged": false,
+  "bytecode": {
+    "runtime": "Pyodide 0.29.0",
+    "files": 729,
+    "invalidation": "checked-hash",
+    "bytes": 6063786,
+    "sha256": "e3f8ee16c566d27df313e4318895a98281a8fd8cffdebcf61379579e986ad329",
+    "runtimeLockSha256": "701557726114e9a968d2088153414b2f126b8631aa734ed98eaf1797d4e4d087"
+  },
+  "runs": [
+    {
+      "case": "chrome-profile",
+      "seconds": 54.178,
+      "runtimeSeconds": 20.755,
+      "processingSeconds": 33.266,
+      "artifactChecks": 14,
+      "allMatchNative": true,
+      "profile": "         850179 function calls (833004 primitive calls) in 31.911 seconds\n\n   Ordered by: cumulative time\n   List reduced from 2873 to 30 due to restriction <30>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n       63    0.036    0.001   49.542    0.786 __init__.py:1(<module>)\n        1    0.012    0.012   31.922   31.922 postprocess_job.py:12(finish)\n        1    0.003    0.003   28.089   28.089 clean.py:574(write_kit)\n   737/12    0.066    0.000   19.398    1.617 <frozen importlib._bootstrap>:1349(_find_and_load)\n   712/12    0.059    0.000   19.385    1.615 <frozen importlib._bootstrap>:1304(_find_and_load_unlocked)\n  2290/28    0.123    0.000   19.366    0.692 <frozen importlib._bootstrap>:480(_call_with_frames_removed)\n   688/13    0.022    0.000   19.352    1.489 <frozen importlib._bootstrap>:911(_load_unlocked)\n   573/12    0.012    0.000   19.349    1.612 <frozen importlib._bootstrap_external>:1020(exec_module)\n   787/12    0.267    0.000   19.102    1.592 {built-in method builtins.exec}\n   574/55    0.006    0.000   16.230    0.295 {built-in method builtins.__import__}\n  783/135    0.033    0.000   16.224    0.120 <frozen importlib._bootstrap>:1390(_handle_fromlist)\n        1    0.001    0.001   16.072   16.072 clean.py:236(kit_sounds)\n      633   10.719    0.017   10.719    0.017 {built-in method builtins.compile}\n      538    0.049    0.000    9.484    0.018 <frozen importlib._bootstrap_external>:1093(get_code)\n      538    0.007    0.000    8.902    0.017 <frozen importlib._bootstrap_external>:1085(source_to_code)\n        1    0.000    0.000    8.198    8.198 clean.py:355(extend_tonal)\n        3    0.001    0.000    8.029    2.676 clean.py:157(sounds)\n        1    0.001    0.001    7.610    7.610 clean.py:1005(clean_kicks)\n        3    0.005    0.002    7.550    2.517 hits.py:232(sounds)\n        1    0.001    0.001    7.444    7.444 clean.py:897(split_kicks)\n        1    0.000    0.000    6.452    6.452 vq.py:1(<module>)\n        1    0.000    0.000    5.650    5.650 _peak_finding.py:1(<module>)\n        4    3.125    0.781    4.674    1.168 hits.py:56(onsets)\n        1    0.003    0.003    4.336    4.336 _stats_py.py:1(<module>)\n9200/8473    0.059    0.000    3.822    0.000 {built-in method builtins.hasattr}\n       10    0.000    0.000    3.609    0.361 __init__.py:326(__getattr__)\n        1    0.001    0.001    3.532    3.532 distributions.py:1(<module>)\n        2    0.000    0.000    3.296    1.648 _bsplines.py:1(<module>)\n        1    0.001    0.001    3.232    3.232 _array_api.py:1(<module>)\n   108/76    0.003    0.000    2.983    0.039 <frozen importlib._bootstrap_external>:1326(exec_module)\n\n\n"
+    },
+    {
+      "case": "chrome-bytecode",
+      "seconds": 37.448,
+      "runtimeSeconds": 16.379,
+      "processingSeconds": 20.988,
+      "artifactChecks": 14,
+      "allMatchNative": true,
+      "profile": "         856012 function calls (839363 primitive calls) in 19.742 seconds\n\n   Ordered by: cumulative time\n   List reduced from 2880 to 30 due to restriction <30>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n       63    0.041    0.001   19.927    0.316 __init__.py:1(<module>)\n        1    0.003    0.003   19.751   19.751 postprocess_job.py:12(finish)\n        1    0.004    0.004   17.420   17.420 clean.py:574(write_kit)\n   737/12    0.037    0.000    8.407    0.701 <frozen importlib._bootstrap>:1349(_find_and_load)\n   712/12    0.027    0.000    8.402    0.700 <frozen importlib._bootstrap>:1304(_find_and_load_unlocked)\n   688/13    0.024    0.000    8.369    0.644 <frozen importlib._bootstrap>:911(_load_unlocked)\n   573/12    0.013    0.000    8.367    0.697 <frozen importlib._bootstrap_external>:1020(exec_module)\n  1760/24    0.016    0.000    8.355    0.348 <frozen importlib._bootstrap>:480(_call_with_frames_removed)\n   787/12    0.242    0.000    8.162    0.680 {built-in method builtins.exec}\n        1    0.001    0.001    7.972    7.972 clean.py:236(kit_sounds)\n   574/55    0.006    0.000    6.935    0.126 {built-in method builtins.__import__}\n  783/135    0.013    0.000    6.899    0.051 <frozen importlib._bootstrap>:1390(_handle_fromlist)\n        3    0.007    0.002    4.984    1.661 clean.py:157(sounds)\n        3    0.013    0.004    4.612    1.537 hits.py:232(sounds)\n        1    0.001    0.001    4.212    4.212 clean.py:355(extend_tonal)\n        1    0.000    0.000    3.322    3.322 _peak_finding.py:1(<module>)\n        4    2.576    0.644    3.316    0.829 hits.py:56(onsets)\n        1    0.000    0.000    3.253    3.253 clean.py:446(_namer)\n        1    0.001    0.001    3.151    3.151 soundid.py:91(load)\n        1    0.008    0.008    2.817    2.817 _stats_py.py:1(<module>)\n        1    0.001    0.001    2.584    2.584 clean.py:1005(clean_kicks)\n        1    0.000    0.000    2.416    2.416 clean.py:897(split_kicks)\n        1    0.001    0.001    2.250    2.250 distributions.py:1(<module>)\n        1    0.000    0.000    2.098    2.098 vq.py:1(<module>)\n     2678    1.839    0.001    1.839    0.001 {method 'reduce' of 'numpy.ufunc' objects}\n      103    1.660    0.016    1.660    0.016 {built-in method builtins.compile}\n9200/8473    0.075    0.000    1.658    0.000 {built-in method builtins.hasattr}\n        2    0.001    0.001    1.576    0.788 _npyio_impl.py:233(__getitem__)\n      147    1.570    0.011    1.570    0.011 {method 'astype' of 'numpy.ndarray' objects}\n        2    0.188    0.094    1.569    0.784 format.py:762(read_array)\n\n\n"
+    },
+    {
+      "case": "chrome-bytecode-repeat",
+      "seconds": 35.79,
+      "runtimeSeconds": 15.118,
+      "processingSeconds": 20.545,
+      "artifactChecks": 14,
+      "allMatchNative": true,
+      "profile": null
+    },
+    {
+      "case": "chrome-control-repeat",
+      "seconds": 40.83,
+      "runtimeSeconds": 14.738,
+      "processingSeconds": 25.953,
+      "artifactChecks": 14,
+      "allMatchNative": true,
+      "profile": null
+    }
+  ],
+  "simdExperiment": [
+    {
+      "nfft": 2048,
+      "stems": 4,
+      "measurements": {
+        "scalar": [
+          110.597208,
+          80.94775000000004,
+          79.58462500000007,
+          83.6764169999999,
+          82.912959
+        ],
+        "simd": [
+          112.57445899999999,
+          80.643709,
+          80.06766600000003,
+          83.20720800000004,
+          89.79758300000003
+        ]
+      },
+      "exact": true,
+      "medianMs": {
+        "scalar": 82.912959,
+        "simd": 83.20720800000004
+      }
+    },
+    {
+      "nfft": 4096,
+      "stems": 1,
+      "measurements": {
+        "scalar": [
+          95.9932080000001,
+          91.09620799999993,
+          118.39108299999998,
+          93.51804199999992,
+          92.89075000000003
+        ],
+        "simd": [
+          92.89304099999981,
+          92.51137500000004,
+          91.61995899999988,
+          89.39054199999987,
+          94.4843330000001
+        ]
+      },
+      "exact": true,
+      "medianMs": {
+        "scalar": 93.51804199999992,
+        "simd": 92.51137500000004
+      }
+    }
+  ],
+  "limitations": [
+    "Sequential tests on one shared machine; small sample and variable runtime load",
+    "Local no-store server, not a CDN or capped internet connection",
+    "Profiled and unprofiled pairs are shown separately",
+    "Full pipeline speed and other devices remain unvalidated"
+  ]
+}

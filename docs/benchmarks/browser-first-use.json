@@ -1,0 +1,73 @@
+{
+  "verdict": "FAIL: first-use speed target unmet",
+  "scope": "Processing API only; existing product UI unchanged; not yet integrated into the website",
+  "processingCodeCommit": "c80a605",
+  "hardware": "Apple M1 Pro / 16 GB",
+  "browser": "Chrome 155 / WebGPU",
+  "fixtureSeconds": 9,
+  "fixtureSha256": "cfda40adedfffebe352ab0962be8d488d9e0ca0bb6c25b56caabf6a19d5dd8df",
+  "cloudReference": {
+    "queueSeconds": 11.277068376541138,
+    "processingSeconds": 33.29628920555115,
+    "serverTotalSeconds": 44.573357582092285,
+    "uploadIncluded": false,
+    "newCloudJobs": 0
+  },
+  "runs": [
+    {
+      "scenario": "Uncapped localhost",
+      "run": 1,
+      "seconds": 73.9625,
+      "downloadedModelBytes": 611957925,
+      "totalTimedResponseBytes": 637606403,
+      "WAVsValid": true,
+      "matchesSpeedTarget": false,
+      "maxHeartbeatGapSeconds": 1.6386999999880791
+    },
+    {
+      "scenario": "Uncapped localhost",
+      "run": 2,
+      "seconds": 69.40739999997616,
+      "downloadedModelBytes": 611957925,
+      "totalTimedResponseBytes": 637606413,
+      "WAVsValid": true,
+      "matchesSpeedTarget": false,
+      "maxHeartbeatGapSeconds": 0.5642999999523163
+    },
+    {
+      "scenario": "Simulated 100 Mbit/s",
+      "run": 1,
+      "seconds": 203.87119999998808,
+      "downloadedModelBytes": 611957925,
+      "totalTimedResponseBytes": 637606403,
+      "WAVsValid": true,
+      "matchesSpeedTarget": false,
+      "maxHeartbeatGapSeconds": 10.89919999998808,
+      "postDownloadStageGapSeconds": 86.65339999997616
+    }
+  ],
+  "outputHashesIdentical": true,
+  "outputSha256": {
+    "kick.wav": "6a74cae2671e3ac9c60ba35e61481a83bd8a66e2f14d6a9d7d607b3fd25f0912",
+    "snare.wav": "fcddccd7898e327f66aa29ad0e946b7ba633fbcb155795ecaaaf9e80f3b5318f",
+    "percussion.wav": "c2b5ee42f01346f9bdf550dd5f11c2d374c527a32ef71b445ec88cbc5c88c297",
+    "hi-hat.wav": "0f053533d030f31fbd0fb92c80c60b2e6255ee3896d1405e7fd4f48b9a1ee04a"
+  },
+  "models": {
+    "demucs": {
+      "sha256": "8a97d3ad83639b9b0bf7c0e2342269a98db3b403a645703752697634a10ee3d3",
+      "bytes": 174263488
+    },
+    "helyx": {
+      "sha256": "53abe3036f6fb7fdcfc54f583f236d934f39aa822e2ba9ed80b8ca48b1aff498",
+      "bytes": 437694437
+    }
+  },
+  "limitations": [
+    "Transfers are local or locally bandwidth-limited, not a real internet CDN test.",
+    "Model cache and HTTP asset transfers are cold; browser compiled-code and GPU driver caches were not reset.",
+    "Cloud baseline includes queue and processing, but excludes upload.",
+    "Browser output scope is four kit stems; the cloud job also produced mix stems, one-shots, loops and MIDI.",
+    "Other apps were running; measurements do not establish performance for other devices."
+  ]
+}
