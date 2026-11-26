@@ -30,8 +30,15 @@ checks were rerun on `7e64b06`. Its additional changes affect training files.
 | Compiled DSP rebuilt with pinned Zig | Identical |
 | Packaged browser assets versus current source | All 10 match |
 
-The local Python dependency versions match the CI workflow. GitHub-hosted CI
-has not been run for these new commits yet.
+GitHub [CI run 45758511952](https://github.com/Brandon-Crosby/drum-queue/actions/runs/45758511952)
+passed the Python, package, deployment-watch, DSP rebuild and JavaScript checks.
+The first Linux rebuild exposed host-specific compiler metadata in WASM; stripping
+that metadata fixed reproducibility without changing executable sections.
+
+This documentation cleanup also removes the unused lossy-weight export tool and
+its three dedicated tests. The retained Python suite has 32 tests; runtime and
+existing-feature coverage are unchanged. The table above records the original
+pre-cleanup run, rather than relabeling it as a new measurement.
 
 The real Chrome UI test used the existing public website build with previously
 generated audio. Preview requests were deliberately held, failed, then allowed

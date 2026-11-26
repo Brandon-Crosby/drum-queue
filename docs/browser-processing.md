@@ -1,13 +1,11 @@
 # Experimental browser processing
 
-Status: local candidate. **PR on hold:** the requested first-use speed target
-(including model download and setup) has not been met. The live site is not
-updated by this work.
+Status: experimental backend under review. The live site does not select it yet.
+First-use speed parity and the full website result contract remain release gates.
 
-The standalone experimental page, renderer and opt-in link were removed at the
-user's request. `web/site/index.html` and `styles.css` match the base revision
-`c9d765e`. Existing picker, mixer, EQ, one-shot, loop and download controls are the
-UI contract. The background processor never renders controls or changes page DOM.
+The existing picker, mixer, EQ, one-shot, loop and download controls remain the
+UI contract. The background processor never renders controls or changes page DOM;
+this change adds no alternate interface.
 
 `processor.js` currently exposes a UI-independent `DrumBrowserProcessor.process`
 API, returning progress events and WAV buffers. It is not wired into the public
@@ -26,9 +24,9 @@ operation is on GPU.
 Demucs uses deterministic zero-shift inference, normalization and 25% overlap;
 Helyx uses overlap 4, reflection padding and linear crossfades. Cloud settings
 with random shifts/ensembles can produce different results. Four PCM24 WAVs are
-returned: kick, snare, percussion and hi-hat. Full mix stems, one-shots, loops,
-MIDI and the full existing result contract are not implemented in this processor.
-The existing website retains those features.
+returned: kick, snare, percussion and hi-hat. The separation API returns only these four stems. An optional CPU pipeline
+prepares one-shots, loops, MIDI and ZIPs from them; full-mix outputs and the
+existing website result adapter remain unimplemented.
 
 ## Limits and deployment
 
@@ -96,123 +94,37 @@ cancellation/retry, WAV encoding, cache/hash validation, tensor/session cleanup,
 and no-fallback tests. Actual GPU model runs are manual because CI has neither
 licensed weights nor representative physical GPU hardware.
 
-## Measured on the development Mac
+## Sample preparation and combined pipeline
 
-Apple M1 Pro / 16 GB / Chrome WebGPU. These measurements are observations, not
-speed or hardware-support guarantees. Other development work ran on this Mac;
-these are not controlled live-service benchmarks.
+`postprocess.js` owns a reusable Pyodide 0.29.0 worker. It runs the existing Python
+sample, loop and MIDI algorithms; `pipeline.js` overlaps setup with separation.
+It removes each job's temporary files and releases the worker on cancellation,
+failure, disposal or five minutes of inactivity. Only one job runs at a time.
 
-A 9-second stereo clip completed in 126.85 seconds with cached weights, including
-fresh sessions and DSP. The same zero-shift/overlap Python CPU reference took
-54.22 seconds. A later live-site check is described below. First use additionally
-requires the ~612 MB model transfer. This browser path is currently a slower,
-experimental alternative, not a replacement for the live service.
+Stage the runtime, naming reference and optional checked-hash bytecode cache
+outside the source tree:
 
-| Output | Frames per channel | SNR vs equivalent Python | Maximum sample error |
-| --- | ---: | ---: | ---: |
-| Kick | 396900 | 79.76 dB | 1.48e-7 |
-| Snare | 396900 | 102.66 dB | 1.15e-6 |
-| Percussion | 396900 | 103.89 dB | 1.09e-6 |
-| Hi-hat | 396900 | 82.26 dB | 1.35e-6 |
+```sh
+node tools/browser/prepare_bytecode.cjs /path/to/pyodide-runtime /path/to/bytecode
+python tools/browser/prepare_postprocess.py --runtime /path/to/pyodide-runtime --reference /path/to/soundid_ref.npz --bytecode /path/to/bytecode --output /path/to/post-assets
+```
 
-All samples were finite. The comparison includes PCM24 encoding error and checks
-full overlap-add output, not only one neural block. It establishes numerical
-agreement with equivalent settings; it is not a listening-quality comparison
-with the deployed cloud pipeline. Exporting with the supplied tool reproduced
-the tested ONNX files byte-for-byte; both PyTorch export adapters had zero maximum
-round-trip error before ONNX export.
+The combined prototype requires `DrumBrowserPipeline.create({allowKitOnly: true})`.
+Without that explicit opt-in, the adapter requires the full stem set. It does not
+silently substitute partial output for the website's existing features.
 
-The page's 100 ms heartbeat continued during the worker run (1185 ticks; largest
-observed gap 1.19 seconds, including decode/setup/output work). This demonstrates
-continued page scheduling, not a guarantee of zero UI latency or a peak GPU-memory
-measurement. Cache reads were observed for both models on the second run.
+## Existing preview recovery
 
-A 30-second clip also completed with cached weights in 243.82 seconds, producing
-four finite stereo WAVs of 1,323,000 frames per channel (7,938,044 bytes each).
-The 100 ms heartbeat ticked 2367 times, with an observed maximum gap of 826 ms.
-A 31-second clip was rejected through the actual file picker before model work.
-This checks the advertised cap on this machine, not a general memory ceiling.
+A live test returned `File is gone` for a listed hi-hat preview while the mixer
+remained on Loading. The backend fix publishes files before announcing completion,
+prevents caching preview errors, and lets the existing mixer play available stems
+and retry missing previews. Tests cover publication ordering and failure recovery;
+the production cause was not confirmed from deployment logs.
 
-In the candidate UI, playback time advanced, starting another stem paused the
-previous player, and Stop paused/reset all players. A WAV saved through Chrome's
-native Save dialog was byte-identical to the captured worker output. Cancel
-during model preparation restored controls; retry started a new worker.
+## Performance and verification
 
-## Live-site baseline and preview recovery
-
-An authenticated test on drumsplitter.com uploaded a generated 9-second drum
-fixture. The live job reported 11.28 seconds queued and 33.30 seconds running
-(44.57 seconds from server creation to completion, excluding upload). Its result
-listed a hi-hat preview that returned `File is gone`; the live mixer remained on
-Loading even after other previews loaded. This was observed before these changes
-were deployed.
-
-The cloud worker currently writes the done status before its final volume commit.
-The proposed fix publishes output files before setting done, prevents caching
-error responses, and lets the mixer play loaded stems and retry missing previews.
-The storage race is consistent with the live response; the production cause
-cannot be confirmed without deployment logs. Tests verify publication ordering
-and failure handling. The candidate UI was tested with a real MP3 response and an
-injected initial 404: mute/unmute loaded the missing stem, playback advanced to
-0:08, and Stop returned it to 0:00. This was a local served candidate, not a
-claim that the production backend has already been repaired.
-
-## WebAssembly optimization and remaining speed gate
-
-Profiling a later 9-second run measured 139.11 seconds total: about 86.22 seconds
-of JavaScript transforms, 20.72 seconds model creation and 23.52 seconds inference.
-The compiled transform replacement reduced a complete run to 59.34 seconds.
-Its four PCM24 outputs were byte-identical to the earlier worker outputs and
-retained the same Python-reference agreement above. The transform-only Node
-tests also passed within a maximum 1e-7 sample difference.
-
-This still does **not** establish first-use parity with the live site. The
-59.34-second run used cached model files, and the live cloud job's server interval
-was 44.57 seconds. Initial model transfer is additional. At 100 Mbit/s, transmitting
-611,957,925 bytes alone has a theoretical lower bound of about 49 seconds before
-protocol overhead, setup or inference. A localhost transfer is not a meaningful
-internet download benchmark. No public weight hosting has been configured.
-
-Only one generated 9-second clip was submitted to the live cloud service. All
-other model tests ran on the development Mac. The PR remains unsubmitted pending
-the first-use performance requirement; passing regression tests does not waive
-that requirement or establish support for every browser and GPU.
-
-Final end-to-end candidate UI check: the same generated 9-second clip used for the
-live cloud test completed in **154 seconds**, as reported by the page's own timer
-from Split through returned WAVs, including setup with cached models. Its snare
-preview advanced to the end and Stop reset all four players. This slower UI
-observation supersedes any suggestion that the 59.34-second harness result proves
-normal-use speed. Timing varies substantially in this environment. First-download
-parity remains unproven and the observed cached run already misses the target.
-
-Final local checks: 21 Python tests, 30 browser/UI tests, 4 source-build tests and
-1 deployment-watch test pass. The compiled DSP binary was rebuilt with pinned
-Zig and its SHA-256 remained unchanged. No regression was found in these tested
-cases; this is not a claim about all hardware or all production conditions.
-
-## Existing UI preserved
-
-The earlier standalone page and screenshots above are historical prototype QA;
-that page and its renderer are removed from the proposed source changes. The
-processor is tested separately for file limits, cancellation during decode and
-inference, retries, concurrency and error cleanup. A DOM assertion confirms that
-processing leaves the surrounding application's body unchanged. No cloud GPU
-jobs were started for this refactor.
-
-After removing the alternate UI, all 33 browser/UI checks pass, including the
-existing mixer flows and the UI-independent processor tests. The desktop source
-package builds successfully. A direct diff against c9d765e confirms no changes to
-the existing index.html or styles.css. The visual check used a local result fixture
-and did not run any cloud inference.
-
-The optimized first-use check is recorded in `browser-speed-check.md` and
-`benchmarks/browser-model-loading.json`. Removing full-model buffer copies and
-moving cache writes off the inference critical path reduced uncapped cold-asset
-runs to 29.07–35.94 seconds, with byte-identical WAVs. At simulated 100 Mbit/s,
-first-use still takes 109.26 seconds and misses the target. The current loader
-has six additional failure-mode tests; all 39 browser/UI checks pass. The PR
-remains on hold for first-use speed and the incomplete full-site feature contract.
-
-The follow-up audit, including the retained long-run outlier, WAV preflight fix
-and lossless download tests, is in [browser-performance-audit.md](browser-performance-audit.md).
+See [pipeline measurements](browser-pipeline-reuse.md) for the combined speed
+comparison and reproduction commands, and [regression checks](browser-regression-review.md)
+for tested behavior. Both retain the limits of the evidence. Original per-run
+reports remain available in the linked commit history; they are not required
+runtime assets.

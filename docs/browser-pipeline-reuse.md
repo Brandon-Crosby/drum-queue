@@ -58,10 +58,7 @@ adding `--post-assets /path/to/post-assets --post-mode serial` for the control,
 or `--post-mode overlap --post-reuse` for the candidate. Both pairs here used
 `--runs 2 --reuse-cache --mbps 100 --profile --save-wavs`.
 
-Validation covers 65 JavaScript tests, 35 Python tests, four package tests and
-the deployment-watch test. New lifecycle checks include shared preparation,
-concurrent-job rejection, cancellation, synchronous posting failure, idle
-expiry, stale-worker errors, asset verification and cleanup before completion.
+Current automated and UI results are in [the regression review](browser-regression-review.md).
 
 ## Scope
 
@@ -73,3 +70,20 @@ run. The 30-second prototype limit remains.
 
 The source hashes, manifests, timings and output hashes are recorded in
 [the evidence JSON](benchmarks/browser-pipeline-reuse.json).
+
+## Earlier screening and rejected experiment
+
+Earlier separation-only tests included a 320.24-second cached 30-second run and
+37.06-second heartbeat gap. Its cause was not fully isolated; later passing runs
+do not prove it cannot recur. A pre-fix WAV metadata timeout is also retained in
+the JSON summary. Those timings exclude sample preparation and cannot be compared
+directly with the combined table above.
+
+Reduced-precision Helyx weights saved 22.49% of the gzip model transfer but were
+slower in the measured pair (99.63 s cold / 71.13 s cached versus 88.70 / 49.16 s).
+The unused lossy export experiment was removed; this backend retains float32 models.
+
+[Full historical reports](https://github.com/Brandon-Crosby/drum-queue/tree/48aa4ea101c3b1c76c3002e8eee7abb11c5970a1/docs/benchmarks)
+remain accessible for provenance. The current JSON keeps source/model hashes,
+all four combined timings, one copy of output references and earlier screening
+results, without repeated per-stage traces and artifact hashes.
