@@ -113,3 +113,13 @@ Launch (after helyx-7 finishes; data uploaded to /oneshots and /trainset-flp-bsr
     cd ~/drum-queue-web; and git pull; and modal deploy train/modal_train.py
     modal run --detach train/modal_train.py::go --run helyx-8 --init runs/helyx-7/<best>.ckpt --hours 4 --synth 80 --bleedless 5e-6
 `--synth 80` re-renders the synthesized clips so they use the real La Uzi one-shots.
+
+## helyx-8 result (Nov 25, 2026): failed, NaN
+Validation SDR 0.0000 after epoch 0, and the log shows loss=nan on every step. Cause, reproduced:
+MSST's bleedless penalty converts to dB with AmplitudeToDB (floor 1e-10); under fp16 autocast that floor
+underflows to 0, so a silent reference stem (any chunk with no perc or no hats, very common) gives -inf dB
+and an infinite loss, which broke the weights. Even in fp32 a silent reference makes the penalty ~150
+against a main loss of ~1e-3. Noise-bed practice tested clean (300 random runs, all finite).
+Changes: `--bleedless` now refuses to run; training stops itself after 50 NaN/inf steps in a row (NaN
+tripwire in msst_patch.py). Next run: helyx-9 = helyx-7 best + noise bed + the ~54k one-shot bank,
+first as a 0.5 h sanity run (epoch 0 SDR should land near helyx-7's 2.6).

@@ -203,6 +203,11 @@ def train_remote(run: str, hours: float, resume: bool, steps: int, init: str = '
         w = {'snare': snare_weight}
         losses = ['stem_l1_snr_loss']
         cmd += ['--stem_loss_weights'] + [str(w.get(k, 1.0)) for k in cfg['training']['instruments']]
+    if bleedless > 0:
+        # helyx-8 (Nov 2026): MSST's bleedless penalty goes to infinity on a silent reference stem under fp16
+        # (AmplitudeToDB's 1e-10 floor underflows to 0 -> -inf dB) and the whole run trained on NaN. Off until
+        # it runs in fp32, skips silent chunks and is sized against the main loss.
+        raise SystemExit('--bleedless is disabled: it blew up helyx-8 (NaN). See train/NEXT_RUN.md.')
     if bleedless > 0:                  # helyx-8: penalize what a stem has that the truth doesn't (hiss, bleed)
         losses.append('bleedless_penalty_loss')
         cmd += ['--bleedless_penalty_loss_coef', str(bleedless)]

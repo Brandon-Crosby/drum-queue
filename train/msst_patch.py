@@ -67,7 +67,34 @@ def patch(root: Path):
                       + anchor, 1)
         sf.write_text(s)
     patch_dataset(root)
-    print('msst patched: stem_l1_snr_loss, mixaug (aligned grooves, restack, master chain)')
+    patch_tripwire(root)
+    print('msst patched: stem_l1_snr_loss, mixaug (aligned grooves, restack, master chain), NaN tripwire')
+
+
+NAN_LIMIT = 50          # this many training steps in a row with a NaN/inf loss: the model is broken, stop
+
+
+def patch_tripwire(root: Path):
+    """Stop training as soon as the loss stays NaN/inf, instead of burning GPU hours on a broken model
+    (helyx-8: the bleedless penalty went infinite on silent stems under fp16 and the run trained on NaN
+    for ~3 h). A lone bad step can happen with mixed precision (the grad scaler skips it); 50 in a row
+    can't."""
+    tf = root / 'train.py'
+    s = tf.read_text()
+    if 'NaN tripwire' in s:
+        return
+    a = """            li = loss.item() * gradient_accumulation_steps
+            all_losses[f'epoch_{epoch}'].append(li)"""
+    assert s.count(a) == 1, 'train.py: loss.item() line not found'
+    s = s.replace(a, """            li = loss.item() * gradient_accumulation_steps
+            globals()['_bad_steps'] = 0 if math.isfinite(li) else globals().get('_bad_steps', 0) + 1
+            if globals()['_bad_steps'] >= %d:
+                raise SystemExit(f'NaN tripwire: {globals()["_bad_steps"]} training steps in a row with loss={li}; '
+                                 'stopping (the model weights are broken; see train/NEXT_RUN.md)')
+            all_losses[f'epoch_{epoch}'].append(li)""" % NAN_LIMIT, 1)
+    if '\nimport math' not in s:
+        s = 'import math\n' + s
+    tf.write_text(s)
 
 
 def patch_dataset(root: Path):
