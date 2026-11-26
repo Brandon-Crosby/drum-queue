@@ -162,7 +162,8 @@ class Splitter:
         import service
         vol.reload()
         try:
-            service.run_job(jid, '/data', DictStore(kv), self.models, MIX_MODEL, MAX_MINUTES * 60)
+            service.run_job(jid, '/data', DictStore(kv), self.models, MIX_MODEL, MAX_MINUTES * 60,
+                            publish=vol.commit)
         finally:
             vol.commit()
 
