@@ -21,7 +21,7 @@ output.parent.mkdir(parents=True, exist_ok=True)
 subprocess.run([args.zig, 'cc', '-target', 'wasm32-freestanding', '-O3',
                 *(['-msimd128'] if args.simd else []),
                 '-ffp-contract=off', '-fno-builtin', '-nostdlib',
-                '-Wl,--no-entry', '-Wl,--export-memory',
+                '-Wl,--no-entry', '-Wl,--export-memory', '-Wl,--strip-all',
                 '-Wl,--initial-memory=41943040', '-Wl,--max-memory=41943040',
                 str(root / 'tools/browser/dsp.c'), '-o',
                 str(output)], check=True)
