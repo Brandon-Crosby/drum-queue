@@ -14,3 +14,6 @@ web/backend/.local_data/
 ab_result.json
 eval_results/
 kitmatch/soundid_ref.npz
+
+# Local browser model exports, test audio and staged runtimes.
+/build/
