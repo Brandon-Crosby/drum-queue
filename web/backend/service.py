@@ -200,7 +200,10 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
     async def only_via_proxy(request, call_next):
         if S.proxy_secret and request.headers.get('x-proxy-secret') != S.proxy_secret:
             return JSONResponse({'error': 'Forbidden'}, status_code=403)
-        return await call_next(request)
+        response = await call_next(request)
+        if response.status_code >= 400:
+            response.headers["Cache-Control"] = "no-store"
+        return response
 
     def counts(vkey):
         d = today()
@@ -461,7 +464,7 @@ def _progress(store, jid, stage):
     update_job(store, jid, stage=stage, log=log)
 
 
-def run_job(jid, root, store, models, mix_model='htdemucs_ft', max_seconds=None):
+def run_job(jid, root, store, models, mix_model='htdemucs_ft', max_seconds=None, *, publish=None):
     """Runs where the GPU is. Splits jobs/<id>/input/<song> into jobs/<id>/out/<song>/."""
     root = Path(root)
     j = store.get(f'job:{jid}') or {}
@@ -480,6 +483,11 @@ def run_job(jid, root, store, models, mix_model='htdemucs_ft', max_seconds=None)
             root / 'jobs' / jid / 'out', models,
             lambda st: _progress(store, jid, st), preview_fmt='mp3', max_seconds=max_seconds)
         done = time.time()
+        if (store.get(f'job:{jid}') or {}).get('cancelled'):
+            return
+        # Other containers must be able to read every output before polling sees done.
+        if publish is not None:
+            publish()
         if (store.get(f'job:{jid}') or {}).get('cancelled'):
             return
         update_job(store, jid, status='done', stage='Done', finished=done, **res)

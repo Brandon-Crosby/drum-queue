@@ -1,0 +1,493 @@
+{
+  "schema": 2,
+  "scope": "Combined four-stem browser prototype including sample preparation; not full-site parity",
+  "hardware": "M1 Pro / 16 GB / Chrome 155 / WebGPU",
+  "bandwidthMbps": 100,
+  "cloudJobs": 0,
+  "originalUiChanged": false,
+  "inputSha256": "cfda40adedfffebe352ab0962be8d488d9e0ca0bb6c25b56caabf6a19d5dd8df",
+  "inputSeconds": 9,
+  "modelManifest": {
+    "schema": 1,
+    "runtime": "onnxruntime-web@1.23.2",
+    "models": {
+      "demucs": {
+        "sha256": "8a97d3ad83639b9b0bf7c0e2342269a98db3b403a645703752697634a10ee3d3",
+        "bytes": 174263488
+      },
+      "helyx": {
+        "sha256": "53abe3036f6fb7fdcfc54f583f236d934f39aa822e2ba9ed80b8ca48b1aff498",
+        "bytes": 437694437
+      }
+    }
+  },
+  "postManifest": {
+    "schema": 1,
+    "runtime": "pyodide@0.29.0",
+    "python": {
+      "bytes": 51688,
+      "sha256": "bb81824b34bfcea93175625bd6d8ccc7307e22d5348d230957898776a49f5c6e"
+    },
+    "reference": {
+      "bytes": 17861537,
+      "sha256": "034fe928cdb000ecb6aec5f668ddb5f3ad88970986e5653cfc0b68ff4b54ed0a"
+    },
+    "bytecode": {
+      "bytes": 6063786,
+      "sha256": "e3f8ee16c566d27df313e4318895a98281a8fd8cffdebcf61379579e986ad329"
+    }
+  },
+  "sourceHashes": {
+    "web/site/browser/dsp-native.js": "258eb819933b64c5fc4a0d4568082a0f049b58290b685f2889fc9e543942606f",
+    "web/site/browser/dsp.js": "4fbcd1b771eb95b3f70fba7ecd54a98eed8065de45442c114d0f73141a242784",
+    "web/site/browser/dsp.wasm": "97c2f587b4c3b640a3329a6b9a688428ac3719f531b13eb32d0253f939ffe356",
+    "web/site/browser/engine.js": "8646ce04c08a8b39a1622b1ce1c1b92390cb9ec67c0b40b89b4c3b80e7787861",
+    "web/site/browser/model-loader.js": "660981586ca08b3eedce232cdab8e346243ff7fc40e0c12aa482ceea282d2afa",
+    "web/site/browser/pipeline.js": "432646d5b7dd7159d541afb67760e13e1dc0f03845109c7dc89afbf91df8c008",
+    "web/site/browser/postprocess-worker.js": "c6fbac304f76195cb2e51d8fae4475e0e4e3574c0525df534c9bd7e2ee2e3832",
+    "web/site/browser/postprocess.js": "7c3a4f3e5a8aafb046cc9c03d1bb5a35cbc60c9bfd8d54feccee77ac8f460867",
+    "web/site/browser/processor.js": "d185c53eb351096b543586d0bf4363ffebe138e31d083b2ba6a15db77c2f5c83",
+    "web/site/browser/worker.js": "6046be1e8efdaef8e51ba3912da9a74dc323b10be8d82f7914c29b5d8668665f"
+  },
+  "runs": [
+    {
+      "mode": "serial",
+      "index": 1,
+      "seconds": 139.316,
+      "cache": "cold model cache",
+      "networkBytes": 586778908,
+      "modelBytes": 505600227,
+      "sampleAssetBytes": null,
+      "allArtifactContentsMatchNative": true,
+      "heartbeat": {
+        "ticks": 1379,
+        "maxGapMs": 692.3999999761581
+      }
+    },
+    {
+      "mode": "serial",
+      "index": 2,
+      "seconds": 108.93,
+      "cache": "verified cached models",
+      "networkBytes": 81178736,
+      "modelBytes": 0,
+      "sampleAssetBytes": null,
+      "allArtifactContentsMatchNative": true,
+      "heartbeat": {
+        "ticks": 1053,
+        "maxGapMs": 671
+      }
+    },
+    {
+      "mode": "overlap",
+      "index": 1,
+      "seconds": 108.49,
+      "cache": "cold model cache",
+      "networkBytes": 586778967,
+      "modelBytes": 505600227,
+      "sampleAssetBytes": 55516830,
+      "allArtifactContentsMatchNative": true,
+      "heartbeat": {
+        "ticks": 1049,
+        "maxGapMs": 1368.8999999761581
+      }
+    },
+    {
+      "mode": "overlap",
+      "index": 2,
+      "seconds": 63.211,
+      "cache": "verified cached models",
+      "networkBytes": 25655704,
+      "modelBytes": 0,
+      "sampleAssetBytes": 0,
+      "allArtifactContentsMatchNative": true,
+      "heartbeat": {
+        "ticks": 630,
+        "maxGapMs": 230.60000002384186
+      }
+    }
+  ],
+  "limitations": [
+    "One shared Mac and sequential pairs; GPU driver caches were not reset",
+    "Simulated shared bandwidth cap on localhost, not a CDN test",
+    "Serial control initializes sample runtime per job; overlap candidate retains it",
+    "Four kit stems only; full mix model and longer clips remain unvalidated",
+    "Artifact ZIP timestamps are excluded from byte comparisons"
+  ],
+  "tests": {
+    "javascript": 65,
+    "python": 35,
+    "package": 4,
+    "deploymentWatch": 1
+  },
+  "nativeArtifactReference": [
+    {
+      "kind": "stem",
+      "name": "kick.wav",
+      "sha256": "6a74cae2671e3ac9c60ba35e61481a83bd8a66e2f14d6a9d7d607b3fd25f0912"
+    },
+    {
+      "kind": "stem",
+      "name": "snare.wav",
+      "sha256": "fcddccd7898e327f66aa29ad0e946b7ba633fbcb155795ecaaaf9e80f3b5318f"
+    },
+    {
+      "kind": "stem",
+      "name": "perc.wav",
+      "sha256": "c2b5ee42f01346f9bdf550dd5f11c2d374c527a32ef71b445ec88cbc5c88c297"
+    },
+    {
+      "kind": "stem",
+      "name": "hh.wav",
+      "sha256": "0f053533d030f31fbd0fb92c80c60b2e6255ee3896d1405e7fd4f48b9a1ee04a"
+    },
+    {
+      "kind": "shot",
+      "name": "synthetic-drum-clip - Groove (full song).mid",
+      "sha256": "9a96b91bdd666626ce22b4eb42a8d8b3cb1145e832b3424658155224daa05a78"
+    },
+    {
+      "kind": "shot",
+      "name": "synthetic-drum-clip - Groove.mid",
+      "sha256": "9d0fba18556f856168d5a2ecc908206b4d42a0265b909e580049847ea420f6bd"
+    },
+    {
+      "kind": "shot",
+      "name": "synthetic-drum-clip - Kick 1.wav",
+      "sha256": "ac5e3a1c44a6172be4c713058709c60d7fbb7555ffbaf8601018d584a284da2d"
+    },
+    {
+      "kind": "shot",
+      "name": "synthetic-drum-clip - Kick loop 120 BPM (4 bars).wav",
+      "sha256": "c81fcd22e0dd5d5b2c451c2349e4f8d735a9cb8bf5384209a528dabcf695e80e"
+    },
+    {
+      "kind": "shot",
+      "name": "synthetic-drum-clip - Snare-Perc 1.wav",
+      "sha256": "fbcb7bd2c565ed5bcc2f70923b0b798eb842710c0f0e2705ba8a085dbb48b766"
+    },
+    {
+      "kind": "shot",
+      "name": "synthetic-drum-clip - Snare-Perc loop 120 BPM (4 bars).wav",
+      "sha256": "bb44071cc464c984cdd4723e64e728db39247905a6872390583e2465150ce6f2"
+    },
+    {
+      "kind": "zip",
+      "name": "kit",
+      "members": {
+        "synthetic-drum-clip/kick.wav": "6a74cae2671e3ac9c60ba35e61481a83bd8a66e2f14d6a9d7d607b3fd25f0912",
+        "synthetic-drum-clip/snare.wav": "fcddccd7898e327f66aa29ad0e946b7ba633fbcb155795ecaaaf9e80f3b5318f",
+        "synthetic-drum-clip/perc.wav": "c2b5ee42f01346f9bdf550dd5f11c2d374c527a32ef71b445ec88cbc5c88c297",
+        "synthetic-drum-clip/hh.wav": "0f053533d030f31fbd0fb92c80c60b2e6255ee3896d1405e7fd4f48b9a1ee04a"
+      }
+    },
+    {
+      "kind": "zip",
+      "name": "all",
+      "members": {
+        "synthetic-drum-clip/kick.wav": "6a74cae2671e3ac9c60ba35e61481a83bd8a66e2f14d6a9d7d607b3fd25f0912",
+        "synthetic-drum-clip/snare.wav": "fcddccd7898e327f66aa29ad0e946b7ba633fbcb155795ecaaaf9e80f3b5318f",
+        "synthetic-drum-clip/perc.wav": "c2b5ee42f01346f9bdf550dd5f11c2d374c527a32ef71b445ec88cbc5c88c297",
+        "synthetic-drum-clip/hh.wav": "0f053533d030f31fbd0fb92c80c60b2e6255ee3896d1405e7fd4f48b9a1ee04a"
+      }
+    },
+    {
+      "kind": "zip",
+      "name": "shots",
+      "members": {
+        "synthetic-drum-clip - one-shots/synthetic-drum-clip - Groove (full song).mid": "9a96b91bdd666626ce22b4eb42a8d8b3cb1145e832b3424658155224daa05a78",
+        "synthetic-drum-clip - one-shots/synthetic-drum-clip - Groove.mid": "9d0fba18556f856168d5a2ecc908206b4d42a0265b909e580049847ea420f6bd",
+        "synthetic-drum-clip - one-shots/synthetic-drum-clip - Kick 1.wav": "ac5e3a1c44a6172be4c713058709c60d7fbb7555ffbaf8601018d584a284da2d",
+        "synthetic-drum-clip - one-shots/Loops/synthetic-drum-clip - Kick loop 120 BPM (4 bars).wav": "c81fcd22e0dd5d5b2c451c2349e4f8d735a9cb8bf5384209a528dabcf695e80e",
+        "synthetic-drum-clip - one-shots/synthetic-drum-clip - Snare-Perc 1.wav": "fbcb7bd2c565ed5bcc2f70923b0b798eb842710c0f0e2705ba8a085dbb48b766",
+        "synthetic-drum-clip - one-shots/Loops/synthetic-drum-clip - Snare-Perc loop 120 BPM (4 bars).wav": "bb44071cc464c984cdd4723e64e728db39247905a6872390583e2465150ce6f2"
+      }
+    }
+  ],
+  "wavReference": [
+    {
+      "name": "kick.wav",
+      "bytes": 2381444,
+      "rate": 44100,
+      "channels": 2,
+      "bits": 24,
+      "peak": 0.4900728464126587,
+      "sha256": "6a74cae2671e3ac9c60ba35e61481a83bd8a66e2f14d6a9d7d607b3fd25f0912"
+    },
+    {
+      "name": "snare.wav",
+      "bytes": 2381444,
+      "rate": 44100,
+      "channels": 2,
+      "bits": 24,
+      "peak": 0.3531721830368042,
+      "sha256": "fcddccd7898e327f66aa29ad0e946b7ba633fbcb155795ecaaaf9e80f3b5318f"
+    },
+    {
+      "name": "percussion.wav",
+      "bytes": 2381444,
+      "rate": 44100,
+      "channels": 2,
+      "bits": 24,
+      "peak": 0.02842402458190918,
+      "sha256": "c2b5ee42f01346f9bdf550dd5f11c2d374c527a32ef71b445ec88cbc5c88c297"
+    },
+    {
+      "name": "hi-hat.wav",
+      "bytes": 2381444,
+      "rate": 44100,
+      "channels": 2,
+      "bits": 24,
+      "peak": 0.30270159244537354,
+      "sha256": "0f053533d030f31fbd0fb92c80c60b2e6255ee3896d1405e7fd4f48b9a1ee04a"
+    }
+  ],
+  "historicalScreening": {
+    "scope": "Local performance screening on one M1 Pro Mac; no cloud GPU jobs; not full-site integration or cross-device certification",
+    "baselineCommit": "e79ff02",
+    "loaderCommit": "9470aac",
+    "wavHeaderCommit": "3a1bb74",
+    "runs": [
+      {
+        "case": "a1-9s",
+        "variant": "previous",
+        "revision": "e79ff02",
+        "inputSeconds": 9,
+        "cache": "cold model cache",
+        "seconds": 127.781,
+        "downloadedModelBodyBytes": 611957925,
+        "maxHeartbeatGapSeconds": 1.236,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "a1-9s",
+        "variant": "previous",
+        "revision": "e79ff02",
+        "inputSeconds": 9,
+        "cache": "verified cached models",
+        "seconds": 54.777,
+        "downloadedModelBodyBytes": 0,
+        "maxHeartbeatGapSeconds": 0.34,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "b1-9s",
+        "variant": "current loader",
+        "revision": "9470aac",
+        "inputSeconds": 9,
+        "cache": "cold model cache",
+        "seconds": 34.221,
+        "downloadedModelBodyBytes": 611957925,
+        "maxHeartbeatGapSeconds": 0.256,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "b1-9s",
+        "variant": "current loader",
+        "revision": "9470aac",
+        "inputSeconds": 9,
+        "cache": "verified cached models",
+        "seconds": 49.982,
+        "downloadedModelBodyBytes": 0,
+        "maxHeartbeatGapSeconds": 0.146,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "a2-9s",
+        "variant": "previous",
+        "revision": "e79ff02",
+        "inputSeconds": 9,
+        "cache": "cold model cache",
+        "seconds": 52.903,
+        "downloadedModelBodyBytes": 611957925,
+        "maxHeartbeatGapSeconds": 0.234,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "a2-9s",
+        "variant": "previous",
+        "revision": "e79ff02",
+        "inputSeconds": 9,
+        "cache": "verified cached models",
+        "seconds": 51.69,
+        "downloadedModelBodyBytes": 0,
+        "maxHeartbeatGapSeconds": 1.131,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "b2-9s",
+        "variant": "current loader",
+        "revision": "9470aac",
+        "inputSeconds": 9,
+        "cache": "cold model cache",
+        "seconds": 32.833,
+        "downloadedModelBodyBytes": 611957925,
+        "maxHeartbeatGapSeconds": 0.536,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "b2-9s",
+        "variant": "current loader",
+        "revision": "9470aac",
+        "inputSeconds": 9,
+        "cache": "verified cached models",
+        "seconds": 54.615,
+        "downloadedModelBodyBytes": 0,
+        "maxHeartbeatGapSeconds": 0.499,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "a1-30s",
+        "variant": "previous",
+        "revision": "e79ff02",
+        "inputSeconds": 30,
+        "cache": "cold model cache",
+        "seconds": 109.389,
+        "downloadedModelBodyBytes": 611957925,
+        "maxHeartbeatGapSeconds": 0.862,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "a1-30s",
+        "variant": "previous",
+        "revision": "e79ff02",
+        "inputSeconds": 30,
+        "cache": "verified cached models",
+        "seconds": 156.687,
+        "downloadedModelBodyBytes": 0,
+        "maxHeartbeatGapSeconds": 4.471,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "b1-30s",
+        "variant": "current loader",
+        "revision": "9470aac",
+        "inputSeconds": 30,
+        "cache": "cold model cache",
+        "seconds": 97.086,
+        "downloadedModelBodyBytes": 611957925,
+        "maxHeartbeatGapSeconds": 0.537,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "b1-30s",
+        "variant": "current loader",
+        "revision": "9470aac",
+        "inputSeconds": 30,
+        "cache": "verified cached models",
+        "seconds": 320.244,
+        "downloadedModelBodyBytes": 0,
+        "maxHeartbeatGapSeconds": 37.059,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "focused-current-30s",
+        "variant": "WAV header candidate",
+        "revision": "initial header candidate; final conservative fallback in 3a1bb74",
+        "inputSeconds": 30,
+        "cache": "cold model cache",
+        "seconds": 81.683,
+        "downloadedModelBodyBytes": 611957925,
+        "maxHeartbeatGapSeconds": 0.229,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "focused-current-30s",
+        "variant": "WAV header candidate",
+        "revision": "initial header candidate; final conservative fallback in 3a1bb74",
+        "inputSeconds": 30,
+        "cache": "verified cached models",
+        "seconds": 94.462,
+        "downloadedModelBodyBytes": 0,
+        "maxHeartbeatGapSeconds": 0.148,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "focused-baseline-30s",
+        "variant": "previous",
+        "revision": "e79ff02",
+        "inputSeconds": 30,
+        "cache": "cold model cache",
+        "seconds": 153.881,
+        "downloadedModelBodyBytes": 611957925,
+        "maxHeartbeatGapSeconds": 0.919,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "focused-baseline-30s",
+        "variant": "previous",
+        "revision": "e79ff02",
+        "inputSeconds": 30,
+        "cache": "verified cached models",
+        "seconds": 107.715,
+        "downloadedModelBodyBytes": 0,
+        "maxHeartbeatGapSeconds": 1.285,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "native-before-wav-fix",
+        "variant": "initial loader, media metadata path",
+        "revision": "9470aac",
+        "inputSeconds": 30,
+        "cache": "cold model cache",
+        "seconds": 101.046,
+        "downloadedModelBodyBytes": 611957925,
+        "maxHeartbeatGapSeconds": 2.514,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "raw-100mbps",
+        "variant": "identity",
+        "revision": "3a1bb74",
+        "inputSeconds": 9,
+        "cache": "cold model cache",
+        "seconds": 122.766,
+        "downloadedModelBodyBytes": 611957925,
+        "maxHeartbeatGapSeconds": 0.606,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "gzip-100mbps",
+        "variant": "gzip",
+        "revision": "3a1bb74",
+        "inputSeconds": 9,
+        "cache": "cold model cache",
+        "seconds": 95.741,
+        "downloadedModelBodyBytes": 505600227,
+        "maxHeartbeatGapSeconds": 0.557,
+        "outputMatchesBaselineBytes": true
+      },
+      {
+        "case": "gzip-100mbps",
+        "variant": "gzip",
+        "revision": "3a1bb74",
+        "inputSeconds": 9,
+        "cache": "verified cached models",
+        "seconds": 52.85,
+        "downloadedModelBodyBytes": 0,
+        "maxHeartbeatGapSeconds": 0.718,
+        "outputMatchesBaselineBytes": true
+      }
+    ],
+    "flaggedCases": [
+      {
+        "case": "b1-30s/run-2",
+        "issue": "320.24 second cached run with 37.06 second main-thread heartbeat gap; retained as a performance outlier, cause not fully isolated"
+      },
+      {
+        "case": "focused-current-30s before WAV fix",
+        "error": "Error: Could not read this audio file.",
+        "details": "Second run started hidden and failed metadata preflight; repeated PCM WAV processing now uses bounded header reads instead of a media element"
+      }
+    ],
+    "cloudReference": {
+      "queueSeconds": 11.277068376541138,
+      "processingSeconds": 33.29628920555115,
+      "serverTotalSeconds": 44.573357582092285,
+      "uploadIncluded": false,
+      "newCloudJobs": 0
+    },
+    "note": "Historical separation-only screening; not directly comparable to combined pipeline timings. Unresolved outlier is retained."
+  },
+  "fullMeasurementArchive": "https://github.com/Brandon-Crosby/drum-queue/tree/48aa4ea101c3b1c76c3002e8eee7abb11c5970a1/docs/benchmarks"
+}

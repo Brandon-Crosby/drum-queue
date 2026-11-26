@@ -14,19 +14,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m pip install numpy==2.2.6 scipy==1.15.3 soundfile==0.13.1 librosa==0.10.2.post1 fastapi==0.165.0 python-multipart==0.0.20 mutagen==1.47.0 httpx==0.28.1
+      - run: python -m pip install numpy==2.2.6 scipy==1.15.3 soundfile==0.13.1 librosa==0.10.2.post1 fastapi==0.165.0 python-multipart==0.0.20 mutagen==1.47.0 httpx==0.28.1 httpx2==2.16.2
       - run: python -m unittest discover -s tests -v
       - run: python tools/zone-six/test_build.py -v
       - run: python tools/zone-six/test_watch.py -v
+      - name: Verify the compiled audio transforms match their source
+        run: |
+          python -m pip install --target /tmp/browser-zig ziglang==0.14.1
+          python tools/browser/build_dsp.py --zig /tmp/browser-zig/ziglang/zig
+          git diff --exit-code -- web/site/browser/dsp.wasm
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - run: npm install --prefix /tmp/drumsplitter-ui-tests --no-audit --no-fund jsdom@26.1.0
-      - name: Build the desktop page and test startup, result reload and theme changes
+      - name: Test UI recovery and browser processing
         run: |
           python tools/zone-six/build.py --output /tmp/drumsplitter-package --revision "$GITHUB_SHA"
           python -m zipfile -e /tmp/drumsplitter-package/drumsplitter-source.zip /tmp/drumsplitter-package/extracted
-          node --test tests/ui-startup.cjs tests/ui-loops.cjs
+          node --test tests/ui-*.cjs tests/browser-*.cjs
         env:
           NODE_PATH: /tmp/drumsplitter-ui-tests/node_modules
           DS_UI_DIST: /tmp/drumsplitter-package/extracted/source/web/dist

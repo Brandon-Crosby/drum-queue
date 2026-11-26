@@ -330,7 +330,7 @@ function syncSoundControls() {
     }
   }
 }
-function apply() {
+function apply(retry = true) {
   if (!MX) return;
   for (const t of MX.tracks) {
     const on = gainOn(t);
@@ -338,7 +338,7 @@ function apply() {
     t.mb.setAttribute('aria-pressed', t.mute); t.sb.setAttribute('aria-pressed', t.solo);
     if (t.gain) t.gain.gain.setTargetAtTime(on, AC.currentTime, .01);
     if (t.sound) t.sound.update(sound);
-    if (on && MX.ready && !t.buf && !t.loading) loadTrack(t, MX).catch(() => {});
+    if (on && retry && !t.buf && !t.loading) loadTrack(t, MX).catch(() => {});
   }
   syncSoundControls();
 }
@@ -404,7 +404,7 @@ function play(from) {
 function draw() {
   if (!MX) return; const p = pos(); const ink = getComputedStyle(document.documentElement).getPropertyValue('--ink');
   for (const t of MX.tracks) { const cv = t.cv; if (!t.img && t.buf) peaks(t); const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); if (t.img) g.drawImage(t.img, 0, 0); if (MX.len) { g.fillStyle = ink; g.fillRect(p / MX.len * cv.width, 0, Math.max(1.5, devicePixelRatio), cv.height); } }
-  $('#time').textContent = MX.ready ? mmss(p) + ' / ' + mmss(MX.len) : 'Loading…';
+  $('#time').textContent = MX.ready ? mmss(p) + ' / ' + mmss(MX.len) : MX.tracks.some(t => t.loading) ? 'Loading…' : 'Preview unavailable, downloads still work.';
 }
 function peaks(t) {
   const cv = t.cv, dpr = devicePixelRatio || 1;
@@ -448,8 +448,13 @@ async function loadTrack(t, mixer) {
       throw error;
     } finally {
       t.loading = null; t.row.removeAttribute('aria-busy');
+      if (MX === mixer) {
+        mixer.ready = mixer.tracks.some(track => track.buf);
+        draw();
+      }
     }
   })();
+  if (MX === mixer) draw();
   return t.loading;
 }
 async function buildMixer(id, j) {
@@ -476,13 +481,11 @@ async function buildMixer(id, j) {
       MX.tracks.push(t);
     }
   }
-  apply(); draw();
-  try {
-    await Promise.all(me.tracks.filter(t => t.x.group === 'kit').map(t => loadTrack(t, me)));
-  } catch (_) { if (MX === me) $('#time').textContent = 'Preview unavailable, downloads still work.'; return; }
+  apply(false); draw();
+  await Promise.allSettled(me.tracks.filter(t => t.x.group === 'kit').map(t => loadTrack(t, me)));
   if (MX !== me) return;
   MX.len = Math.max(MX.len, ...MX.tracks.filter(t => t.buf).map(t => t.buf.duration));
-  MX.ready = true; apply(); draw();
+  MX.ready = me.tracks.some(t => t.buf); apply(false); draw();
 }
 $('#play').onclick = () => { if (!MX) return; if (MX.playing) stopMixer(true); else play(); };
 $('#stop').onclick = () => { stopMixer(false); stopShot(); };
