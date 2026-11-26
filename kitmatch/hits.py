@@ -56,7 +56,11 @@ def load(path):
 def onsets(x, min_gap=0.025, floor_db=45, delta=0.6, min_rise_db=0.0):
     mono = x.mean(1)
     pad = np.pad(mono, (N_FFT // 2, N_FFT // 2))
-    fr = np.lib.stride_tricks.sliding_window_view(pad, N_FFT)[::HOP]
+    # Construct only the selected frames. The full intermediate view can exceed
+    # 32-bit NumPy's index limit even though the selected frames fit comfortably.
+    fr = np.lib.stride_tricks.as_strided(
+        pad, shape=(1 + (len(pad) - N_FFT) // HOP, N_FFT),
+        strides=(pad.strides[0] * HOP, pad.strides[0]), writeable=False)
     mag = np.abs(np.fft.rfft(fr * np.hanning(N_FFT), axis=1))
     mel = mag ** 2 @ FB_ON.T
     energy = 10 * np.log10(mel.sum(1) + 1e-12)
