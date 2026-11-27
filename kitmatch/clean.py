@@ -210,6 +210,29 @@ def _soft_repair(y, pos, pre, n=512, hop=64):
     return y2[:len(y)]
 
 
+def _crackle(y, lo=8000, over_db=3.0, upto=0.4):
+    """count of 2 ms ticks in the top end that poke 3 dB+ over their neighbours (Helyx's hat stem crackles:
+    belly gang's open hats have 4-20 in the first 200 ms; the real sample has 0-2)."""
+    from scipy.signal import butter, sosfiltfilt
+    from scipy.ndimage import median_filter
+    h = sosfiltfilt(butter(4, lo, 'high', fs=SR, output='sos'), y)
+    e = _frames_db(h[:int(upto * SR)], int(0.002 * SR))
+    return int(((e - median_filter(e, 9))[5:] > over_db).sum())
+
+
+def _declick(y, lo=3000, over=1.25, n=256, hop=32):
+    """soften the crackle: above lo, no 0.7 ms slice louder than its ~11 ms running median (+2 dB)."""
+    from scipy.signal import stft, istft
+    from scipy.ndimage import median_filter, uniform_filter
+    f, _, Z = stft(y, SR, nperseg=n, noverlap=n - hop)
+    M = np.abs(Z)
+    G = np.minimum(1.0, median_filter(M, size=(1, 15)) * over / (M + 1e-12))
+    G[f < lo] = 1.0
+    G = np.exp(uniform_filter(np.log(G + 1e-6), size=(3, 3)))
+    _, y2 = istft(Z * G, SR, nperseg=n, noverlap=n - hop)
+    return y2[:len(y)]
+
+
 def open_hat(hh, length=0.5, over_db=12.0, min_open=3, n_tpl=8, max_jumps=20.0, min_click_db=9.0):
     """The open hat out of a hats stem where it never plays alone (belly gang: every open hat sits under a
     closed-hat click with more closed hats on its tail). No averaging, no library sounds - one real hit:
@@ -218,7 +241,7 @@ def open_hat(hh, length=0.5, over_db=12.0, min_open=3, n_tpl=8, max_jumps=20.0, 
       2. in each, every closed hat on top is subtracted using the real closed hats played nearest in time
          (the best fit of n_tpl isolated ones - Helyx's copies of one sample differ from hit to hit);
       3. a soft spectral repair evens out what's left (_soft_repair);
-      4. the hit with the smoothest ring (fewest upward jumps in its 10 ms envelope) wins.
+      4. Helyx's crackle is softened (_declick), and the hit with the smoothest ring and fewest ticks wins.
     Only for songs where every open hat is stacked (see min_click_db below).
     hh: hats stem (mono or stereo). -> (one-shot mono float32, open-hat hit starts) or (None, [])."""
     mono = _mono(hh).astype(np.float64)
@@ -260,12 +283,18 @@ def open_hat(hh, length=0.5, over_db=12.0, min_open=3, n_tpl=8, max_jumps=20.0, 
             cands.append(t)
         for p in pos:
             w = _sub_best(w, cands, max(0, p - ms(1)))
-        y = _soft_repair(w, pos, pre)
+        y = _declick(_soft_repair(w, pos, pre))
         e = _frames_db(y[pre:pre + ms(440)], ms(10))
         jumps = float(np.clip(np.diff(e - e.max()), 0, None).sum())
-        if best is None or jumps < best[0]:
-            best = (jumps, y)
-    if best is None or best[0] > max_jumps:
+        if jumps > max_jumps:
+            continue
+        # the longest ring first (an open hat cut off by the next one drops ~12 dB by 300 ms), then a smooth
+        # ring with as few ticks as possible (producer: pops as minimal as we can)
+        rings = bool(e[28:32].mean() - e.max() > -12.0)
+        score = (0 if rings else 1, jumps + 2.0 * _crackle(y[pre:]))
+        if best is None or score < best[0]:
+            best = (score, y)
+    if best is None:
         return None, []
     y = best[1]
     st = int(np.argmax(np.abs(y) > np.abs(y).max() * 0.1))
