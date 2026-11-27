@@ -14,6 +14,11 @@ Then:
 Fine-tunes the DrumSep MDX23C model (what the site uses today for stage 2) with new outputs:
 kick, snare, perc, hh, other. Checkpoints land in /runs/<run>/ on the volume; the best one is
 model_mdx23c_ep_<n>_sdr_<score>.ckpt and last_mdx23c.ckpt is the latest.
+
+Satyr (--arch bs_roformer, train/NEXT_RUN.md): a Band-Split RoFormer trained from zero, 7 outputs (kick snare
+toms hh cymbals perc other), config_satyr.yaml. Its training data lives in /data6 (toms and cymbals split out
+of perc), so Helyx's /data never changes:
+  modal run --detach train/modal_train.py::go --arch bs_roformer --run satyr-1 --hours 0.5 --synth 80 --init ''
 """
 import os
 import subprocess
@@ -53,7 +58,11 @@ image = (
     .add_local_dir(HERE.parent / 'datagen', '/repo/datagen', ignore=['__pycache__'])
     .add_local_file(HERE / 'prep.py', '/repo/train/prep.py')
     .add_local_file(HERE / 'config_drumsplit.yaml', '/repo/train/config_drumsplit.yaml')
+    .add_local_file(HERE / 'config_satyr.yaml', '/repo/train/config_satyr.yaml')
 )
+
+# arch -> (config, data folder on the volume). Satyr's data has toms and cymbals as their own stems.
+ARCH = {'mdx23c': ('config_drumsplit.yaml', 'data'), 'bs_roformer': ('config_satyr.yaml', 'data6')}
 
 
 def _prep_mod():
@@ -64,17 +73,17 @@ def _prep_mod():
 
 
 @app.function(image=image, volumes={V: vol}, cpu=2, memory=4096, timeout=3600)
-def synth_part(seed: int, n: int):
-    r = _prep_mod().synth_clips(V / 'data' / 'synth', n, seed)
+def synth_part(seed: int, n: int, six: bool = False):
+    r = _prep_mod().synth_clips(V / ('data6' if six else 'data') / 'synth', n, seed, six=six)
     vol.commit()
     return r
 
 
 @app.function(image=image, volumes={V: vol}, cpu=2, memory=8192, timeout=1800, max_containers=40)
-def prep_song(src: str, dest: str, valid: bool):
+def prep_song(src: str, dest: str, valid: bool, six: bool = False):
     from pathlib import Path as P
     try:
-        r = _prep_mod().real_song(P(src), P(dest), valid)
+        r = _prep_mod().real_song(P(src), P(dest), valid, six=six)
     except Exception as e:                        # one bad song shouldn't stop the rest
         r = f'skip {P(src).name}: {type(e).__name__}: {e}'
     vol.commit()
@@ -82,24 +91,25 @@ def prep_song(src: str, dest: str, valid: bool):
 
 
 @app.function(image=image, volumes={V: vol}, cpu=2, memory=8192, timeout=3 * 3600)
-def prep_real(redo: bool = False):
+def prep_real(redo: bool = False, six: bool = False):
     """Lays out every training song. Only new songs are prepped (redo=True does them all); songs
     whose source is gone, or that moved between training and validation, are cleared first."""
     import shutil
     prep = _prep_mod()
+    data = V / ('data6' if six else 'data')
     if redo:
         for d in ('real', 'valid'):
-            shutil.rmtree(V / 'data' / d, ignore_errors=True)
+            shutil.rmtree(data / d, ignore_errors=True)
     sets = sorted(V.glob('trainset*'))              # /trainset (stems) + /trainset-flp*, -als (rebuilt projects)
     print('reading', [p.name for p in sets], flush=True)
-    jobs = prep.plan(sets, V / 'data')
+    jobs = prep.plan(sets, data)
     want = {dest for _, dest, _ in jobs}
     for d in ('real', 'valid'):
-        for old in (V / 'data' / d).glob('*') if (V / 'data' / d).exists() else []:
+        for old in (data / d).glob('*') if (data / d).exists() else []:
             if str(old) not in want:
                 shutil.rmtree(old, ignore_errors=True)
     vol.commit()
-    todo = [j for j in jobs if not prep.done(Path(j[1]), j[2])]
+    todo = [j + (six,) for j in jobs if not prep.done(Path(j[1]), j[2], six=six)]
     print(f'{len(jobs)} songs, {len(jobs) - len(todo)} already prepped, {len(todo)} to do', flush=True)
     for line in prep_song.starmap(todo):
         print(line, flush=True)
@@ -119,29 +129,35 @@ def prep(synth: int = 80, synth_only: bool = False):
 
 @app.function(image=image, volumes={V: vol}, cpu=1, memory=2048, timeout=24 * 3600)
 def pipeline(run: str, hours: float, steps: int, resume: bool = False, synth: int = 0, init: str = '',
-             loss: str = 'stem', snare_weight: float = 1.5, bleedless: float = 0.0):
+             loss: str = 'stem', snare_weight: float = 1.5, bleedless: float = 0.0, arch: str = 'mdx23c'):
     """(Re)render `synth` synthesized clips, prep the songs, then train - all in the cloud."""
+    six = arch != 'mdx23c'
     if synth:
-        for line in synth_part.starmap([(s, 10) for s in range(max(1, synth // 10))]):
+        for line in synth_part.starmap([(s, 10, six) for s in range(max(1, synth // 10))]):
             print(line, flush=True)
-    held = prep_real.remote()
+    held = prep_real.remote(six=six)
     print('held out for validation:', held, flush=True)
-    return train_remote.remote(run, hours, resume, steps, init, loss, snare_weight, bleedless)
+    return train_remote.remote(run, hours, resume, steps, init, loss, snare_weight, bleedless, arch)
 
 
 @app.local_entrypoint()
 def go(run: str = 'helyx-4', hours: float = 4.0, steps: int = 1000, resume: bool = False, synth: int = 0,
        init: str = 'runs/helyx-3/last_mdx23c.ckpt', loss: str = 'mse', snare_weight: float = 1.0,
-       bleedless: float = 0.0):
+       bleedless: float = 0.0, arch: str = 'mdx23c'):
     """Synth + prep + training as ONE job on the deployed app: safe to close the Mac right after.
     First: modal deploy train/modal_train.py   Then: modal run train/modal_train.py::go
     init: the checkpoint a NEW run starts from (path on the volume); ignored with --resume.
     loss: 'stem' = per-stem L1-SNR (each stem counts equally, snare x snare_weight), 'mse' = MSST default.
     bleedless: >0 adds MSST's bleedless penalty (anything in a stem the true stem doesn't have, e.g. hiss
-    between hits) with this coefficient; MSST's suggested value is 2e-5 (helyx-8)."""
+    between hits) with this coefficient; MSST's suggested value is 2e-5 (helyx-8).
+    arch: 'mdx23c' = Helyx; 'bs_roformer' = Satyr (from zero: pass --init '')."""
+    if arch not in ARCH:
+        raise SystemExit(f'--arch must be one of {sorted(ARCH)}')
+    if arch != 'mdx23c' and init == 'runs/helyx-3/last_mdx23c.ckpt':
+        init = ''                                  # a Helyx checkpoint can't start a Satyr run
     call = modal.Function.from_name('drumsplit-train', 'pipeline').spawn(run, hours, steps, resume, synth, init,
-                                                                          loss, snare_weight, bleedless)
-    print(f'Started ({call.object_id}): synth clips, prep, then {hours} h of training on {run}.')
+                                                                          loss, snare_weight, bleedless, arch)
+    print(f'Started ({call.object_id}): synth clips, prep, then {hours} h of training on {run} ({arch}).')
     print('Safe to close the terminal or turn the Mac off now.')
     print('Watch it: modal.com -> Apps -> drumsplit-train (deployed) -> pipeline / train_remote')
 
@@ -172,12 +188,14 @@ def _committer(stop):
 
 @app.function(image=image, volumes={V: vol}, gpu='A100-40GB', cpu=8, memory=32768, timeout=24 * 3600)
 def train_remote(run: str, hours: float, resume: bool, steps: int, init: str = '', loss: str = 'mse',
-                 snare_weight: float = 1.0, bleedless: float = 0.0):
+                 snare_weight: float = 1.0, bleedless: float = 0.0, arch: str = 'mdx23c'):
     import yaml
+    cfg_name, data_dir = ARCH[arch]
+    D = V / data_dir
     out = V / 'runs' / run
     out.mkdir(parents=True, exist_ok=True)
     start = V / 'ckpt' / 'drumsep_mdx23c.ckpt'
-    if not start.exists() or start.stat().st_size < 100_000_000:   # missing or a failed download
+    if arch == 'mdx23c' and (not start.exists() or start.stat().st_size < 100_000_000):   # missing or a failed download
         start.parent.mkdir(parents=True, exist_ok=True)
         for url in START_CKPT_URLS:
             if subprocess.run(['wget', '-q', '-O', str(start) + '.part', url]).returncode == 0:
@@ -187,16 +205,16 @@ def train_remote(run: str, hours: float, resume: bool, steps: int, init: str = '
             raise SystemExit('Could not download the DrumSep model. Upload it once from your Mac:\n'
                              '  modal volume put drumsplit-train <path>/MDX23C-DrumSep-aufr33-jarredou.ckpt '
                              '/ckpt/drumsep_mdx23c.ckpt')
-    cfg = yaml.load(open('/repo/train/config_drumsplit.yaml'), Loader=yaml.FullLoader)
+    cfg = yaml.load(open(f'/repo/train/{cfg_name}'), Loader=yaml.FullLoader)
     cfg['training']['num_steps'] = steps
     cfg['training']['num_epochs'] = 10_000              # we stop on time instead
     (out / 'config.yaml').write_text(yaml.dump(cfg))
-    last = out / 'last_mdx23c.ckpt'
-    cmd = ['python', '/msst/train.py', '--model_type', 'mdx23c', '--config_path', str(out / 'config.yaml'),
+    last = out / f'last_{arch}.ckpt'
+    cmd = ['python', '/msst/train.py', '--model_type', arch, '--config_path', str(out / 'config.yaml'),
            '--results_path', str(out), '--dataset_type', '1',
            # real songs listed twice so they're picked as often as the synthesized clips
-           '--data_path', str(V / 'data/real'), str(V / 'data/real'), str(V / 'data/synth'),
-           '--valid_path', str(V / 'data/valid'), '--num_workers', '6', '--pin_memory',
+           '--data_path', str(D / 'real'), str(D / 'real'), str(D / 'synth'),
+           '--valid_path', str(D / 'valid'), '--num_workers', '6', '--pin_memory',
            '--device_ids', '0', '--metrics', 'sdr', 'bleedless', 'fullness', '--metric_for_scheduler', 'sdr']
     losses = ['masked_loss']           # MSST's default ('mse')
     if loss == 'stem':                 # each stem scored on its own, in dB, so a quiet snare counts (msst_patch.py)
@@ -219,6 +237,10 @@ def train_remote(run: str, hours: float, resume: bool, steps: int, init: str = '
     elif init and (V / init.lstrip('/')).exists():
         # a new run from another run's weights: fresh optimizer (its state belongs to the old loss)
         cmd += ['--start_check_point', str(V / init.lstrip('/')), '--pre_valid']
+    elif arch != 'mdx23c':
+        if init:
+            raise SystemExit(f'init checkpoint {init} not found on the volume')
+        print(f'{arch}: training from zero', flush=True)              # Satyr: no checkpoint to start from
     else:
         if init:
             print(f'! init checkpoint {init} not found on the volume: starting from DrumSep', flush=True)

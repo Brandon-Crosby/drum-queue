@@ -20,10 +20,11 @@ import numpy as np
 import soundfile as sf
 
 try:
-    from . import synth, patterns
+    from . import synth, patterns, drumroles
 except ImportError:                              # run as a script
     import synth
     import patterns
+    import drumroles
 
 SR = synth.SR
 STEMS = ['kick', 'snare', 'toms', 'hh', 'perc', 'ride', 'crash', 'log']
@@ -90,7 +91,8 @@ def process(x, rng):
 BANK = {}                                        # class -> list of (name, path)
 REAL_P = 0.6
 BANK_DIRS = {'kick': ('kick',), 'snare': ('snare', 'clap'), 'hh': ('hat', 'openhat', 'shaker'),
-             'perc': ('perc',), 'crash': ('cymbal',)}
+             'perc': ('perc',), 'crash': ('cymbal',),
+             'toms': ('tom',)}            # tom: toms split out of perc by name (Satyr); Helyx still hears them as perc
 
 
 def load_bank(root):
@@ -102,6 +104,12 @@ def load_bank(root):
               if f.suffix.lower() in ('.wav', '.aif', '.aiff', '.flac') and not f.name.startswith('._')]
         if fs:
             BANK[cls] = fs
+    # toms filed under perc (oneshots-v2: 1,044 of 13,593 by name) play as toms: Satyr learns them as their
+    # own stem; for Helyx prep.py sums toms into perc, so nothing changes there. No files are moved.
+    toms = [e for e in BANK.get('perc', []) if drumroles.TOMS.search(e[1].stem)]
+    if toms:
+        BANK['perc'] = [e for e in BANK['perc'] if not drumroles.TOMS.search(e[1].stem)]
+        BANK['toms'] = BANK.get('toms', []) + toms
     return {c: len(v) for c, v in BANK.items()}
 
 

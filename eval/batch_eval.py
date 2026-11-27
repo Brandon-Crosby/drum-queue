@@ -3,6 +3,11 @@
   modal run eval/batch_eval.py --testset ~/DrumSplits/testset
   modal run eval/batch_eval.py --testset ~/DrumSplits/testset --only dembow
   modal run eval/batch_eval.py --ckpt /runs/trial/last_mdx23c.ckpt --label trial   # a model we trained
+  modal run eval/batch_eval.py --ckpt /runs/satyr-2/<best>.ckpt --label satyr-2      # Satyr (bs_roformer)
+
+Satyr's 7 outputs are scored like Helyx's 5 so the boards compare: its toms + cymbals + perc count as Helyx's
+perc. Beats whose answer key has toms/cymbals split out (make_testset, Nov 27 2026) also get Satyr-only
+'sdr6' scores for toms and cymbals.
 
 The test set is what eval/make_testset.py writes: one folder per beat with mix.flac and the
 answer-key stems (kick, snare, hh, other_drums, rest). This uploads it to a private Modal volume
@@ -76,13 +81,14 @@ class Bench:
             sys.path.insert(0, '/msst')
             from utils.settings import get_model_from_config
             ck = Path('/train') / self.ckpt.lstrip('/')
-            model, cfg = get_model_from_config('mdx23c', str(ck.parent / 'config.yaml'))
+            self.arch = 'bs_roformer' if 'bs_roformer' in ck.name else 'mdx23c'    # MSST names ckpts by model type
+            model, cfg = get_model_from_config(self.arch, str(ck.parent / 'config.yaml'))
             sd = torch.load(str(ck), map_location='cpu', weights_only=False)
             for k in ('state_dict', 'model_state_dict', 'state'):
                 if isinstance(sd, dict) and k in sd:
                     sd = sd[k]
             model.load_state_dict({k.replace('_orig_mod.', ''): v for k, v in sd.items()})
-            if self.chunk_s and self.chunk_s > 0:      # longer context per window, same model (convolutional in time)
+            if self.chunk_s and self.chunk_s > 0 and self.arch == 'mdx23c':      # longer context per window, same model (convolutional in time)
                 hop = cfg.audio.hop_length
                 dim_t = max(32, int(round(self.chunk_s * cfg.audio.sample_rate / hop / 32)) * 32)   # 5 halvings: multiple of 32
                 cfg.audio.dim_t = dim_t
@@ -108,8 +114,12 @@ class Bench:
         print(f'{beat}: splitting {want}.flac', flush=True)
         if not (src / f'{want}.flac').exists():
             return {'beat': beat, 'error': f'no {want}.flac for this beat (run eval/add_master.py)'}
+        split6, sdr6 = {}, {}                            # toms/cymbals answer key, kept out of score.py's truth
         for f in src.glob('*.flac'):                     # score.py reads WAV
             if f.stem.startswith('mix') and f.stem != want:
+                continue
+            if f.stem in ('toms', 'cymbals', 'perc_only'):
+                split6[f.stem] = f
                 continue
             y, sr = sf.read(str(f), dtype='float32')
             sf.write(str(W / 'truth' / (f.stem + '.wav')) if f.stem != want else str(W / 'mix.wav'), y, sr,
@@ -130,7 +140,17 @@ class Bench:
             model, cfg = self.ours
             x, sr = sf.read(str(W / 'drums.wav'), dtype='float32', always_2d=True)
             with torch.inference_mode():
-                res = demix(cfg, model, torch.tensor(x.T), torch.device('cuda'), 'mdx23c')
+                res = demix(cfg, model, torch.tensor(x.T), torch.device('cuda'), self.arch)
+            if 'cymbals' in res:                         # Satyr: score its own toms/cymbals, then fold like Helyx
+                for k in ('toms', 'cymbals'):
+                    if k in split6:
+                        t6, _ = sf.read(str(split6[k]), dtype='float32', always_2d=True)
+                        e6 = res[k].T
+                        m = min(len(t6), len(e6))
+                        if np.abs(t6[:m]).max() > 1e-4:
+                            sdr6[k] = round(float(10 * np.log10((t6[:m] ** 2).sum() / (((t6[:m] - e6[:m]) ** 2).sum() + 1e-12) + 1e-12)), 2)
+                res = dict(res)
+                res['perc'] = res.pop('perc') + res.pop('toms') + res.pop('cymbals')
             names = {'perc': 'toms'}                     # score.py's kit names; perc sits where toms were
             for k, v in res.items():
                 sf.write(str(est / f"{names.get(k, k)}.wav"), v.T, sr, subtype='FLOAT')
@@ -180,8 +200,11 @@ class Bench:
                 t_, srt = sf.read(str(tf), dtype='float32')
                 p_ = sf.read(str(pf), dtype='float32')[0] if pf.exists() else None
                 route[piece] = routing(t_, srt, outs_, partner=p_)
-        return {'beat': beat, 'split': want, 'gpu_s': round(gpu_s), 'sdr': s.get('sdr', {}), 'leakage': s.get('leakage', {}),
-                'hits': s.get('hits', {}), 'junk': junk, 'routing': route}
+        out = {'beat': beat, 'split': want, 'gpu_s': round(gpu_s), 'sdr': s.get('sdr', {}), 'leakage': s.get('leakage', {}),
+               'hits': s.get('hits', {}), 'junk': junk, 'routing': route}
+        if sdr6:
+            out['sdr6'] = sdr6
+        return out
 
 
 def board(results):

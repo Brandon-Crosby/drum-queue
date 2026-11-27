@@ -30,6 +30,8 @@ from autosort import WORDS  # noqa: E402
 
 SR = 44100
 ROLES = ['kick', 'snare', 'hh', 'other_drums', 'rest']
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import drumroles                                   # noqa: E402
 DRUMS = ROLES[:4]
 NOTE = {n: i for i, n in enumerate(['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'])}
 MUTED = 0x2000                   # playlist item flag
@@ -174,7 +176,8 @@ def render(flp: Path, root: Path):
         vol = (getattr(ch, 'volume', 10000) or 10000) / 10000
         pan = ((getattr(ch, 'pan', 6400) or 6400) - 6400) / 6400
         cents = getattr(ch, 'pitch_shift', 0) or 0
-        chans[ch.iid] = dict(role=role, name=ch.name, snd=snd, root=root_note, vol=vol, pan=pan, cents=cents)
+        chans[ch.iid] = dict(role=role, name=ch.name, snd=snd, root=root_note, vol=vol, pan=pan, cents=cents,
+                             split=drumroles.split_key(role, ch.name, parts[-1]))
         log.append(f'  {role:<11} {ch.name!r} <- {f.name}')
     pats = {pat.iid: pat for pat in p.patterns}
     hits = []                                       # (sec, chan, key, vel, note pan, fine pitch)
@@ -235,12 +238,16 @@ def render(flp: Path, root: Path):
         pn = np.clip(ch['pan'] + (npan - 64) / 64, -1, 1)
         i = int(sec * SR)
         seg = x[:, :n_out - i]
-        tracks[ch['role']][0, i:i + seg.shape[1]] += seg[0] * g * min(1, 1 - pn)
-        tracks[ch['role']][1, i:i + seg.shape[1]] += seg[1] * g * min(1, 1 + pn)
+        for key in (ch['role'], ch['split']):       # other_drums also by kind, for Satyr (drumroles.py)
+            if key is None:
+                continue
+            t = tracks.setdefault(key, np.zeros((2, n_out), np.float32))
+            t[0, i:i + seg.shape[1]] += seg[0] * g * min(1, 1 - pn)
+            t[1, i:i + seg.shape[1]] += seg[1] * g * min(1, 1 + pn)
         groove.append(dict(t=round(sec, 4), role=ch['role'], sound=ch['name'], vel=vel))
     meta = dict(tempo=float(p.tempo), seconds=round(end, 2), fl_version=str(p.version),
                 hits={r: sum(1 for h in groove if h['role'] == r) for r in ROLES})
-    return (tracks, sorted(groove, key=lambda h: h['t']), meta), log
+    return (drumroles.keep_split(tracks), sorted(groove, key=lambda h: h['t']), meta), log
 
 
 def _raw_playlist(flp):
@@ -385,7 +392,7 @@ def main():
             with open(tried_f, 'a') as fh:
                 fh.write(f'{flp}\n')
             continue
-        peak = max(np.abs(sum(tracks.values())).max(), 1e-9)
+        peak = max(np.abs(sum(tracks[r] for r in ROLES)).max(), 1e-9)
         g = min(1.0, 0.9 / peak)
         dest.mkdir(parents=True, exist_ok=True)
         for r, x in tracks.items():

@@ -7,6 +7,12 @@
   synth  OUT/synth/clip_*/{...same...}.flac                          (datagen/render.py)
 
 perc  = other_drums (real) or toms + perc + ride + crash (synth)
+
+six=True (Satyr, OUT = /data6): kick, snare, toms, hh, cymbals, perc, other. Real songs read the toms.flac /
+cymbals.flac / perc_only.flac that make_testset/flp_render/als_render write when the song has tom or cymbal
+tracks by name (datagen/drumroles.py); a song without them uses other_drums as perc. A song whose roles say
+toms or cymbals but has no split files yet (built before Nov 27, 2026) is skipped: rebuild it first.
+Synth: toms, ride + crash = cymbals, perc + log drum = perc.
 other = the song's non-drum music turned down to -26..-16 dB, like the music Demucs leaves in its
         drum stem. The model learns to push that into "other" instead of into the snare or hats.
 
@@ -24,6 +30,7 @@ import soundfile as sf
 
 SR = 44100
 INSTRUMENTS = ['kick', 'snare', 'perc', 'hh', 'other']
+INSTRUMENTS6 = ['kick', 'snare', 'toms', 'hh', 'cymbals', 'perc', 'other']     # Satyr
 VALID_N = 3
 VALID_SECONDS = 30
 
@@ -61,7 +68,7 @@ def _fit(x, n):
 
 def _write(d, stems, mixture=False):
     d.mkdir(parents=True, exist_ok=True)
-    for k in INSTRUMENTS:
+    for k in (INSTRUMENTS6 if 'toms' in stems else INSTRUMENTS):
         sf.write(str(d / f'{k}.flac'), stems[k].T, SR, subtype='PCM_24')
     if mixture:
         sf.write(str(d / 'mixture.flac'), sum(stems.values()).T, SR, subtype='PCM_24')
@@ -103,7 +110,19 @@ def valid_songs(songs, keep=()):
     return set(pick)
 
 
-def real_song(src: Path, out: Path, valid: bool):
+def _roles_split(src):
+    """True if the song's roles.json lists tom or cymbal tracks under other_drums."""
+    import json
+    f = src / 'roles.json'
+    if not f.exists():
+        return False
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'datagen'))
+    import drumroles
+    names = json.loads(f.read_text()).get('roles', {}).get('other_drums', [])
+    return any(drumroles.kind(n) != 'perc' for n in names)
+
+
+def real_song(src: Path, out: Path, valid: bool, six: bool = False):
     raw = {r: _read(src / f'{r}.flac') for r in ('kick', 'snare', 'hh', 'other_drums', 'rest')}
     n = max((x.shape[1] for x in raw.values() if x is not None), default=0)
     if n < SR * 5:
@@ -112,6 +131,15 @@ def real_song(src: Path, out: Path, valid: bool):
     stems = {'kick': _fit(raw['kick'], n), 'snare': _fit(raw['snare'], n), 'hh': _fit(raw['hh'], n),
              'perc': _fit(raw['other_drums'], n),
              'other': _fit(raw['rest'], n) * np.float32(10 ** (rng.uniform(-26, -16) / 20))}
+    if six:
+        if (src / 'perc_only.flac').exists():
+            for k, f in (('toms', 'toms'), ('cymbals', 'cymbals'), ('perc', 'perc_only')):
+                stems[k] = _fit(_read(src / f'{f}.flac'), n)
+        elif _roles_split(src):
+            return f'skip {src.name}: has toms/cymbals but no split files yet (rebuild with make_testset)'
+        else:
+            stems['toms'] = np.zeros((2, n), np.float32)
+            stems['cymbals'] = np.zeros((2, n), np.float32)
     if valid:                                     # 30 s where every drum part plays (then the busiest)
         win = VALID_SECONDS * SR
         if n > win:
@@ -143,9 +171,9 @@ def plan(trainsets, out: Path):
     return [(str(p), str(out / ('valid' if p.name in vs else 'real') / p.name), p.name in vs) for p in songs]
 
 
-def done(dest: Path, valid: bool):
+def done(dest: Path, valid: bool, six: bool = False):
     """Already prepped: every stem (and the mixture for a validation song) is there."""
-    need = INSTRUMENTS + (['mixture'] if valid else [])
+    need = (INSTRUMENTS6 if six else INSTRUMENTS) + (['mixture'] if valid else [])
     return all((dest / f'{k}.flac').exists() and (dest / f'{k}.flac').stat().st_size > 0 for k in need)
 
 
@@ -163,7 +191,7 @@ def all_real(trainsets, out: Path):
             print(f'skip {p.name}: {type(e).__name__}: {e}', flush=True)
 
 
-def synth_clips(out: Path, n: int, seed: int):
+def synth_clips(out: Path, n: int, seed: int, six: bool = False):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'datagen'))
     import render
     # /vol/oneshots-v2 on Modal when uploaded: the bank re-routed by sound (helyx-10), else /vol/oneshots
@@ -175,10 +203,15 @@ def synth_clips(out: Path, n: int, seed: int):
         rng = np.random.default_rng(seed * 1_000_003 + k + 7)
         tracks, rest, _mix, meta = render.render_clip(rng)
         m = tracks['kick'].shape[1]
-        stems = {'kick': tracks['kick'], 'snare': tracks['snare'], 'hh': tracks['hh'],
-                 'perc': tracks['toms'] + tracks['perc'] + tracks['ride'] + tracks['crash']
-                 + tracks.get('log', 0),                                     # amapiano log drum = perc
-                 'other': rest}
+        if six:                                                             # Satyr
+            stems = {'kick': tracks['kick'], 'snare': tracks['snare'], 'toms': tracks['toms'], 'hh': tracks['hh'],
+                     'cymbals': tracks['ride'] + tracks['crash'], 'perc': tracks['perc'] + tracks.get('log', 0),
+                     'other': rest}
+        else:
+            stems = {'kick': tracks['kick'], 'snare': tracks['snare'], 'hh': tracks['hh'],
+                     'perc': tracks['toms'] + tracks['perc'] + tracks['ride'] + tracks['crash']
+                     + tracks.get('log', 0),                                 # amapiano log drum = perc
+                     'other': rest}
         stems = _headroom({k2: v.astype(np.float32)[:, :m] for k2, v in stems.items()})
         _write(out / f'clip_{seed:03d}_{k:05d}', stems)
     return f'synth seed {seed}: {n} clips'

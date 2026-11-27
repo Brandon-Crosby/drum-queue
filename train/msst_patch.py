@@ -68,7 +68,9 @@ def patch(root: Path):
         sf.write_text(s)
     patch_dataset(root)
     patch_tripwire(root)
-    print('msst patched: stem_l1_snr_loss, mixaug (aligned grooves, restack, master chain), NaN tripwire')
+    patch_silent_valid(root)
+    print('msst patched: stem_l1_snr_loss, mixaug (aligned grooves, restack, master chain), NaN tripwire, '
+          'no score for a stem a validation song does not have')
 
 
 NAN_LIMIT = 50          # this many training steps in a row with a NaN/inf loss: the model is broken, stop
@@ -95,6 +97,24 @@ def patch_tripwire(root: Path):
     if '\nimport math' not in s:
         s = 'import math\n' + s
     tf.write_text(s)
+
+
+def patch_silent_valid(root: Path):
+    """A validation song with no toms (most songs) scored Satyr's toms at about -48 dB SDR, which swamped the
+    average that picks the best checkpoint (CPU test, Nov 27 2026). A stem the song doesn't have isn't scored
+    for that song. Helyx's validation songs have every drum part, so its scores don't change."""
+    vf = root / 'valid.py'
+    s = vf.read_text()
+    if 'silent in this song' in s:
+        return
+    a = """                track, sr1 = read_audio_transposed(f"{folder}/{instr}.{extension}", instr, skip_err=True)
+                if track is None:
+                    continue"""
+    assert s.count(a) == 1, 'valid.py: reference read not found'
+    s = s.replace(a, a + """
+                if np.abs(track).max() < 1e-4:          # silent in this song (e.g. no toms): nothing to score
+                    continue""", 1)
+    vf.write_text(s)
 
 
 def patch_dataset(root: Path):
