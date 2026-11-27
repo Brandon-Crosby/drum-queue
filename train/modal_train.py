@@ -130,7 +130,15 @@ def prep(synth: int = 80, synth_only: bool = False):
 @app.function(image=image, volumes={V: vol}, cpu=1, memory=2048, timeout=24 * 3600)
 def pipeline(run: str, hours: float, steps: int, resume: bool = False, synth: int = 0, init: str = '',
              loss: str = 'stem', snare_weight: float = 1.5, bleedless: float = 0.0, arch: str = 'mdx23c'):
-    """(Re)render `synth` synthesized clips, prep the songs, then train - all in the cloud."""
+    """(Re)render `synth` synthesized clips, prep the songs, then train - all in the cloud.
+    Modal reruns a job whose machine goes away (helyx-10, Nov 27 2026: rerun from scratch at 00:35, 1.75 GPU-h
+    lost, 4 h clock restarted). A rerun of the same run goes straight back to training (train_remote resumes)."""
+    import json
+    vol.reload()
+    if (V / 'runs' / run / '_run.json').exists() and not resume:
+        print(f'{run} already started: a rerun, so no new synth clips or prep; training picks up where it was',
+              flush=True)
+        return train_remote.remote(run, hours, resume, steps, init, loss, snare_weight, bleedless, arch)
     six = arch != 'mdx23c'
     if synth:
         for line in synth_part.starmap([(s, 10, six) for s in range(max(1, synth // 10))]):
@@ -192,8 +200,23 @@ def train_remote(run: str, hours: float, resume: bool, steps: int, init: str = '
     import yaml
     cfg_name, data_dir = ARCH[arch]
     D = V / data_dir
+    import json
     out = V / 'runs' / run
     out.mkdir(parents=True, exist_ok=True)
+    # one deadline per run, kept on the volume: a Modal rerun keeps it and resumes from the last checkpoint
+    state = out / '_run.json'
+    st = json.loads(state.read_text()) if state.exists() else None
+    if st and not resume:
+        if time.time() >= st['deadline']:
+            print(f'{run}: its time was already used up (deadline passed); nothing to do', flush=True)
+            return sorted(f.name for f in out.glob('*.ckpt'))
+        resume = True                              # a rerun of this run: carry on, same deadline
+        print(f'{run}: rerun - resuming from the last checkpoint, '
+              f'{(st["deadline"] - time.time()) / 3600:.2f} h left', flush=True)
+    else:
+        st = {'deadline': time.time() + hours * 3600, 'hours': hours, 'arch': arch}
+        state.write_text(json.dumps(st))
+        vol.commit()
     start = V / 'ckpt' / 'drumsep_mdx23c.ckpt'
     if arch == 'mdx23c' and (not start.exists() or start.stat().st_size < 100_000_000):   # missing or a failed download
         start.parent.mkdir(parents=True, exist_ok=True)
@@ -208,7 +231,8 @@ def train_remote(run: str, hours: float, resume: bool, steps: int, init: str = '
     cfg = yaml.load(open(f'/repo/train/{cfg_name}'), Loader=yaml.FullLoader)
     cfg['training']['num_steps'] = steps
     cfg['training']['num_epochs'] = 10_000              # we stop on time instead
-    (out / 'config.yaml').write_text(yaml.dump(cfg))
+    if not (resume and (out / 'config.yaml').exists()):
+        (out / 'config.yaml').write_text(yaml.dump(cfg))
     last = out / f'last_{arch}.ckpt'
     cmd = ['python', '/msst/train.py', '--model_type', arch, '--config_path', str(out / 'config.yaml'),
            '--results_path', str(out), '--dataset_type', '1',
@@ -249,7 +273,7 @@ def train_remote(run: str, hours: float, resume: bool, steps: int, init: str = '
     stop = threading.Event()
     threading.Thread(target=_committer, args=(stop,), daemon=True).start()
     p = subprocess.Popen(cmd, cwd='/msst')
-    deadline = time.time() + hours * 3600
+    deadline = st['deadline']
     while p.poll() is None and time.time() < deadline:
         time.sleep(30)
     if p.poll() is None:
