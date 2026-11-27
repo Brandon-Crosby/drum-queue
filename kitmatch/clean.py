@@ -210,7 +210,7 @@ def _soft_repair(y, pos, pre, n=512, hop=64):
     return y2[:len(y)]
 
 
-def open_hat(hh, length=0.5, over_db=12.0, min_open=3, n_tpl=8, max_jumps=20.0):
+def open_hat(hh, length=0.5, over_db=12.0, min_open=3, n_tpl=8, max_jumps=20.0, min_click_db=9.0):
     """The open hat out of a hats stem where it never plays alone (belly gang: every open hat sits under a
     closed-hat click with more closed hats on its tail). No averaging, no library sounds - one real hit:
       1. an open hat keeps ringing: its 40-90 ms level is over_db above the stem's typical hat hit
@@ -219,6 +219,7 @@ def open_hat(hh, length=0.5, over_db=12.0, min_open=3, n_tpl=8, max_jumps=20.0):
          (the best fit of n_tpl isolated ones - Helyx's copies of one sample differ from hit to hit);
       3. a soft spectral repair evens out what's left (_soft_repair);
       4. the hit with the smoothest ring (fewest upward jumps in its 10 ms envelope) wins.
+    Only for songs where every open hat is stacked (see min_click_db below).
     hh: hats stem (mono or stereo). -> (one-shot mono float32, open-hat hit starts) or (None, [])."""
     mono = _mono(hh).astype(np.float64)
     on = np.sort(np.asarray(H.onsets(hh if hh.ndim == 2 else np.stack([hh, hh], 1))))
@@ -229,6 +230,15 @@ def open_hat(hh, length=0.5, over_db=12.0, min_open=3, n_tpl=8, max_jumps=20.0):
     op = on[sc > typ + over_db]
     cl = on[(sc <= typ + over_db) & (sc > -90)]
     if len(op) < min_open:
+        return None, []
+    # only when no open hat ever plays alone: an open hat's own attack sits a few dB over its ring; one with a
+    # closed hat on top pokes far above it. If even the cleanest tenth do that, every one is stacked
+    # (belly gang: 11 dB; Carti AHH YEA, KUIKI, TE VEO SOLA, TVS, breakdown136: 2-6 dB). Otherwise the plain
+    # best chop of a real lone hit wins - producer A/B on AHH YEA: the rebuilt one had a pop, the real one was better.
+    b = int(0.005 * SR)
+    e = _frames_db(mono, b)
+    att = [e[i // b:i // b + 4].max() - np.median(e[(i + int(0.04 * SR)) // b:(i + int(0.09 * SR)) // b]) for i in op]
+    if np.percentile(att, 10) < min_click_db:
         return None, []
     ms = lambda t: int(t * SR / 1000)
     iso = np.array([i for i in cl if not np.any((on > i - ms(60)) & (on < i + ms(60)) & (on != i))
