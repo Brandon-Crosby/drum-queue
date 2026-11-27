@@ -140,6 +140,136 @@ def best_chop(x, on, ref, others, max_len=1.2, stack_ms=12):
     return seg.astype(np.float32), r / SR
 
 
+def _frames_db(y, b):
+    n = len(y) // b
+    return 20 * np.log10(np.sqrt((y[:n * b].reshape(n, b) ** 2).mean(1)) + 1e-9)
+
+
+def _sustain(mono, on, b=int(0.005 * SR)):
+    """per hit: its level 40-90 ms in (cut 3 ms before the next hit) vs its own peak, dB; -99 if no room."""
+    e = _frames_db(mono, b)
+    nxt = np.r_[on[1:], 10 ** 12]
+    out = []
+    for i, n in zip(on, nxt):
+        t1 = min(i + int(0.09 * SR), n - int(0.003 * SR))
+        if t1 - (i + int(0.04 * SR)) < int(0.025 * SR) or i // b + 4 > len(e):
+            out.append(-99.0)
+            continue
+        out.append(float(np.median(e[(i + int(0.04 * SR)) // b:t1 // b]) - e[i // b:i // b + 4].max()))
+    return np.array(out)
+
+
+def _sub_best(w, cands, a, search=int(0.003 * SR), span=int(0.03 * SR)):
+    """subtract whichever closed-hat chop (lag-searched, least-squares gain) leaves the least near a."""
+    lo, hi = max(0, a - search), min(len(w), a + span + search)
+    best_e, best = (w[lo:hi] ** 2).sum(), None
+    for t0 in cands:
+        for d in range(-search, search + 1):
+            s = a + d
+            if s < 0 or s >= len(w):
+                continue
+            t = t0[:len(w) - s]
+            g = float((w[s:s + len(t)] * t).sum() / ((t * t).sum() + 1e-12))
+            g = max(0.0, min(g, 1.5))
+            r = w[lo:hi].copy()
+            q0, q1 = max(lo, s), min(hi, s + len(t))
+            r[q0 - lo:q1 - lo] -= g * t[q0 - s:q1 - s]
+            e = (r ** 2).sum()
+            if e < best_e:
+                best_e, best = e, (s, g, t)
+    if best is not None:
+        s, g, t = best
+        w[s:s + len(t)] -= g * t
+    return w
+
+
+def _soft_repair(y, pos, pre, n=512, hop=64):
+    """STFT gain mask, smoothed over ~800 Hz x 10 ms (hard per-bin caps sounded gritty - producer A/B, 10 vs 10b):
+      - at each later hat on the tail: no louder than the before/after level, interpolated (+1 dB);
+      - the first 30 ms: no more than 6 dB over the 35-70 ms ring - a sustained hat's own attack sits a few dB
+        over its ring; a stacked closed-hat click pokes far above it."""
+    from scipy.signal import stft, istft
+    from scipy.ndimage import uniform_filter
+    _, _, Z = stft(y, SR, nperseg=n, noverlap=n - hop)
+    M = np.abs(Z)
+    cap = np.full_like(M, np.inf)
+    for p in pos:
+        if p < pre + int(0.03 * SR):
+            continue
+        c0, c1 = (p - int(0.003 * SR)) // hop, (p + int(0.028 * SR)) // hop
+        if c1 + 6 >= M.shape[1] or c0 - 6 < 0:
+            continue
+        a0, a1 = np.median(M[:, c0 - 6:c0 - 1], 1), np.median(M[:, c1 + 1:c1 + 6], 1)
+        for k, c in enumerate(range(c0, c1 + 1)):
+            cap[:, c] = np.minimum(cap[:, c], (a0 + (a1 - a0) * (k / max(1, c1 - c0))) * 1.12)
+    s0, s1 = pre // hop, (pre + int(0.03 * SR)) // hop
+    body = np.median(M[:, (pre + int(0.035 * SR)) // hop:(pre + int(0.07 * SR)) // hop], 1)
+    cap[:, s0:s1] = np.minimum(cap[:, s0:s1], body[:, None] * 2.0)
+    G = np.exp(uniform_filter(np.log(np.minimum(1.0, cap / (M + 1e-12)) + 1e-6), size=(9, 7)))
+    _, y2 = istft(Z * G, SR, nperseg=n, noverlap=n - hop)
+    return y2[:len(y)]
+
+
+def open_hat(hh, length=0.5, over_db=12.0, min_open=3, n_tpl=8, max_jumps=20.0):
+    """The open hat out of a hats stem where it never plays alone (belly gang: every open hat sits under a
+    closed-hat click with more closed hats on its tail). No averaging, no library sounds - one real hit:
+      1. an open hat keeps ringing: its 40-90 ms level is over_db above the stem's typical hat hit
+         (Helyx belly gang: 13 of 19 picked are real open hats, vs 5 of 11 in the old cluster);
+      2. in each, every closed hat on top is subtracted using the real closed hats played nearest in time
+         (the best fit of n_tpl isolated ones - Helyx's copies of one sample differ from hit to hit);
+      3. a soft spectral repair evens out what's left (_soft_repair);
+      4. the hit with the smoothest ring (fewest upward jumps in its 10 ms envelope) wins.
+    hh: hats stem (mono or stereo). -> (one-shot mono float32, open-hat hit starts) or (None, [])."""
+    mono = _mono(hh).astype(np.float64)
+    on = np.sort(np.asarray(H.onsets(hh if hh.ndim == 2 else np.stack([hh, hh], 1))))
+    if len(on) < 8:
+        return None, []
+    sc = _sustain(mono, on)
+    typ = np.median(sc[sc > -90])
+    op = on[sc > typ + over_db]
+    cl = on[(sc <= typ + over_db) & (sc > -90)]
+    if len(op) < min_open:
+        return None, []
+    ms = lambda t: int(t * SR / 1000)
+    iso = np.array([i for i in cl if not np.any((on > i - ms(60)) & (on < i + ms(60)) & (on != i))
+                    and not np.any((op < i) & (op > i - ms(500))) and i > ms(2)])
+    if len(iso) < 2:
+        return None, []
+    L, pre = int(length * SR), ms(10)
+    best = None
+    for i in op:
+        a = i - pre
+        if a < 0 or a + L + pre > len(mono):
+            continue
+        w = mono[a:a + L + pre].copy()
+        pos = sorted(set([pre] + [int(j - a) for j in on if a + ms(2) < j < a + len(w) and j != i]))
+        cands = []
+        for j in iso[np.argsort(np.abs(iso - i))[:n_tpl]]:
+            t = mono[j - ms(1):j + ms(45)].copy()
+            t[-ms(8):] *= np.linspace(1, 0, ms(8))
+            cands.append(t)
+        for p in pos:
+            w = _sub_best(w, cands, max(0, p - ms(1)))
+        y = _soft_repair(w, pos, pre)
+        e = _frames_db(y[pre:pre + ms(440)], ms(10))
+        jumps = float(np.clip(np.diff(e - e.max()), 0, None).sum())
+        if best is None or jumps < best[0]:
+            best = (jumps, y)
+    if best is None or best[0] > max_jumps:
+        return None, []
+    y = best[1]
+    st = int(np.argmax(np.abs(y) > np.abs(y).max() * 0.1))
+    y = y[max(0, st - ms(1)):]
+    e = _frames_db(y, ms(10))
+    k = (np.flatnonzero(e > e.max() - 40)[-1] + 1) * ms(10)
+    y = y[:k]
+    if len(y) < ms(150):
+        return None, []
+    fd = ms(20)
+    y[-fd:] *= np.linspace(1, 0, fd) ** 2
+    return y.astype(np.float32), op
+
+
 def ring_out(seg, x, on, others, max_len=0.8, min_room=2, xfade=0.01):
     """A Snare-Perc one-shot cut short because the next hit comes quickly (busy perc patterns: KUIKI's
     lead perc came out 0.09 s). Average only the hits that have room after them (no other snare/perc hit
@@ -702,11 +832,31 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
         if role == 'hh':
             mine = _drop_echo_hats(mine, ks, log)
             mine = _closed_hat_out(mine, log)
+            if 'hh' in have:
+                if hh_x is None:
+                    hh_x = H.load(have['hh'])
+                oh, op = open_hat(hh_x)
+                if oh is not None:
+                    # the hat sound whose hits are mostly those open hats gets the rebuilt one-shot;
+                    # if no sound in the kit is that open hat, it is added
+                    def share(h):
+                        o = np.asarray(h.get('onsets') if h.get('onsets') is not None else [])
+                        return np.mean([np.any(np.abs(op - i) < int(0.03 * SR)) for i in o]) if len(o) else 0.0
+                    hit = [h for h in mine if share(h) >= 0.5]
+                    if hit:
+                        mine = [dict(h, open=oh) if h is hit[0] else h for h in mine]
+                    else:
+                        mine = mine + [dict(role='hh', hits=len(op), onsets=op, seg=oh, open=oh)]
+                    log(f'open hat: one real hit of {len(op)}, closed hats on top taken out, '
+                        f'{len(oh) / SR:.2f} s')
         log(f'{LABELS[role].lower()}: {len(mine)} sound{"" if len(mine) == 1 else "s"}'
             + (f' (heard {", ".join(str(s["hits"]) for s in mine)} times)' if mine else ''))
         count = {}
         for s in mine:
-            name, drop = namer(s, role)
+            if s.get('open') is not None:
+                name, drop = 'Open Hat', False
+            else:
+                name, drop = namer(s, role)
             if drop:
                 continue
             seg = s['shot'] if s.get('shot') is not None else s['seg']
@@ -717,8 +867,10 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
                     seg = seg[:k].copy()
                     fd = int(0.02 * SR)
                     seg[k - fd:] *= (np.linspace(1, 0, fd) ** 2)[:, None] if seg.ndim == 2 else np.linspace(1, 0, fd) ** 2
-            chopped = False
-            if role in BEST_CHOP and s.get('onsets') is not None:
+            chopped = s.get('open') is not None
+            if chopped:
+                seg = s['open']
+            if not chopped and role in BEST_CHOP and s.get('onsets') is not None:
                 if role == 'sp':
                     if pool is None:
                         xs = [H.load(have[r]) for r in ('snare', 'perc') if r in have]
