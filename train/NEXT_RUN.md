@@ -176,3 +176,27 @@ Runs:
 2. satyr-2, ~ the same GPU hours as a helyx run, then the 18-beat eval next to the best Helyx: SDR,
    purity, junk, hiss, kick bands; then A/B kits on the same songs (belly gang, KUIKI, AHH YEA).
 Only ship it if it beats Helyx on the producer's ears, not just SDR.
+
+### Satyr: what's built (Nov 27, 2026) and how to run it
+Built and tested on CPU (a tiny Satyr trained end to end on 7-stem data, validation and checkpoints included):
+- `train/config_satyr.yaml`: MSST's public BS-RoFormer config (62 bands), depth 12, 7 outputs
+  (kick snare toms hh cymbals perc other); Helyx's augmentations. 126M parameters.
+- `modal_train.py --arch bs_roformer`: config_satyr, data in `/data6` (Helyx's `/data` never changes),
+  trains from zero, checkpoints `model_bs_roformer_ep_<n>_sdr_<score>.ckpt`.
+- toms/cymbals by track name (`datagen/drumroles.py`): make_testset, flp_render and als_render also write
+  toms.flac / cymbals.flac / perc_only.flac when a song has them; other_drums.flac stays the sum (Helyx).
+- prep six=True: songs without toms/cymbals use other_drums as perc; songs whose roles list toms/cymbals but
+  were packed before this change are skipped until re-packed (so Satyr never learns toms as perc).
+- one-shot bank: tom-named perc one-shots (1,044 of 13,593 in oneshots-v2) play as toms; no files moved.
+- validation: a stem a song doesn't have isn't scored for it (no toms -> no -48 dB dragging the average).
+- batch_eval: Satyr's toms + cymbals + perc are scored as Helyx's perc (fair board), plus Satyr-only
+  `sdr6` toms/cymbals on beats whose answer key has them.
+
+Before satyr-1 (free, on the Mac): re-pack the songs with tom/cymbal tracks (~35: 1 multitrack in
+drumsplit-trainset, ~14 in the other T7 trainsets, ~8 rebuilds) with --force, upload them, and re-pack the
+test set so its answer keys have toms/cymbals.
+Then:
+    cd ~/drum-queue-web; and git pull; and modal deploy train/modal_train.py
+    modal run --detach train/modal_train.py::go --arch bs_roformer --run satyr-1 --hours 0.5 --synth 80 --init ''
+satyr-1 checks: loss finite, an epoch-0 checkpoint, the time per epoch (cost of a full run), no GPU
+out-of-memory at batch 8 (if it runs out: batch_size 4).

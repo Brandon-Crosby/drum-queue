@@ -9,6 +9,8 @@ are), or a stems root whose beat folders each hold a roles.json.
 For every beat folder under STEMS_ROOT that has a roles.json (made by eval/autosort.py, then
 reviewed), it sums the tracks by role, picks the SECONDS-long stretch with the most drums going on,
 and writes OUT/<beat>/{mix,kick,snare,hh,other_drums,rest}.flac plus a copy of roles.json.
+When some 'other_drums' tracks are toms or cymbals by name (datagen/drumroles.py), it also writes
+toms.flac, cymbals.flac and perc_only.flac (the rest) for Satyr's 6 stems; other_drums.flac stays the sum.
 FLAC at 24-bit keeps it small (~10 MB a file) so the whole set uploads to Modal quickly.
 Already-built beats are skipped unless their roles.json changed (or --force).
 Needs numpy + soundfile (Drum Queue's Python has both).
@@ -22,6 +24,10 @@ import numpy as np
 import soundfile as sf
 
 ROLES = ['kick', 'snare', 'hh', 'other_drums', 'rest']
+SPLIT = ['toms', 'cymbals', 'perc_only']          # other_drums by track name, for Satyr
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'datagen'))
+import drumroles                                   # noqa: E402
 # Whole-kit tracks (a 'DRUMS' print, a drum loop or break) hold kick+snare+hats in one file. Fine in a
 # test (the mix is what matters), but in TRAINING they'd teach that kicks and snares are 'perc'.
 import re
@@ -53,18 +59,26 @@ def build(beat, out, seconds, spec_file, full=False):
             if sr and r != sr:
                 raise ValueError(f'{f.name} is {r} Hz, others {sr} Hz')
             sr = r
-            p = parts.get(role)
-            if p is None:
-                parts[role] = y
-            else:                                           # pad the shorter one: never cut a song short
-                n = max(len(p), len(y))
-                parts[role] = np.pad(p, ((0, n - len(p)), (0, 0))) + np.pad(y, ((0, n - len(y)), (0, 0)))
+            keys = [role]
+            if role == 'other_drums':                       # and which of Satyr's stems it is
+                k = drumroles.kind(name)
+                keys.append('perc_only' if k == 'perc' else k)
+            for key in keys:
+                p = parts.get(key)
+                if p is None:
+                    parts[key] = y
+                else:                                       # pad the shorter one: never cut a song short
+                    n = max(len(p), len(y))
+                    parts[key] = np.pad(p, ((0, n - len(p)), (0, 0))) + np.pad(y, ((0, n - len(y)), (0, 0)))
     if 'kick' not in parts and 'snare' not in parts:
         raise ValueError('no kick or snare tracks listed')
     n = max(len(v) for v in parts.values())
     # (named `whole`, not `full`: reusing `full` here made every test clip a whole-song training copy)
     whole = {r: np.pad(parts[r], ((0, n - len(parts[r])), (0, 0))) if r in parts else np.zeros((n, 2), 'float32')
              for r in ROLES}
+    if any(k in parts for k in ('toms', 'cymbals')):     # only when the song has toms or cymbals by name
+        whole.update({r: np.pad(parts[r], ((0, n - len(parts[r])), (0, 0))) if r in parts
+                      else np.zeros((n, 2), 'float32') for r in SPLIT})
     # the stretch with the most kit going on (kick + snare + hats), in 1 s steps
     kit = np.abs(whole['kick']).mean(1) + np.abs(whole['snare']).mean(1) + np.abs(whole['hh']).mean(1)
     win = n if full else int(seconds * sr)
@@ -75,7 +89,7 @@ def build(beat, out, seconds, spec_file, full=False):
     else:
         s0, win = 0, n
     clip = {r: v[s0:s0 + win] for r, v in whole.items()}
-    mix = sum(clip.values())
+    mix = sum(clip[r] for r in ROLES)
     g = min(1.0, 0.89 / (float(np.abs(mix).max()) + 1e-9))
     out.mkdir(parents=True, exist_ok=True)
     for r, v in clip.items():

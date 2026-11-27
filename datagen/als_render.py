@@ -30,6 +30,7 @@ import soundfile as sf
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from flp_render import ROLES, SR, MAX_SEC, role_of, find_sample, repitch, write_midi  # noqa: E402
+import drumroles                                   # noqa: E402
 
 
 def _v(e, path, default=None, cast=float):
@@ -273,15 +274,19 @@ def render(als: Path, root: Path):
             continue
         i = int(sec * SR)
         seg = x[:, :n_out - i]
-        out[role][0, i:i + seg.shape[1]] += seg[0] * g * min(1, 1 - pn)
-        out[role][1, i:i + seg.shape[1]] += seg[1] * g * min(1, 1 + pn)
+        for key in (role, drumroles.split_key(role, name)):   # other_drums also by kind, for Satyr
+            if key is None:
+                continue
+            t = out.setdefault(key, np.zeros((2, n_out), np.float32))
+            t[0, i:i + seg.shape[1]] += seg[0] * g * min(1, 1 - pn)
+            t[1, i:i + seg.shape[1]] += seg[1] * g * min(1, 1 + pn)
         if seg.shape[1] < 4 * SR:                    # hits, not long loops, go in the groove answer key
             groove.append(dict(t=round(sec, 4), role=role, sound=name, vel=vel))
     meta = dict(tempo=float(tempo), seconds=round(end, 2),
                 live_version=ET.fromstring(gzip.open(als).read()).get('Creator', ''),
                 hits={r: sum(1 for h in groove if h['role'] == r) for r in ROLES},
                 loud={r: round(float(20 * np.log10(np.sqrt(np.mean(out[r] ** 2)) + 1e-12)), 1) for r in ROLES})
-    return (out, groove, meta), log
+    return (drumroles.keep_split(out), groove, meta), log
 
 
 GENERIC_DIR = re.compile(r'^\W*(ableton( live)?( \d+)?|project( files?)?|projects|bonus project|als|live set)\W*$', re.I)
@@ -358,7 +363,7 @@ def main():
             with open(tried_f, 'a') as fh:
                 fh.write(f'{als}\n')
             continue
-        peak = max(np.abs(sum(tracks.values())).max(), 1e-9)
+        peak = max(np.abs(sum(tracks[r] for r in ROLES)).max(), 1e-9)
         g = min(1.0, 0.9 / peak)
         dest.mkdir(parents=True, exist_ok=True)
         for r, x in tracks.items():
