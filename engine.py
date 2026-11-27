@@ -320,6 +320,19 @@ def process(job, out_root, models, stage, preview_fmt='wav', max_seconds=None):
         out.append(dict(name=f.name, preview=pv, stem=name, label=KIT_LABEL.get(name, name),
                         group='kit' if name in kit_names else 'mix',
                         quiet=bool(level is not None and level < -60), db=level))
+    # kit stems: judge by the loud hits, not the song-wide average (a sparse kick stem isn't silent), and call
+    # a stem that only holds bleed from the others silent too - the kit maker skips exactly these
+    try:
+        import numpy as np, soundfile as sf
+        sys.path.insert(0, str(Path(__file__).resolve().parent / 'kitmatch'))
+        import clean as _kc
+        gone = _kc.silent_stems({o['stem']: sf.read(str(out_dir / o['name']), dtype='float32')[0]
+                                 for o in out if o['group'] == 'kit'})
+        for o in out:
+            if o['group'] == 'kit':
+                o['quiet'] = o['stem'] in gone
+    except Exception:
+        pass
     missing = [k for k in kit_names if not (out_dir / f'{k}.wav').exists()]
     note = f'Missing kit pieces: {", ".join(missing)}' if missing else ''
 

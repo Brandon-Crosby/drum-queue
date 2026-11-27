@@ -191,3 +191,22 @@ class UploadTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class SilentStemTest(unittest.TestCase):
+    def test_bleed_only_and_sparse_stems(self):
+        sr = clean.SR
+        rng = np.random.default_rng(0)
+        def hits(level_db, every, n_sec=20):
+            x = np.zeros(n_sec * sr, np.float32)
+            for i in range(0, len(x) - 2000, int(every * sr)):
+                x[i:i + 2000] = rng.standard_normal(2000) * 10 ** (level_db / 20) * np.exp(-np.arange(2000) / 400)
+            return x
+        stems = {'kick': hits(-52, 0.25),          # faint hat ticks only: bleed
+                 'snare': hits(-6, 1.0), 'perc': hits(-12, 7.0),   # perc: three hits in 20 s, sparse but real
+                 'hh': hits(-10, 0.25)}
+        self.assertEqual(clean.silent_stems(stems), {'kick'})
+        stems['kick'] = np.zeros(20 * sr, np.float32)
+        self.assertEqual(clean.silent_stems(stems), {'kick'})
+        stems['kick'] = hits(-3, 2.0)
+        self.assertEqual(clean.silent_stems(stems), set())

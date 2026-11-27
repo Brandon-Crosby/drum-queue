@@ -571,6 +571,33 @@ def _prominence(s, st, own):
     return s['hits'] * float(np.median(pk)) if pk else float(s['hits'])
 
 
+SILENT_DB = -60.0        # a stem's loud hits under this (dBFS): nothing there
+BLEED_DB = 42.0          # ...or this far under the loudest kit stem's hits: only bleed (real quiet hats sit ~30 dB under the kick: KUIKI)
+
+
+def hit_level(x, frame=int(0.02 * SR)):
+    """How loud a stem's hits are: the 99.5th percentile of its 20 ms frames, in dBFS. Unlike the song-wide
+    average this doesn't call a sparse stem (a few kicks, long breaks) silent."""
+    x = np.asarray(x, np.float32)
+    x = x.mean(1) if x.ndim == 2 else x
+    n = len(x) // frame
+    if n < 1:
+        return -120.0
+    r = np.sqrt((x[:n * frame].reshape(n, frame) ** 2).mean(1))
+    return float(20 * np.log10(np.percentile(r, 99.5) + 1e-9))
+
+
+def silent_stems(stems):
+    """{stem: mono audio} -> the stems that get no one-shots and no loop: silent, or hits so far under the
+    loudest kit stem that they can only be bleed (a song with no kick: the kick stem holds faint hat ticks,
+    which the kit maker used to level up into 'Kick 1' and a 'Kick loop' of hats, Nov 2026)."""
+    lv = {r: hit_level(x) for r, x in stems.items()}
+    if not lv:
+        return set()
+    top = max(lv.values())
+    return {r for r, v in lv.items() if v < SILENT_DB or v < top - BLEED_DB}
+
+
 def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, ref=None, junk_cut=0.35):
     """split_dir holds kick/snare/perc/hh.wav from Helyx. Writes the strongest few sounds per piece
     (each averaged over all its hits, snare and perc read together, kick-stem stowaways rescued) as
@@ -591,6 +618,11 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
     kick_on = np.sort(np.concatenate([s['onsets'] for s in ks if s['role'] == 'kick'] or [np.array([], int)]))
     sp_on = np.sort(np.concatenate([s['onsets'] for s in ks if GROUP.get(s['role']) == 'sp'] or [np.array([], int)]))
     OWN = {'kick': ('kick',), 'sp': ('snare', 'perc'), 'hh': ('hh',)}
+    gone = silent_stems(st)
+    if gone:
+        log(f'no one-shots from the {", ".join(sorted(gone))} stem{"s" if len(gone) > 1 else ""}: '
+            'silent or only bleed from the other drums')
+        ks = [s for s in ks if s['role'] not in gone]
     namer = _namer(ref, log)
     pool = None                                    # snare + perc stems, loaded when a snare needs a real hit
     sp_all = None                                  # every snare/perc hit start, for ring_out
