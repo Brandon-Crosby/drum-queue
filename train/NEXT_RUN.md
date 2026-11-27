@@ -140,3 +140,39 @@ Note the bank only drives the synthesized clips (~20% of training examples).
     modal volume put drumsplit-train "/Volumes/T7/DrumSplits-train/oneshots-v2" /oneshots-v2
     cd ~/drum-queue-web; and git pull; and modal deploy train/modal_train.py
     modal run --detach train/modal_train.py::go --run helyx-10 --init runs/helyx-9/model_mdx23c_ep_8_sdr_2.3580.ckpt --hours 4 --synth 80
+
+## Satyr plan: a band-split model next to Helyx (Nov 27, 2026, not started)
+Satyr = a second separator for stage 2 (drum bus -> drums), a Band-Split RoFormer (BS-RoFormer, public
+paper + MSST's own `bs_roformer` model), trained on the same data as Helyx. Demucs (stage 1) and the kit
+maker stay as they are. helyx-4 stays live on the site until Satyr wins the A/B; switching is a config change.
+Clean-room: MSST's public default config and our own data only. Nothing from any competitor's app or
+model files, including the reverse-engineering notes the producer was sent (Nov 27): not used.
+
+Why: band-split transformers lead public separation research (BS-RoFormer, SCNet); Helyx is an MDX23C.
+Cost: a different architecture, so it cannot start from a Helyx checkpoint; it learns from zero (longer
+training). Everything else carries over: real songs, the one-shot bank, synth clips, noise bed, NaN
+tripwire, eval, hiss metric, test beats.
+
+Stems: 6 from day one (kick, snare, toms, hh, cymbals, perc), since it starts from zero anyway
+(producer: the missing tom roll on belly gang; toms and cymbals ride in perc today).
+
+Before the first run:
+- modal_train.py: a `--arch bs_roformer` switch (MSST `--model_type bs_roformer`, its own config);
+  checkpoint names `model_bs_roformer_ep_<n>_sdr_<score>.ckpt`; no `--init` (from scratch).
+- config: MSST's BS-RoFormer with the published setup: depth 12, 62 bands (Lu et al. 2023,
+  arXiv:2309.02612; Mel-RoFormer paper arXiv:2310.01809 notes the 62 subbands; lucidrains/bs-roformer
+  defaults to depth 12). Other settings: MSST's defaults. instruments = the 6 stems, 44.1 kHz.
+  Fallback if satyr-1 shows a full run costs too much: depth 6, same 62 bands (Mel-RoFormer paper:
+  a deeper model did not help drums, L=9 vs L=6).
+- bank: split `tom` (names: tom, Tom, TT, floor, rack) out of perc, and `cymbal` gets its own stem
+  instead of perc; render.BANK_DIRS gets 'toms' and 'cymbals'.
+- real songs: route each session's tom and cymbal tracks to the new stems (prep.py), not perc.
+- eval: the test beats need true tom/cymbal stems; Helyx is scored on 4 stems (toms+cymbals+perc vs perc)
+  so the comparison stays fair.
+
+Runs:
+1. satyr-1 sanity, 0.5 h at depth 12: loss finite, epoch 0 checkpoint written, and time per epoch
+   (sets the cost of a full run; too costly -> depth 6).
+2. satyr-2, ~ the same GPU hours as a helyx run, then the 18-beat eval next to the best Helyx: SDR,
+   purity, junk, hiss, kick bands; then A/B kits on the same songs (belly gang, KUIKI, AHH YEA).
+Only ship it if it beats Helyx on the producer's ears, not just SDR.
