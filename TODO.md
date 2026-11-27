@@ -44,3 +44,9 @@ Why: after every model or kit-maker deploy we re-upload the same songs to compar
   the next hit. Let the tail ring past it (from a hit with space after it, or the averaged tail).
 - Hats loop can carry noise from the hat stem (KUIKI). Options to A/B: a gentle gate/expander between hits,
   a light denoise, or a high-pass/EQ on the loop only. One-shots and stems stay untouched.
+
+## Toms and cymbals stems (owner: Dalyn, after Satyr eval)
+If Satyr (6 stems, see train/NEXT_RUN.md) ships: the site and kit maker handle two more stems.
+- mixer: toms and cymbals channels (solo/mute/EQ like the others), previews, downloads
+- kit maker: a Tom slot (one-shots + a Toms loop), cymbals one-shots; Groove MIDI gets tom notes
+- engine: stem list from the model, not hard-coded to kick/snare/perc/hh
