@@ -129,11 +129,13 @@ helyx-9 (helyx-7 + noise bed + ~54k one-shot bank, 4 h; best epoch 8, validation
 beats: snare SDR 1.4 -> 2.6 (beats helyx-7 on 13/18), perc hiss -29 -> -36 dB, kick unchanged; but the
 hat stem got dirtier (really-hats 85% -> 74%, hiss between hits -36 -> -29 dB). The extra content in hats
 is mostly snare (1% -> 4%) and other drums (1% -> 2.5%), not noise. The bank itself is not noisier.
-Bank v2 (`oneshots-v2`, built from the T7 by sound, not just names): every one-shot was checked against
-the soundid library vote; ~4,300 sounds (8%) that clearly sound like another piece were re-routed
-(perc -> hat 1206, perc -> snare/clap 1454, snare/cymbal -> hat 246, hat -> snare 99, ...), 270 that are
-not drums (808, fx) dropped. Rules: shakers/tambourines stay hats; crashes/rides stay perc unless they
-sound like hats. Note the bank only drives the synthesized clips (~20% of training examples).
+Bank v2 (`oneshots-v2`, built on the T7): every one-shot was checked against the soundid library vote,
+but the file's own name wins when it states the type (producer spot-check: the vote alone moved real
+snares, percs and a hat roll). Re-routed only where the name is silent or agrees with the sound: 1,342
+sounds (2.5%; mostly perc -> hat 527, perc -> snare/clap ~630, cymbal -> hats 74); 71 loops and
+non-drums dropped. Rules: shakers/tambourines stay hats; crashes/rides stay perc unless they sound like
+hats; rolls and fills keep their folder.
+Note the bank only drives the synthesized clips (~20% of training examples).
 
     modal volume put drumsplit-train "/Volumes/T7/DrumSplits-train/oneshots-v2" /oneshots-v2
     cd ~/drum-queue-web; and git pull; and modal deploy train/modal_train.py
