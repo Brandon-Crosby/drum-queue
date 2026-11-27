@@ -159,7 +159,11 @@ Stems: 6 from day one (kick, snare, toms, hh, cymbals, perc), since it starts fr
 Before the first run:
 - modal_train.py: a `--arch bs_roformer` switch (MSST `--model_type bs_roformer`, its own config);
   checkpoint names `model_bs_roformer_ep_<n>_sdr_<score>.ckpt`; no `--init` (from scratch).
-- config: MSST's default BS-RoFormer settings, instruments = the 6 stems, 44.1 kHz.
+- config: MSST's BS-RoFormer with the published setup: depth 12, 62 bands (Lu et al. 2023,
+  arXiv:2309.02612; Mel-RoFormer paper arXiv:2310.01809 notes the 62 subbands; lucidrains/bs-roformer
+  defaults to depth 12). Other settings: MSST's defaults. instruments = the 6 stems, 44.1 kHz.
+  Fallback if satyr-1 shows a full run costs too much: depth 6, same 62 bands (Mel-RoFormer paper:
+  a deeper model did not help drums, L=9 vs L=6).
 - bank: split `tom` (names: tom, Tom, TT, floor, rack) out of perc, and `cymbal` gets its own stem
   instead of perc; render.BANK_DIRS gets 'toms' and 'cymbals'.
 - real songs: route each session's tom and cymbal tracks to the new stems (prep.py), not perc.
@@ -167,7 +171,8 @@ Before the first run:
   so the comparison stays fair.
 
 Runs:
-1. satyr-1 sanity, 0.5 h: loss finite, epoch 0 checkpoint written.
+1. satyr-1 sanity, 0.5 h at depth 12: loss finite, epoch 0 checkpoint written, and time per epoch
+   (sets the cost of a full run; too costly -> depth 6).
 2. satyr-2, ~ the same GPU hours as a helyx run, then the 18-beat eval next to the best Helyx: SDR,
    purity, junk, hiss, kick bands; then A/B kits on the same songs (belly gang, KUIKI, AHH YEA).
 Only ship it if it beats Helyx on the producer's ears, not just SDR.
