@@ -77,6 +77,69 @@ def average(x, on, nxt, max_len=MAX_LEN, ref=None):
     return avg.astype(np.float32), int(cnt.max())
 
 
+BEST_CHOP = ('sp', 'hh')        # roles whose one-shot is the single best real hit in the song
+
+
+def best_chop(x, on, ref, others, max_len=1.2, stack_ms=12):
+    """The producer's rule (Nov 2026): no averaging, no rebuilding - of all the hits of a sound in the song,
+    take the one real chop that rings longest and cleanest.
+      - only hits that sound like the sound's typical hit (spectrum within the closest half) and play at full
+        strength (not ghost notes, within 4 dB of the median level) are candidates;
+      - a hit with another snare/perc/hat starting on top of it (within 12 ms) is only used when every hit is
+        stacked (belly gang: each open hat sits under a closed-hat click);
+      - of those, the one with the most room before the next hit wins; it is cut where it rings out
+        (40 dB under its peak) or just before the next hit, with a 20 ms fade.
+    x: the stem(s) the sound lives in; on: its hit starts; ref: its current one-shot (for alignment);
+    others: every hit start in those stems. -> (chop, room in s) or (None, 0)."""
+    on = np.sort(np.asarray(on, int))
+    if len(on) < 3:
+        return None, 0.0
+    on = align(x, on, ref[:int(0.04 * SR)])
+    on = on[(on >= 0) & (on + int(0.03 * SR) < len(x))]
+    if len(on) < 3:
+        return None, 0.0
+    mono = x.mean(1) if x.ndim == 2 else x
+    w = int(0.06 * SR)
+    def spec(i):
+        s = np.abs(np.fft.rfft(np.pad(mono[i:i + w], (0, max(0, i + w - len(mono)))) * np.hanning(w)))
+        b = np.geomspace(1, len(s) - 1, 25).astype(int)
+        return 20 * np.log10(np.add.reduceat(s, b)[:-1] + 1e-9)
+    S = np.array([spec(i) for i in on])
+    S -= S.max(1, keepdims=True)
+    dist = np.abs(S - np.median(S, 0)).mean(1)
+    lvl = np.array([20 * np.log10(np.abs(mono[i:i + int(0.03 * SR)]).max() + 1e-9) for i in on])
+    ok = (dist <= np.median(dist)) & (lvl >= np.median(lvl) - 4)
+    tol = int(stack_ms / 1000 * SR)
+    others = np.sort(np.asarray(others, int))
+    def room(i):
+        nxt = others[others > i + tol]
+        return int(min(nxt[0] - i if len(nxt) else len(x) - i, max_len * SR))
+    def stacked(i):
+        near = others[(others > i - tol) & (others < i + tol)]
+        return len(near) > 1                  # itself plus another sound
+    cand = [i for i, k in zip(on, ok) if k]
+    if not cand:
+        return None, 0.0
+    free = [i for i in cand if not stacked(i)]
+    pick = max(free or cand, key=room)
+    r = room(pick) - int(0.003 * SR)
+    seg = x[pick:pick + r].copy()
+    k = tail_end(seg, rise_db=12.0)
+    m = np.abs(seg).max(1) if seg.ndim == 2 else np.abs(seg)
+    b = int(0.005 * SR)
+    nb = len(m) // b
+    if nb >= 3:
+        db = 20 * np.log10(m[:nb * b].reshape(nb, b).max(1) + 1e-9)
+        loud = np.flatnonzero(db[:max(1, k // b)] > db.max() - 40)
+        k = min(k, (int(loud[-1]) + 2) * b) if len(loud) else k
+    seg = seg[:max(k, int(0.02 * SR))]
+    fd = min(len(seg) // 4, int(0.02 * SR))
+    if fd > 0:
+        f = np.linspace(1, 0, fd) ** 2
+        seg[-fd:] *= f[:, None] if seg.ndim == 2 else f
+    return seg.astype(np.float32), r / SR
+
+
 def ring_out(seg, x, on, others, max_len=0.8, min_room=2, xfade=0.01):
     """A Snare-Perc one-shot cut short because the next hit comes quickly (busy perc patterns: KUIKI's
     lead perc came out 0.09 s). Average only the hits that have room after them (no other snare/perc hit
@@ -626,6 +689,7 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
     namer = _namer(ref, log)
     pool = None                                    # snare + perc stems, loaded when a snare needs a real hit
     sp_all = None                                  # every snare/perc hit start, for ring_out
+    hh_x, all_on = None, {}                        # hats stem, hit starts per role: for best_chop
     out, parts = [], []
     for role in ('kick', 'sp', 'hh'):
         mine = sorted([s for s in ks if GROUP.get(s['role']) == role and s['hits'] >= min_hits],
@@ -653,7 +717,27 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
                     seg = seg[:k].copy()
                     fd = int(0.02 * SR)
                     seg[k - fd:] *= (np.linspace(1, 0, fd) ** 2)[:, None] if seg.ndim == 2 else np.linspace(1, 0, fd) ** 2
-            if role == 'sp' and name == 'Snare' and s.get('onsets') is not None and len(s['onsets']) >= 4:
+            chopped = False
+            if role in BEST_CHOP and s.get('onsets') is not None:
+                if role == 'sp':
+                    if pool is None:
+                        xs = [H.load(have[r]) for r in ('snare', 'perc') if r in have]
+                        m = min(len(v) for v in xs)
+                        pool = sum(v[:m] for v in xs)
+                    src = pool
+                else:
+                    if hh_x is None and 'hh' in have:
+                        hh_x = H.load(have['hh'])
+                    src = hh_x
+                if src is not None:
+                    if role not in all_on:
+                        all_on[role] = np.sort(np.concatenate([np.asarray(q['onsets']) for q in ks
+                                                               if q.get('onsets') is not None and GROUP.get(q['role']) == role]))
+                    chop, room = best_chop(src, s['onsets'], seg, all_on[role])
+                    if chop is not None:
+                        log(f'{name}: best single chop, {len(chop) / SR:.2f} s (room {room:.2f} s)')
+                        seg, chopped = chop, True
+            if not chopped and role == 'sp' and name == 'Snare' and s.get('onsets') is not None and len(s['onsets']) >= 4:
                 # a sound the namer is sure is a snare: one real, typical hit, like the kick (the producer
                 # picked the single hit on all three snares A/B'd, Nov 2026; Snare-Perc and hats stay averaged)
                 if pool is None:
@@ -668,7 +752,7 @@ def write_kit(split_dir, out_dir, prefix='', min_hits=4, log=lambda line: None, 
                     hit, _ = typical_hit(pool, align(pool, on, ref), nxt, len(seg))
                     if hit is not None:
                         seg = hit
-            if role == 'sp' and s.get('onsets') is not None:
+            if not chopped and role == 'sp' and s.get('onsets') is not None:
                 if pool is None:
                     xs = [H.load(have[r]) for r in ('snare', 'perc') if r in have]
                     m = min(len(v) for v in xs)
