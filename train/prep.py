@@ -166,7 +166,9 @@ def all_real(trainsets, out: Path):
 def synth_clips(out: Path, n: int, seed: int):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'datagen'))
     import render
-    bank = Path(out).parent.parent / 'oneshots'          # /vol/oneshots on Modal: real one-shots, if uploaded
+    # /vol/oneshots-v2 on Modal when uploaded: the bank re-routed by sound (helyx-10), else /vol/oneshots
+    vol = Path(out).parent.parent
+    bank = vol / 'oneshots-v2' if (vol / 'oneshots-v2').is_dir() else vol / 'oneshots'
     if bank.is_dir():
         render.load_bank(bank)
     for k in range(n):

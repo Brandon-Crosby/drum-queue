@@ -123,3 +123,18 @@ against a main loss of ~1e-3. Noise-bed practice tested clean (300 random runs, 
 Changes: `--bleedless` now refuses to run; training stops itself after 50 NaN/inf steps in a row (NaN
 tripwire in msst_patch.py). Next run: helyx-9 = helyx-7 best + noise bed + the ~54k one-shot bank,
 first as a 0.5 h sanity run (epoch 0 SDR should land near helyx-7's 2.6).
+
+## helyx-9 result and helyx-10 plan (Nov 26, 2026)
+helyx-9 (helyx-7 + noise bed + ~54k one-shot bank, 4 h; best epoch 8, validation SDR 2.36) on the 18 test
+beats: snare SDR 1.4 -> 2.6 (beats helyx-7 on 13/18), perc hiss -29 -> -36 dB, kick unchanged; but the
+hat stem got dirtier (really-hats 85% -> 74%, hiss between hits -36 -> -29 dB). The extra content in hats
+is mostly snare (1% -> 4%) and other drums (1% -> 2.5%), not noise. The bank itself is not noisier.
+Bank v2 (`oneshots-v2`, built from the T7 by sound, not just names): every one-shot was checked against
+the soundid library vote; ~4,300 sounds (8%) that clearly sound like another piece were re-routed
+(perc -> hat 1206, perc -> snare/clap 1454, snare/cymbal -> hat 246, hat -> snare 99, ...), 270 that are
+not drums (808, fx) dropped. Rules: shakers/tambourines stay hats; crashes/rides stay perc unless they
+sound like hats. Note the bank only drives the synthesized clips (~20% of training examples).
+
+    modal volume put drumsplit-train "/Volumes/T7/DrumSplits-train/oneshots-v2" /oneshots-v2
+    cd ~/drum-queue-web; and git pull; and modal deploy train/modal_train.py
+    modal run --detach train/modal_train.py::go --run helyx-10 --init runs/helyx-9/model_mdx23c_ep_8_sdr_2.3580.ckpt --hours 4 --synth 80
