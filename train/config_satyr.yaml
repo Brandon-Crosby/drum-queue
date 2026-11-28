@@ -108,8 +108,8 @@ model:
   skip_connection: False # Enable skip connection between transformer blocks - can solve problem with gradients and probably faster training
 
 training:
-  batch_size: 8
-  gradient_accumulation_steps: 1
+  batch_size: 4                  # 8 ran out of the A100-40GB's memory on step 1 (satyr-1, Nov 27 2026)
+  gradient_accumulation_steps: 2  # so each update still sees 8 clips
   grad_clip: 0
   instruments:
   - kick
