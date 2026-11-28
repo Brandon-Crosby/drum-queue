@@ -69,6 +69,7 @@ def patch(root: Path):
     patch_dataset(root)
     patch_tripwire(root)
     patch_silent_valid(root)
+    patch_sdpa_priority(root)
     print('msst patched: stem_l1_snr_loss, mixaug (aligned grooves, restack, master chain), NaN tripwire, '
           'no score for a stem a validation song does not have')
 
@@ -97,6 +98,19 @@ def patch_tripwire(root: Path):
     if '\nimport math' not in s:
         s = 'import math\n' + s
     tf.write_text(s)
+
+
+def patch_sdpa_priority(root: Path):
+    """MSST's RoFormer attention calls sdpa_kernel(..., set_priority=True) at inference (validation), which
+    needs torch >= 2.6; our image pins 2.5.1 (Helyx is tuned on it). satyr-1b crashed there on its first
+    validation. Without set_priority torch 2.5 still picks among the same fast kernels, just in its own order."""
+    import torch
+    if tuple(int(x) for x in torch.__version__.split('+')[0].split('.')[:2]) >= (2, 6):
+        return
+    for f in (root / 'models').rglob('*.py'):
+        s = f.read_text()
+        if 'set_priority=True' in s:
+            f.write_text(s.replace(', set_priority=True)', ')'))
 
 
 def patch_silent_valid(root: Path):
