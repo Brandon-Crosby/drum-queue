@@ -181,6 +181,11 @@ const LOGS = {
         'Writing one stem per kit piece'],
   finish: ['Encoding MP3 previews for the mixer'],
 };
+// The 'mix' lines when stage 1 is the band-split model (team toggle, or the site default via DRUMSPLIT_MIX).
+const MIX_LOGS = {
+  bs_roformer_4stem: ['Decoding audio · 44.1 kHz stereo', 'BS-RoFormer · one model, 62 frequency bands',
+                      'Processing in overlapping 11 s windows', 'Separating drums from bass, vocals and melodic parts'],
+};
 const LOG = { lines: [], step: '', i: 0, t: 0, last: '' };
 function logPush(line) {
   if (!line || line === LOG.lines[LOG.lines.length - 1]) return;
@@ -199,7 +204,7 @@ function logTick(j, k) {
     return;
   }
   if (stage && stage !== LOG.last && j.status === 'running') { LOG.last = stage; logPush(stage); }
-  const now = Date.now(), lines = LOGS[k] || [];
+  const now = Date.now(), lines = (k === 'mix' && MIX_LOGS[j.mix]) || LOGS[k] || [];
   if (LOG.i < lines.length && now - LOG.t > 3500) { logPush(lines[LOG.i++]); LOG.t = now; }
 }
 function stepOf(j) {
@@ -216,7 +221,7 @@ async function poll(id) {
   try { const r = await fetch('/api/jobs/' + id); j = await r.json(); if (!r.ok) throw new Error(j.error || 'Not found'); }
   catch (e) { $('#steps').hidden = true; showMsg(e.message === 'Failed to fetch' ? 'Lost connection. Retrying…' : e.message); if (e.message === 'Failed to fetch') pollT = setTimeout(() => poll(id), 4000); return; }
   if (current !== id) return;
-  $('#jname').textContent = (j.name || 'Your song') + (j.mix ? ` · ${MIX_LABEL[j.mix] || j.mix}` : '');
+  $('#jname').textContent = (j.name || 'Your song') + (TEAM && j.mix ? ` · ${MIX_LABEL[j.mix] || j.mix}` : '');
   const live = j.status === 'queued' || j.status === 'running';
   $('#cancelrow').hidden = !live;
   if (j.status === 'done' || j.status === 'error') tsUnpark();
