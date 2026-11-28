@@ -35,8 +35,20 @@ PIECES = ['kick', 'snare', 'hh']
 def _download():
     from audio_separator.separator import Separator
     s = Separator(model_file_dir=MODELS, output_dir='/tmp')
-    for m in ('htdemucs_ft.yaml', 'MDX23C-DrumSep-aufr33-jarredou.ckpt'):
+    for m in ('htdemucs_ft.yaml', 'MDX23C-DrumSep-aufr33-jarredou.ckpt', 'BS-Roformer-SW.ckpt'):
         s.download_model_files(m)
+    import urllib.request                                    # ZFTurbo's MIT 4-stem BS-RoFormer (MSST v1.0.12)
+    rel = 'https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.12/'
+    for f in ('model_bs_roformer_ep_17_sdr_9.6568.ckpt', 'config_bs_roformer_384_8_2_485100.yaml'):
+        urllib.request.urlretrieve(rel + f, f'{MODELS}/{f}')
+
+
+# stage 1 (full mix -> drum bus) candidates for the bake-off. Licenses: htdemucs_ft code MIT, weights no explicit
+# grant found; BS-Roformer-SW (jarredou) unclear / CC-BY-NC-SA on one mirror: test only until confirmed;
+# zfturbo_4stem (MSST release v1.0.12) MIT.
+STAGE1 = {'htdemucs_ft': ('sep', 'htdemucs_ft.yaml'),
+          'bs_roformer_sw': ('sep', 'BS-Roformer-SW.ckpt'),
+          'zfturbo_4stem': ('msst', 'model_bs_roformer_ep_17_sdr_9.6568.ckpt', 'config_bs_roformer_384_8_2_485100.yaml')}
 
 
 image = (
@@ -59,6 +71,7 @@ class Bench:
     source: str = modal.parameter(default='mix')     # 'mix' = stems summed, 'master' = the session's Master bounce
     ckpt: str = modal.parameter(default='')          # a checkpoint on the drumsplit-train volume, e.g. /runs/trial/x.ckpt
     chunk_s: int = modal.parameter(default=0)       # >0: run our model on windows of ~this many seconds
+    stage1: str = modal.parameter(default='htdemucs_ft')   # full mix -> drum bus: a key of STAGE1
 
     @modal.enter()
     def load(self):
@@ -66,9 +79,22 @@ class Bench:
         from audio_separator.separator import Separator
         self.work = Path('/tmp/bench')
         self.work.mkdir(exist_ok=True)
-        self.mix = Separator(output_dir=str(self.work), model_file_dir=MODELS, output_format='WAV',
-                             log_level=logging.WARNING)
-        self.mix.load_model(model_filename='htdemucs_ft.yaml')
+        st1 = STAGE1[self.stage1]
+        self.mix = self.mix_msst = None
+        if st1[0] == 'sep':
+            self.mix = Separator(output_dir=str(self.work), model_file_dir=MODELS, output_format='WAV',
+                                 log_level=logging.WARNING)
+            self.mix.load_model(model_filename=st1[1])
+        else:                                           # an MSST checkpoint, run directly
+            import sys
+            import torch
+            sys.path.insert(0, '/msst')
+            from utils.settings import get_model_from_config
+            m1, c1 = get_model_from_config('bs_roformer', f'{MODELS}/{st1[2]}')
+            sd = torch.load(f'{MODELS}/{st1[1]}', map_location='cpu', weights_only=False)
+            sd = sd.get('state_dict', sd) if isinstance(sd, dict) else sd
+            m1.load_state_dict(sd)
+            self.mix_msst = (m1.to('cuda').eval(), c1)
         self.kit = Separator(output_dir=str(self.work), model_file_dir=MODELS, output_format='WAV',
                              log_level=logging.WARNING,
                              mdxc_params={'segment_size': 256, 'override_model_segment_size': False,
@@ -127,11 +153,36 @@ class Bench:
         t = time.time()
         for f in self.work.glob('*.wav'):
             f.unlink()
-        outs = self.mix.separate(str(W / 'mix.wav'))
-        drums = next(o for o in outs if '(Drums)' in o)
-        shutil.move(str(self.work / Path(drums).name), W / 'drums.wav')
-        for o in outs:
-            (self.work / Path(o).name).unlink(missing_ok=True)
+        if self.mix is not None:
+            outs = self.mix.separate(str(W / 'mix.wav'))
+            drums = next(o for o in outs if '(drums)' in o.lower())
+            shutil.move(str(self.work / Path(drums).name), W / 'drums.wav')
+            for o in outs:
+                (self.work / Path(o).name).unlink(missing_ok=True)
+        else:
+            import torch
+            from utils.model_utils import demix
+            m1, c1 = self.mix_msst
+            x1, sr1 = sf.read(str(W / 'mix.wav'), dtype='float32', always_2d=True)
+            with torch.inference_mode():
+                r1 = demix(c1, m1, torch.tensor(x1.T), torch.device('cuda'), 'bs_roformer')
+            sf.write(str(W / 'drums.wav'), r1['drums'].T, sr1, subtype='FLOAT')
+        # how clean the drum bus is vs the real drums (sum of the answer key), before stage 2
+        bus = {}
+        try:
+            tb = [sf.read(str(W / 'truth' / f'{p}.wav'), dtype='float32', always_2d=True)[0]
+                  for p in ('kick', 'snare', 'hh', 'other_drums') if (W / 'truth' / f'{p}.wav').exists()]
+            db, _ = sf.read(str(W / 'drums.wav'), dtype='float32', always_2d=True)
+            n = min([len(db)] + [len(y) for y in tb])
+            tr = sum(y[:n] for y in tb)
+            er = db[:n] - tr
+            bus['sdr'] = round(float(10 * np.log10((tr ** 2).sum() / ((er ** 2).sum() + 1e-12) + 1e-12)), 2)
+            from scipy.signal import butter, sosfilt
+            lo = butter(4, 120, 'low', fs=sr, output='sos')
+            el, tl = sosfilt(lo, er, axis=0), sosfilt(lo, tr, axis=0)
+            bus['low_err_db'] = round(float(10 * np.log10((el ** 2).sum() / ((tl ** 2).sum() + 1e-12) + 1e-12)), 2)
+        except Exception as e:                           # scoring the bus never stops the run
+            bus['error'] = repr(e)[:200]
         est = W / 'kit'
         est.mkdir()
         if self.ours:
@@ -200,7 +251,7 @@ class Bench:
                 t_, srt = sf.read(str(tf), dtype='float32')
                 p_ = sf.read(str(pf), dtype='float32')[0] if pf.exists() else None
                 route[piece] = routing(t_, srt, outs_, partner=p_)
-        out = {'beat': beat, 'split': want, 'gpu_s': round(gpu_s), 'sdr': s.get('sdr', {}), 'leakage': s.get('leakage', {}),
+        out = {'beat': beat, 'split': want, 'stage1': self.stage1, 'bus': bus, 'gpu_s': round(gpu_s), 'sdr': s.get('sdr', {}), 'leakage': s.get('leakage', {}),
                'hits': s.get('hits', {}), 'junk': junk, 'routing': route}
         if sdr6:
             out['sdr6'] = sdr6
@@ -224,6 +275,15 @@ def board(results):
         lines.append('-' * 90)
         lines.append(f"{'MEDIAN (' + str(len(ok)) + ' beats)':34}" + ''.join(f"{med('sdr', p):8.1f}" for p in PIECES) + '   '
                      + f"{med('leakage', 'kick'):9.0f}%{med('leakage', 'snare'):10.0f}%{med('leakage', 'hh'):7.0f}%")
+    bz = [r for r in ok if (r.get('bus') or {}).get('sdr') is not None]
+    if bz:
+        import statistics as st
+        lines.append(f"\nStage 1 drum bus ({bz[0].get('stage1')}) vs the real drums: SDR (higher = cleaner), "
+                     f"and error under 120 Hz vs the real low end (lower = less 808/bass in the drums)")
+        for r in sorted(bz, key=lambda r: r['beat'].lower()):
+            lines.append(f"{r['beat'][:33]:34}{r['bus']['sdr']:8.1f}{r['bus'].get('low_err_db', float('nan')):9.1f}")
+        lines.append(f"{'MEDIAN':34}{st.median([r['bus']['sdr'] for r in bz]):8.1f}"
+                     f"{st.median([r['bus'].get('low_err_db', 0) for r in bz]):9.1f}")
     jk = [r for r in ok if r.get('junk')]
     if jk:
         import statistics as st
@@ -270,7 +330,7 @@ def board(results):
 
 @app.local_entrypoint()
 def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'current', ckpt: str = '', mix: str = 'mix',
-         listen: str = '', chunk: int = 0):
+         listen: str = '', chunk: int = 0, stage1: str = 'htdemucs_ft'):
     """--listen "beat name" also saves the model's actual separated audio (not just scores) for that one
     beat to the eval volume, so you can download and listen to it: modal volume get drumsplit-eval
     /listen/<beat> ~/Desktop/listen. --listen all saves every beat, under /listen/<label>/."""
@@ -295,7 +355,9 @@ def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'cu
         with vol.batch_upload(force=True) as up:
             for b in new:
                 up.put_directory(str(root / b), f'/testset/{b}')
-    print(f'Splitting and scoring {len(beats)} beat(s) on GPUs ...')
+    if stage1 not in STAGE1:
+        raise SystemExit(f'--stage1 must be one of {sorted(STAGE1)}')
+    print(f'Splitting and scoring {len(beats)} beat(s) on GPUs ... (stage 1: {stage1})')
     if ckpt:
         print(f'Stage 2 = our model {ckpt}')
     if listen.lower() == 'all':                   # save every beat's split under /listen/<label>/
@@ -312,7 +374,7 @@ def main(testset: str = '~/DrumSplits/testset', only: str = '', label: str = 'cu
             for b in beats:
                 if (root / b / 'mix_master.flac').exists():
                     up.put_file(str(root / b / 'mix_master.flac'), f'/testset/{b}/mix_master.flac')
-    results = list(Bench(ckpt=ckpt, source=mix, chunk_s=chunk).run.starmap(args, return_exceptions=True))
+    results = list(Bench(ckpt=ckpt, source=mix, chunk_s=chunk, stage1=stage1).run.starmap(args, return_exceptions=True))
     results = [r if isinstance(r, dict) else {'beat': b, 'error': repr(r)} for b, r in zip(beats, results)]
     print('\n' + board(results))
     out = Path('eval_results')
