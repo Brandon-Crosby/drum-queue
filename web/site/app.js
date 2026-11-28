@@ -172,6 +172,11 @@ function setStep(k, pct) {
 }
 // ---------- process log: short technical lines under the steps. Lines for the GPU steps describe
 // what that step really does; one-shot lines come from the server with the song's real numbers.
+// The 'mix' lines when stage 1 is the band-split model (team toggle, or the site default via DRUMSPLIT_MIX).
+const MIX_LOGS = {
+  bs_roformer_4stem: ['Decoding audio · 44.1 kHz stereo', 'BS-RoFormer · one model, 62 frequency bands',
+                      'Processing in overlapping 11 s windows', 'Separating drums from bass, vocals and melodic parts'],
+};
 const LOGS = {
   queue: ['Requesting a GPU · L4 → A10 → T4 → L40S → A100', 'Waiting for a container to start',
           'Cold start: loading both separation models into GPU memory'],
@@ -180,11 +185,6 @@ const LOGS = {
   kit: ['Helyx drum model · kick · snare · percussion · hi-hat', 'Overlap ×4 to smooth window edges',
         'Writing one stem per kit piece'],
   finish: ['Encoding MP3 previews for the mixer'],
-};
-// The 'mix' lines when stage 1 is the band-split model (team toggle, or the site default via DRUMSPLIT_MIX).
-const MIX_LOGS = {
-  bs_roformer_4stem: ['Decoding audio · 44.1 kHz stereo', 'BS-RoFormer · one model, 62 frequency bands',
-                      'Processing in overlapping 11 s windows', 'Separating drums from bass, vocals and melodic parts'],
 };
 const LOG = { lines: [], step: '', i: 0, t: 0, last: '' };
 function logPush(line) {
