@@ -206,3 +206,34 @@ Now batch 4 x gradient accumulation 2 (still 8 clips per update). Run names can'
 a used-up run does nothing), so the retry is satyr-1b, with --steps 300 so an epoch (and its checkpoint)
 fits in the 30 minutes:
     modal run --detach train/modal_train.py::go --arch bs_roformer --run satyr-1b --hours 0.5 --steps 300 --synth 80 --init ''
+
+## Data plan for satyr-2 / helyx-11 (Nov 28, 2026)
+Principle: test set -> find the worst failures -> add that kind of data -> fine-tune -> re-measure.
+Cleaner labels and coverage beat more of the same.
+
+1. Bigger test set: 18 -> 40-50 held-out beats (new exports from the producer; never in training).
+2. Train stage 2 on real stage-1 output: run stage 1 (Demucs, or the bake-off winner) on each training
+   song's full mix and use that drum bus as the input, real stems as the targets. Today the input is clean
+   stems + quiet music, so Helyx never sees stage-1 artifacts or its 808/bass bleed (hyperbole's fake kick).
+3. Synth aimed at the failures found by ear (Nov 27):
+   - stacked hats: open hats under closed hats (belly gang)
+   - 160-180 BPM dense hats (T VEO SOLA: hats purity 13-35% on every model)
+   - kick + snare on the same hit (only 66% of stacked snares land in snare/perc)
+   - real 808s in the music part of the mix, not just quiet music (808 bleed into kick)
+4. Low-quality uploads: run training mixes through MP3/AAC at 96-128 kbps, a top-end cut, and mono at
+   random (users upload YouTube rips and 128k MP3s; training audio is all lossless).
+5. Split-time tests, no training (a tuning script on the 18 beats): longer chunks (3 s -> 8 s), more
+   overlap, flip-and-average, a residual stem (other = drum bus - the rest), best model per stem.
+
+Public data (CC BY 4.0 = commercial use OK with credit; credits go in DATA_CREDITS.md):
+- Groove MIDI (Magenta, 13.6 h of human drumming MIDI): play it through our one-shot bank in the synth
+  -> per-piece stems with human feel (ghost notes, flams, timing) and our sounds. First and cheapest.
+- StemGMD (Politecnico di Milano, 1,224 h, every kit piece isolated, 10 acoustic kits): a slice for
+  acoustic coverage (our bank is mostly trap/Latin). Rendered with Logic Pro X libraries: worth a legal
+  look before any large commercial use. 1.13 TB unzipped: take a subset.
+- Slakh2100 (2,100 MIDI-rendered songs, drums as one stem): stage-1 training/eval; its drum MIDI can also
+  go through our synth.
+- E-GMD (444 h, 43 kits incl. 808/909, mixed drums only): stage 1 / drum-bus studies, not stage 2.
+- SPDMX (254k songs / 490k stems): check its stem types before use; stage 1 if drums are separate.
+- Skip: Cambridge-MT (educational terms), anything NC. Users' multitracks only as an explicit opt-in
+  feature: regular uploads are never kept or trained on.
