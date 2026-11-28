@@ -14,10 +14,18 @@ from pathlib import Path
 
 AUDIO_EXTS = {'.mp3', '.wav', '.flac', '.m4a', '.aiff', '.aif', '.ogg', '.opus'}
 
-MIX_MODELS = {                       # option value -> audio-separator model file
+MIX_MODELS = {                       # option value -> audio-separator model file (or MSST checkpoint)
     'htdemucs_ft': 'htdemucs_ft.yaml',   # best drums, slowest (4-model bag)
     'htdemucs':    'htdemucs.yaml',      # ~4x faster, slightly bleedier
     'htdemucs_6s': 'htdemucs_6s.yaml',   # also splits guitar + piano
+    'bs_roformer_4stem': 'model_bs_roformer_ep_17_sdr_9.6568.ckpt',   # band-split, run with MSST (below)
+}
+# Stage-1 models run with MSST instead of audio-separator: key -> (checkpoint, config, release URL).
+# ZFTurbo's 4-stem BS-RoFormer (MSST release v1.0.12, MIT; drums SDR 11.6 MUSDB / 11.3 Multisong per MSST's
+# pretrained_models.md). Outputs drums, bass, other, vocals.
+MSST_MIX = {
+    'bs_roformer_4stem': ('model_bs_roformer_ep_17_sdr_9.6568.ckpt', 'config_bs_roformer_384_8_2_485100.yaml',
+                          'https://github.com/ZFTurbo/Music-Source-Separation-Training/releases/download/v1.0.12/'),
 }
 DRUMSEP = 'MDX23C-DrumSep-aufr33-jarredou.ckpt'
 DRUMSEP_YAML = 'config_drumsep_mdx23c.yaml'
@@ -54,6 +62,25 @@ def link_xport_drumsep():
                 dst.symlink_to(src)
             except OSError:
                 shutil.copy2(src, dst)
+
+
+def download_msst_mix(key):
+    """Fetch an MSST stage-1 checkpoint + config into MODEL_DIR (image build, or first use)."""
+    import urllib.request
+    ck, cf, url = MSST_MIX[key]
+    MODEL_DIR.mkdir(parents=True, exist_ok=True)
+    for f in (ck, cf):
+        if not (MODEL_DIR / f).exists():
+            urllib.request.urlretrieve(url + f, str(MODEL_DIR / f))
+
+
+def _msst_dir():
+    """MSST checkout: $MSST_DIR, /msst (the site's image), or ~/Music-Source-Separation-Training."""
+    import os
+    for d in (os.environ.get('MSST_DIR'), '/msst', str(Path.home() / 'Music-Source-Separation-Training')):
+        if d and Path(d, 'utils', 'settings.py').exists():
+            return d
+    raise RuntimeError('MSST not found: set MSST_DIR to a Music-Source-Separation-Training checkout')
 
 
 def ensure_ffmpeg():
@@ -119,8 +146,13 @@ class Models:
     def get_mix(self, key):
         if self.mix_key != key:
             self.mix = None
-            s = self._make()
-            s.load_model(model_filename=MIX_MODELS[key])
+            if key in MSST_MIX:
+                download_msst_mix(key)
+                ck, cf, _ = MSST_MIX[key]
+                s = MsstMix(MODEL_DIR / ck, MODEL_DIR / cf, self.helyx[2] if self.helyx else _msst_dir())
+            else:
+                s = self._make()
+                s.load_model(model_filename=MIX_MODELS[key])
             self.mix, self.mix_key = s, key
         return self.mix
 
@@ -141,7 +173,7 @@ class Models:
         for f in self.work.iterdir():              # leftovers from a crashed job
             if f.is_file():
                 f.unlink()
-        if isinstance(sep, HelyxKit):
+        if isinstance(sep, (HelyxKit, MsstMix)):
             return sep.split(audio, self.work)
         out = {}
         for o in sep.separate(str(audio)):
@@ -151,6 +183,63 @@ class Models:
             lab = _label_of(p.name)
             if lab:
                 out[lab] = p
+        return out
+
+
+def _msst_compat(msst_dir):
+    """MSST's RoFormer attention asks for sdpa_kernel(set_priority=True), torch >= 2.6 only (train/msst_patch.py)."""
+    import torch
+    if tuple(int(x) for x in torch.__version__.split('+')[0].split('.')[:2]) >= (2, 6):
+        return
+    for f in Path(msst_dir, 'models').rglob('*.py'):
+        t = f.read_text()
+        if 'set_priority=True' in t:
+            try:
+                f.write_text(t.replace(', set_priority=True)', ')'))
+            except OSError:
+                pass
+
+
+class MsstMix:
+    """A stage-1 model (full mix -> drums/bass/other/vocals) run with MSST's loader and demix."""
+
+    def __init__(self, ckpt, config, msst_dir):
+        import torch
+        if str(msst_dir) not in sys.path:
+            sys.path.insert(0, str(msst_dir))
+        _msst_compat(msst_dir)
+        from utils.settings import get_model_from_config
+        model, cfg = get_model_from_config('bs_roformer', str(config))
+        sd = torch.load(str(ckpt), map_location='cpu', weights_only=False)
+        for k in ('state_dict', 'model_state_dict', 'state'):
+            if isinstance(sd, dict) and k in sd:
+                sd = sd[k]
+        model.load_state_dict({k.replace('_orig_mod.', ''): v for k, v in sd.items()})
+        self.dev = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model, self.cfg = model.to(self.dev).eval(), cfg
+
+    def split(self, audio, work):
+        import numpy as np
+        import soundfile as sf
+        import torch
+        from utils.model_utils import demix
+        x, sr = sf.read(str(audio), dtype='float32', always_2d=True)
+        if x.shape[1] == 1:
+            x = np.repeat(x, 2, 1)
+        if sr != 44100:                                  # the model's rate; back to the song's rate after
+            import librosa
+            x = librosa.resample(x.T, orig_sr=sr, target_sr=44100).T
+        with torch.inference_mode():
+            res = demix(self.cfg, self.model, torch.tensor(x[:, :2].T), self.dev, 'bs_roformer')
+        out = {}
+        for k, y in res.items():
+            y = np.asarray(y)
+            if sr != 44100:
+                import librosa
+                y = librosa.resample(y, orig_sr=44100, target_sr=sr)
+            p = Path(work) / f'{k}.wav'
+            sf.write(str(p), y.T, sr, subtype='PCM_24')
+            out[k] = p
         return out
 
 
@@ -292,7 +381,7 @@ def process(job, out_root, models, stage, preview_fmt='wav', max_seconds=None):
     stems = models.run(mix, wav)
     wav.unlink(missing_ok=True)
     if 'drums' not in stems:
-        raise RuntimeError(f'Demucs gave no drums stem (got {sorted(stems)})')
+        raise RuntimeError(f'The mix model gave no drums stem (got {sorted(stems)})')
     shutil.move(str(stems.pop('drums')), out_dir / 'drums.wav')
     for lab, p in stems.items():
         if opts.get('keep_full', True):
