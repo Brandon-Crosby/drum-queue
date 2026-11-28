@@ -28,11 +28,13 @@ HELYX_RUN = 'runs/helyx-4'     # kit model: this run's last_mdx23c.ckpt on the d
 # Staging (a full test copy: own app, storage and job list; see web/DEPLOY.md "Staging"):
 #   DRUMSPLIT_STAGE=staging modal deploy web/backend/modal_app.py
 # and to try a new model there first:  DRUMSPLIT_HELYX=runs/helyx-6 (same command).
+# Stage 1 the same way: DRUMSPLIT_MIX=bs_roformer_4stem (engine.MIX_MODELS; band-split, MIT) - A/B on staging first.
 # Both are baked into the containers' environment, so code running in the cloud resolves the same names.
 STAGE = os.environ.get('DRUMSPLIT_STAGE', '').strip()
 if STAGE not in ('', 'staging'):
     raise SystemExit(f"DRUMSPLIT_STAGE must be empty (live site) or 'staging', not {STAGE!r}")
 HELYX_RUN = os.environ.get('DRUMSPLIT_HELYX') or os.environ.get('HELYX_RUN') or HELYX_RUN
+MIX_MODEL = os.environ.get('DRUMSPLIT_MIX') or os.environ.get('MIX_MODEL') or MIX_MODEL
 MSST_COMMIT = '1d4b3c431b37de696b3795ed2018493aacba946f'   # same code that trained and graded Helyx
 HELYX_DIR = '/models/helyx'
 # Tried in order; Modal uses whichever has capacity (a lone 'L4' can sit in a queue for minutes).
@@ -68,8 +70,12 @@ def _download_models():
     from audio_separator.separator import Separator
     engine.MODEL_DIR.mkdir(parents=True, exist_ok=True)
     s = Separator(model_file_dir=str(engine.MODEL_DIR), output_dir='/tmp')
-    for m in (engine.MIX_MODELS[MIX_MODEL], engine.DRUMSEP):
-        s.download_model_files(m)
+    if MIX_MODEL in engine.MSST_MIX:                 # a band-split stage 1, run with MSST
+        engine.download_msst_mix(MIX_MODEL)
+        s.download_model_files(engine.DRUMSEP)
+    else:
+        for m in (engine.MIX_MODELS[MIX_MODEL], engine.DRUMSEP):
+            s.download_model_files(m)
 
 
 def _copy_helyx():
@@ -87,7 +93,9 @@ def _copy_helyx():
 
 # Names one-shots (Snare, Clap, Cowbell...) by the one-shot library they sound like. Built on the Mac
 # with kitmatch/soundid.py build; fingerprints and categories only. Missing = generic names.
-SOUNDID_REF = Path.home() / 'DrumSplits' / 'soundmatch' / 'soundid_ref.npz'
+SOUNDID_REF = next((p for p in (Path.home() / 'DrumSplits' / 'soundmatch' / 'soundid_ref.npz',
+                                 Path.home() / 'DrumSplits' / 'Helyx' / 'soundmatch' / 'soundid_ref.npz')   # moved Nov 2026
+                    if p.exists()), Path.home() / 'DrumSplits' / 'soundmatch' / 'soundid_ref.npz')
 
 gpu_image = (
     modal.Image.debian_slim(python_version='3.11')
@@ -105,6 +113,7 @@ gpu_image = (
     .add_local_file(REPO / 'kitmatch' / 'groove.py', '/root/kitmatch/groove.py', copy=True)
     .add_local_file(REPO / 'kitmatch' / 'junk.py', '/root/kitmatch/junk.py', copy=True)
     .add_local_file(HERE / 'service.py', '/root/service.py', copy=True)
+    .env({'MIX_MODEL': MIX_MODEL})                 # the build container re-reads MIX_MODEL from this
     .run_function(_download_models)
     .apt_install('git')
     .run_commands('git clone -q https://github.com/ZFTurbo/Music-Source-Separation-Training /msst && '
