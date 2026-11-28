@@ -128,6 +128,21 @@ def patch_silent_valid(root: Path):
     s = s.replace(a, a + """
                 if np.abs(track).max() < 1e-4:          # silent in this song (e.g. no toms): nothing to score
                     continue""", 1)
+    # ...and a stem no validation song has at all (satyr-1c: no cymbals in any of the 3) scored NaN, which made
+    # the average NaN, so no checkpoint ever counted as best. Average only the stems that got a score.
+    a = """            metric_sum[metric_name] = metric_sum.get(metric_name, 0.0) + mean_val"""
+    assert s.count(a) == 1, 'valid.py: metric_sum line not found'
+    s = s.replace(a, """            if mean_val == mean_val:                # (drumsplit) skip stems with no score (NaN)
+                metric_sum[metric_name] = metric_sum.get(metric_name, 0.0) + mean_val
+                metric_cnt[metric_name] = metric_cnt.get(metric_name, 0) + 1""", 1)
+    a = """    metric_sum: Dict[str, float] = {}
+"""
+    assert s.count(a) == 1, 'valid.py: metric_sum init not found'
+    s = s.replace(a, a + """    metric_cnt: Dict[str, int] = {}
+""", 1)
+    a = """        metric_avg[metric_name] = metric_sum.get(metric_name, float("nan")) / denom"""
+    assert s.count(a) == 1, 'valid.py: metric_avg line not found'
+    s = s.replace(a, """        metric_avg[metric_name] = metric_sum.get(metric_name, float("nan")) / max(metric_cnt.get(metric_name, 0), 1)""", 1)
     vf.write_text(s)
 
 
