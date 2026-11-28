@@ -50,3 +50,10 @@ If Satyr (6 stems, see train/NEXT_RUN.md) ships: the site and kit maker handle t
 - mixer: toms and cymbals channels (solo/mute/EQ like the others), previews, downloads
 - kit maker: a Tom slot (one-shots + a Toms loop), cymbals one-shots; Groove MIDI gets tom notes
 - engine: stem list from the model, not hard-coded to kick/snare/perc/hh
+
+## Inference orchestrator (later: local app, or when the site runs more than one model)
+A small local inference server (helper process on a local socket) the app/plugins talk to: hello/submit/
+progress/result/cancel; pipelines as recipes (`drums6: [stage1, satyr]`, best model per stem as config);
+a model catalog (arch, file, checksum, stems, chunk/hop, memory); a memory budget with idle-model eviction and
+a clear refusal instead of a crash; cancellation between chunks. PyTorch first, Core ML / ONNX later.
+Pinned Nov 28, 2026: architecture, not quality; stay on Satyr / stage 1 / kit maker first.
