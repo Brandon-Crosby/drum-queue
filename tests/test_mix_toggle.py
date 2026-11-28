@@ -33,7 +33,7 @@ class MixToggleTests(unittest.TestCase):
     def test_public_gets_default_even_if_it_asks(self):
         job, pub = self.upload(mix='bs_roformer_4stem')
         self.assertEqual(job['mix'], 'htdemucs_ft')
-        self.assertNotIn('mix', pub)
+        self.assertEqual(pub['mix'], 'htdemucs_ft')
 
     def test_unknown_choice_falls_back(self):
         job, _ = self.upload(team='team-code-123', mix='something_else')

@@ -236,8 +236,7 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
         keep = {k: j.get(k) for k in ('status', 'stage', 'error', 'name', 'bpm', 'duration', 'note',
                                        'created', 'started', 'finished', 'eta_wait', 'eta_run', 'log')}
         keep['id'] = jid
-        if j.get('team'):                           # which stage 1 split it, for the team's A/B
-            keep['mix'] = j.get('mix')
+        keep['mix'] = j.get('mix')                  # which stage 1 split it (progress text; team A/B title)
         keep['stems'] = [{k: s[k] for k in ('name', 'preview', 'stem', 'label', 'group', 'quiet')}
                          for s in j.get('stems') or []]
         keep['shots'] = [{k: s.get(k) for k in ('name', 'label', 'piece', 'seconds', 'count')}
