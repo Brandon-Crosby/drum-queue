@@ -200,3 +200,9 @@ Then:
     modal run --detach train/modal_train.py::go --arch bs_roformer --run satyr-1 --hours 0.5 --synth 80 --init ''
 satyr-1 checks: loss finite, an epoch-0 checkpoint, the time per epoch (cost of a full run), no GPU
 out-of-memory at batch 8 (if it runs out: batch_size 4).
+
+satyr-1 (Nov 27, 2026): CUDA out of memory on the first step at batch 8 (needs > 39.5 GB at depth 12).
+Now batch 4 x gradient accumulation 2 (still 8 clips per update). Run names can't be reused (_run.json:
+a used-up run does nothing), so the retry is satyr-1b, with --steps 300 so an epoch (and its checkpoint)
+fits in the 30 minutes:
+    modal run --detach train/modal_train.py::go --arch bs_roformer --run satyr-1b --hours 0.5 --steps 300 --synth 80 --init ''
