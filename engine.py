@@ -144,10 +144,11 @@ class Models:
                                       'batch_size': 1, 'overlap': overlap, 'pitch_shift': 0})
 
     def get_mix(self, key):
-        cache = self.__dict__.setdefault('_mixes', {})     # every stage-1 model used stays loaded
-        if self.mix_key != key and key in cache:
-            self.mix, self.mix_key = cache[key], key
         if self.mix_key != key:
+            cache = self.__dict__.setdefault('_mixes', {})     # every stage-1 model used stays loaded
+            if key in cache:
+                self.mix, self.mix_key = cache[key], key
+                return self.mix
             self.mix = None
             if key in MSST_MIX:
                 download_msst_mix(key)
