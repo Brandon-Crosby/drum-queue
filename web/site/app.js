@@ -30,9 +30,24 @@ try {
   }
   TEAM = localStorage.getItem('dsTeam') || '';
 } catch (_) {}
+// Team mode can also pick stage 1 (full song -> drums) per upload, to A/B Demucs and BS-RoFormer.
+const MIX_LABEL = { htdemucs_ft: 'Demucs', bs_roformer_4stem: 'BS-RoFormer' };
+let MIX = '';
+try { MIX = localStorage.getItem('dsMix') || ''; } catch (_) {}
 function teamBadge() {
   const b = document.createElement('div'); b.className = 'teambadge';
-  b.textContent = 'Team mode: your splits are kept for testing';
+  b.append('Team mode: your splits are kept for testing');
+  fetch('/api/mixes').then(r => r.json()).then(d => {
+    const ch = (d && d.choices) || [];
+    if (ch.length < 2) return;
+    if (!ch.includes(MIX)) MIX = ch[0];
+    const w = document.createElement('span'); w.className = 'mixpick'; w.append(' · Drums from the song: ');
+    const sel = document.createElement('select'); sel.setAttribute('aria-label', 'Model that pulls the drums out of the song');
+    for (const m of ch) { const o = document.createElement('option'); o.value = m; o.textContent = MIX_LABEL[m] || m; sel.append(o); }
+    sel.value = MIX;
+    sel.onchange = () => { MIX = sel.value; try { localStorage.setItem('dsMix', MIX); } catch (_) {} };
+    w.append(sel); b.append(w);
+  }).catch(() => {});
   document.body.prepend(b);
 }
 if (TEAM) { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', teamBadge); else teamBadge(); }
@@ -122,7 +137,7 @@ async function start(f) {
   if (!ready) return showMsg('Please finish the "verify you are human" check above, then try again.');
   busy = true; stopMixer(); openJob(f.name); setStep('upload', 0);
   const fd = new FormData(); fd.append('file', f, f.name); fd.append('token', tsToken);
-  if (TEAM) fd.append('team', TEAM);
+  if (TEAM) { fd.append('team', TEAM); if (MIX) fd.append('mix', MIX); }
   const x = new XMLHttpRequest();
   x.open('POST', '/api/jobs');
   x.upload.onprogress = e => { if (e.lengthComputable) setStep('upload', Math.round(e.loaded / e.total * 100)); };
@@ -201,7 +216,7 @@ async function poll(id) {
   try { const r = await fetch('/api/jobs/' + id); j = await r.json(); if (!r.ok) throw new Error(j.error || 'Not found'); }
   catch (e) { $('#steps').hidden = true; showMsg(e.message === 'Failed to fetch' ? 'Lost connection. Retrying…' : e.message); if (e.message === 'Failed to fetch') pollT = setTimeout(() => poll(id), 4000); return; }
   if (current !== id) return;
-  $('#jname').textContent = j.name || 'Your song';
+  $('#jname').textContent = (j.name || 'Your song') + (j.mix ? ` · ${MIX_LABEL[j.mix] || j.mix}` : '');
   const live = j.status === 'queued' || j.status === 'running';
   $('#cancelrow').hidden = !live;
   if (j.status === 'done' || j.status === 'error') tsUnpark();

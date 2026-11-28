@@ -59,6 +59,9 @@ class Settings:
         # in /team/<id>/ (upload + every output), skip the daily limits, and are never shown to anyone
         # else. Empty = off. Lives in the drumsplit-team Modal secret, never in the code.
         self.team_code = os.environ.get('TEAM_CODE', '')
+        # Stage-1 models the team can pick per upload (engine.MIX_MODELS keys); the first is the default
+        # and the only one the public gets.
+        self.mix_choices = [m.strip() for m in os.environ.get('MIX_CHOICES', 'htdemucs_ft').split(',') if m.strip()]
 
 
 # ------------------------------------------------------------------ stores
@@ -233,6 +236,8 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
         keep = {k: j.get(k) for k in ('status', 'stage', 'error', 'name', 'bpm', 'duration', 'note',
                                        'created', 'started', 'finished', 'eta_wait', 'eta_run', 'log')}
         keep['id'] = jid
+        if j.get('team'):                           # which stage 1 split it, for the team's A/B
+            keep['mix'] = j.get('mix')
         keep['stems'] = [{k: s[k] for k in ('name', 'preview', 'stem', 'label', 'group', 'quiet')}
                          for s in j.get('stems') or []]
         keep['shots'] = [{k: s.get(k) for k in ('name', 'label', 'piece', 'seconds', 'count')}
@@ -246,6 +251,10 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
     def health():
         return {'ok': True}
 
+    @app.get('/api/mixes')
+    def mixes():
+        return {'choices': S.mix_choices}
+
     @app.get('/api/limits')
     def limits(request: Request):
         mine, total = counts(visitor_key(request, S.salt, trusted))
@@ -254,7 +263,8 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
                 'turnstile': bool(S.turnstile_secret)}
 
     @app.post('/api/jobs')
-    def create_job(request: Request, file: UploadFile = File(...), token: str = Form(''), team: str = Form('')):
+    def create_job(request: Request, file: UploadFile = File(...), token: str = Form(''), team: str = Form(''),
+                   mix: str = Form('')):
         # Plain def (not async): FastAPI runs it in a worker thread, so the blocking job-store and
         # Modal calls below never stall other visitors' requests.
         name = re.sub(r'[\x00-\x1f/\\]', '_', Path(file.filename or 'song').name)
@@ -308,8 +318,10 @@ def create_app(root, store, submit, settings=None, refresh=lambda: None, cancel=
         loc = f'{country}-{region}' if country and region else (country or '??')
         bump(store, f'stats:{today()}:api', started=1, uploaders=1 if mine == 0 else 0,
              countries={country or '??': 1}, regions={loc: 1})
+        # stage 1: the team may pick any offered model (Demucs vs BS-RoFormer A/B); everyone else gets the default
+        mix_model = mix if is_team and mix in S.mix_choices else S.mix_choices[0]
         update_job(store, jid, status='queued', stage='Waiting for a GPU', name=name, created=time.time(),
-                   stems=[], error='', day=today(), vkey=vkey, team=is_team, **eta_fields(secs))
+                   stems=[], error='', day=today(), vkey=vkey, team=is_team, mix=mix_model, **eta_fields(secs))
         call = submit(jid)
         if call:
             update_job(store, jid, call=call)
@@ -479,7 +491,7 @@ def run_job(jid, root, store, models, mix_model='htdemucs_ft', max_seconds=None,
     try:
         res = engine.process(
             dict(name=j.get('name', src.name), src=str(src),
-                 opts=dict(model=mix_model, overlap=4, keep_full=True)),
+                 opts=dict(model=j.get('mix') or mix_model, overlap=4, keep_full=True)),
             root / 'jobs' / jid / 'out', models,
             lambda st: _progress(store, jid, st), preview_fmt='mp3', max_seconds=max_seconds)
         done = time.time()

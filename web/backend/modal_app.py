@@ -35,6 +35,8 @@ if STAGE not in ('', 'staging'):
     raise SystemExit(f"DRUMSPLIT_STAGE must be empty (live site) or 'staging', not {STAGE!r}")
 HELYX_RUN = os.environ.get('DRUMSPLIT_HELYX') or os.environ.get('HELYX_RUN') or HELYX_RUN
 MIX_MODEL = os.environ.get('DRUMSPLIT_MIX') or os.environ.get('MIX_MODEL') or MIX_MODEL
+# The team (?team= link) can pick stage 1 per upload; MIX_MODEL (first) is the default and the public's.
+MIX_CHOICES = [MIX_MODEL] + [m for m in ('htdemucs_ft', 'bs_roformer_4stem') if m != MIX_MODEL]
 MSST_COMMIT = '1d4b3c431b37de696b3795ed2018493aacba946f'   # same code that trained and graded Helyx
 HELYX_DIR = '/models/helyx'
 # Tried in order; Modal uses whichever has capacity (a lone 'L4' can sit in a queue for minutes).
@@ -51,6 +53,7 @@ if STAGE:                      # testing shares the Modal budget with the live s
     MAX_GPUS = 1
     PUBLIC_ENV.update(LIMIT_PER_IP='15', DAILY_CAP='15')
 PUBLIC_ENV['DRUMSPLIT_STAGE'] = STAGE
+PUBLIC_ENV['MIX_CHOICES'] = ','.join(MIX_CHOICES)
 SUFFIX = f'-{STAGE}' if STAGE else ''
 # --------------------------------------------------------------------------
 
@@ -70,12 +73,12 @@ def _download_models():
     from audio_separator.separator import Separator
     engine.MODEL_DIR.mkdir(parents=True, exist_ok=True)
     s = Separator(model_file_dir=str(engine.MODEL_DIR), output_dir='/tmp')
-    if MIX_MODEL in engine.MSST_MIX:                 # a band-split stage 1, run with MSST
-        engine.download_msst_mix(MIX_MODEL)
-        s.download_model_files(engine.DRUMSEP)
-    else:
-        for m in (engine.MIX_MODELS[MIX_MODEL], engine.DRUMSEP):
-            s.download_model_files(m)
+    for m in MIX_CHOICES:                            # every stage-1 model the team can pick
+        if m in engine.MSST_MIX:                     # band-split, run with MSST
+            engine.download_msst_mix(m)
+        else:
+            s.download_model_files(engine.MIX_MODELS[m])
+    s.download_model_files(engine.DRUMSEP)
 
 
 def _copy_helyx():
@@ -163,7 +166,8 @@ class Splitter:
         import engine
         helyx = (f'{HELYX_DIR}/model.ckpt', f'{HELYX_DIR}/config.yaml', '/msst') if HELYX_RUN else None
         self.models = engine.Models('/tmp/dq/work', helyx=helyx)
-        self.models.get_mix(MIX_MODEL)          # warm both models before the first song
+        for m in reversed(MIX_CHOICES):         # warm every stage-1 model (default last = current)
+            self.models.get_mix(m)
         self.models.get_kit(4)
 
     @modal.method()

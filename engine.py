@@ -144,6 +144,9 @@ class Models:
                                       'batch_size': 1, 'overlap': overlap, 'pitch_shift': 0})
 
     def get_mix(self, key):
+        cache = self.__dict__.setdefault('_mixes', {})     # every stage-1 model used stays loaded
+        if self.mix_key != key and key in cache:
+            self.mix, self.mix_key = cache[key], key
         if self.mix_key != key:
             self.mix = None
             if key in MSST_MIX:
@@ -154,6 +157,7 @@ class Models:
                 s = self._make()
                 s.load_model(model_filename=MIX_MODELS[key])
             self.mix, self.mix_key = s, key
+            cache[key] = s
         return self.mix
 
     def get_kit(self, overlap):
